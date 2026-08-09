@@ -2,7 +2,7 @@
   "name": "palassistent",
   "version": "2.0.0",
   "private": true,
-  "description": "Palworld-assistent byggd från Level.sav – box, breeding-planerare och rekommendationer",
+  "description": "Palworld assistant built from Level.sav - box, breeding planner and recommendations",
   "scripts": {
     "predev": "node scripts/ensure-data.mjs",
     "dev": "next dev",
