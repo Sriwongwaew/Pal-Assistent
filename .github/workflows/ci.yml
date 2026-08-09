@@ -6,8 +6,12 @@
 # släppa något.
 #
 # Körs på Linux med flit: appen i sig är plattformsoberoende, och en Linux-runner
-# startar på sekunder mot Windows dryga minut. Det Windows-specifika (installern,
-# launchern, palsave.exe) byggs och testas i release.yml.
+# startar på sekunder mot Windows dryga minut.
+#
+# Det Windows-specifika – installern, launchern, palsave.exe – ligger i
+# package.yml, som körs när paketeringens indata ändrats, en gång i veckan, och
+# före varje utgåva. Den uppdelningen är medveten: nästan alla ändringar rör
+# src/components och src/lib, och dem täcker det här jobbet fullständigt.
 
 name: CI
 

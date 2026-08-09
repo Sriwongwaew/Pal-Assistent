@@ -1,8 +1,8 @@
-# Bygger installern och publicerar den som en GitHub-utgåva.
+# Publicerar en GitHub-utgåva av det package.yml byggt och provkört.
 #
 # Körs när en tagg som `v2.1.0` pushas:
 #
-#     npm version minor        # uppdaterar package.json och taggar
+#     npm version minor        # uppdaterar package.json, stämplar CHANGELOG, taggar
 #     git push --follow-tags
 #
 # Resultatet blir en utgåva med två filer, och båda namnen är stabila med flit:
@@ -10,13 +10,14 @@
 #     PalAssistent-Setup.exe   installationsfilen
 #     SHA256SUMS.txt           kontrollsumman som appen verifierar mot
 #
-# Den senaste versionen har därmed alltid samma adress, och det är den man
-# länkar till från README:
+# Den senaste versionen har därmed alltid samma adress, och det är den README
+# länkar till:
 #
 #     https://github.com/<owner>/<repo>/releases/latest/download/PalAssistent-Setup.exe
 #
-# PA_REPO bakas in i bygget här. Det är vad som slår PÅ uppdateringsfunktionen –
-# ett bygge från källkoden har den tom och erbjuder därför aldrig uppdateringar.
+# Själva bygget ligger i package.yml och körs likadant här som på en vanlig push –
+# poängen med att anropa det i stället för att upprepa det är att en utgåva aldrig
+# ska kunna byggas på ett annat sätt än det som testats hela veckan.
 
 name: Utgåva
 
@@ -24,10 +25,9 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 # En utgåva i taget, och avbryt aldrig en som redan börjat publicera – halvvägs
 # genom en release är det värsta stället att bli avbruten på.
@@ -36,148 +36,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    # Måste vara Windows: installern byggs med Inno Setup, launchern kompileras
-    # med csc.exe ur .NET Framework, och palsave.exe är en Windows-binär.
-    runs-on: windows-latest
+  # Bygger installern, provinstallerar den och laddar upp den som artefakt.
+  paket:
+    uses: ./.github/workflows/package.yml
+
+  publicera:
+    needs: paket
+    # Publiceringen är bara filhantering och ett API-anrop – ingen anledning att
+    # betala för en Windows-runner till det.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
+      # Behövs för CHANGELOG.md och scripts/changelog.mjs.
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: tools/requirements.txt
-
-      - name: Installera beroenden
-        run: |
-          npm ci
-          python -m pip install --disable-pip-version-check pyinstaller
-          pip install -r tools/requirements.txt
-
-      - name: Installera Inno Setup
-        run: choco install innosetup --no-progress -y
-
-      - name: Kontrollera koden
-        run: |
-          npm run typecheck
-          npm test
-          npm run lint
-
-      - name: Bygg paketet
-        env:
-          # github.repository är "owner/namn" – exakt det uppdateringskollen vill ha.
-          PA_REPO: ${{ github.repository }}
-          PA_DONATE: ${{ vars.PA_DONATE }}
-        run: npm run package
-
-      - name: Kontrollera att utgåvan inte bär någons box
-        shell: pwsh
-        run: |
-          # Sista spärren mot att en utvecklares egen save följer med ut. Bygget
-          # ska alltid utgå från data/pal-data.base.json, men den här filen är
-          # 1,7 MB JSON och ett misstag syns inte i en diff.
-          $data = Get-Content 'packaging/build/payload/public/data/pal-data.json' -Raw | ConvertFrom-Json
-          if ($data.pals.Count -ne 0 -or $data.player -ne '') {
-            throw "Nyttolasten innehåller $($data.pals.Count) pals och spelaren '$($data.player)'."
-          }
-          Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
-
-      # Installern startas på riktigt innan den publiceras.
-      #
-      # Det här är det enda steget som testar den färdiga produkten i stället för
-      # källkoden, och buggarna det fångar passerar både typecheck och tester utan
-      # att blinka: saknad `static/` ger en ostylad sida, saknade spelikoner ger
-      # tomma rutor, och hittas inte palsave.exe faller servern tillbaka på Python
-      # – som mottagaren inte har. Alla tre har hänt under utvecklingen.
-      - name: Provinstallera och starta appen
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Start-Process 'dist\PalAssistent-Setup.exe' `
-            -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
-          $dir = "$env:LOCALAPPDATA\Programs\PalAssistent"
-
-          foreach ($f in 'PalAssistent.exe','server.js','node\node.exe',
-                         'tools\palsave\palsave.exe','public\data\pal-data.json') {
-            if (-not (Test-Path (Join-Path $dir $f))) { throw "Installationen saknar $f." }
-          }
-          if (-not (Test-Path (Join-Path $dir 'unins000.exe'))) { throw "Ingen avinstallerare." }
-
-          # Servern startas direkt, utan launchern: fönstret kräver en skärm och
-          # en Edge-profil, och det vi vill veta är om appen fungerar.
-          $env:PORT = '3131'; $env:HOSTNAME = '127.0.0.1'; $env:NODE_ENV = 'production'
-          $server = Start-Process (Join-Path $dir 'node\node.exe') -ArgumentList 'server.js' `
-            -WorkingDirectory $dir -PassThru -WindowStyle Hidden
-          $base = 'http://127.0.0.1:3131'
-
-          try {
-            $up = $false
-            for ($i = 0; $i -lt 60; $i++) {
-              Start-Sleep -Milliseconds 500
-              try { if ((Invoke-WebRequest "$base/" -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200) { $up = $true; break } } catch {}
-            }
-            if (-not $up) { throw "Servern svarade aldrig." }
-
-            foreach ($p in '/','/box','/breeding','/bast-for','/rekommendationer') {
-              $r = Invoke-WebRequest "$base$p" -UseBasicParsing -TimeoutSec 30
-              if ($r.StatusCode -ne 200) { throw "$p svarade $($r.StatusCode)." }
-            }
-
-            # Stilarna serveras bara om .next-package/static kopierats in.
-            $html = (Invoke-WebRequest "$base/" -UseBasicParsing -TimeoutSec 30).Content
-            $css = [regex]::Match($html, '/_next/static/css/[^"]+\.css').Value
-            if (-not $css) { throw "Sidan refererar ingen CSS - static saknas i paketet." }
-            if ((Invoke-WebRequest "$base$css" -UseBasicParsing -TimeoutSec 30).StatusCode -ne 200) {
-              throw "CSS-filen gick inte att hämta: $css"
-            }
-
-            # Spelikonerna ligger i public/ och kopieras separat.
-            if ((Invoke-WebRequest "$base/icons/alpha.webp" -UseBasicParsing -TimeoutSec 30).StatusCode -ne 200) {
-              throw "Spelikonerna saknas i paketet."
-            }
-
-            $data = Invoke-RestMethod "$base/data/pal-data.json" -TimeoutSec 60
-            if ($data.pals.Count -ne 0 -or $data.player -ne '') { throw "Utgåvan bär en box." }
-            if ($data.species.Count -lt 100) { throw "Artlistan ser stympad ut ($($data.species.Count))." }
-
-            # Avgörande: den frysta läsaren måste svara. Nämner felet Python har
-            # den inte hittats, och då fungerar "Läs in från spelet" inte hos någon.
-            $scan = Invoke-RestMethod "$base/api/save/scan" -TimeoutSec 180
-            if ($scan.error -and $scan.error -match 'Python') {
-              throw "palsave.exe hittades inte - servern föll tillbaka på Python: $($scan.error)"
-            }
-
-            # PA_REPO måste ha bakats in, annars kan ingen uppdatera sig.
-            $upd = Invoke-RestMethod "$base/api/update/check" -TimeoutSec 60
-            if (-not $upd.enabled) { throw "Uppdateringskollen är avstängd - PA_REPO saknas i bygget." }
-
-            Write-Host "Installationen startar, svarar och läser saver. $($data.species.Count) arter."
-          }
-          finally {
-            Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
-          }
+          name: PalAssistent-Setup
+          path: dist
 
       # Utgåvans text kommer ur CHANGELOG.md, inte ur commit-rubrikerna. Samma
       # text visas i appen när den säger att en uppdatering finns, så den är
-      # skriven för den som använder appen. Saknas avsnittet stannar bygget här –
+      # skriven för den som använder appen. Saknas avsnittet stannar det här –
       # med flit: en utgåva utan noteringar är en utgåva ingen förstår.
       - name: Hämta noteringar ur CHANGELOG.md
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
         run: node scripts/changelog.mjs notes "${GITHUB_REF_NAME}" > release-notes.md
 
-      # Utan tagg finns ingen utgåva att publicera. En manuell körning ska ändå
-      # gå att göra – då blir installern en artefakt att ladda ner från körningen
-      # i stället för att hela jobbet faller på sista steget.
+      - name: Kontrollera att kontrollsumman stämmer
+        run: |
+          # Appens uppdateringsfunktion vägrar installera när hashen inte matchar,
+          # så en felaktig SHA256SUMS.txt gör utgåvan oanvändbar för alla som
+          # redan kör programmet – utan att något syns här.
+          cd dist && sha256sum --check SHA256SUMS.txt
+
       - name: Publicera utgåvan
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -185,12 +79,3 @@ jobs:
             dist/SHA256SUMS.txt
           body_path: release-notes.md
           draft: false
-
-      - name: Spara bygget som artefakt (manuell körning)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: PalAssistent-Setup
-          path: |
-            dist/PalAssistent-Setup.exe
-            dist/SHA256SUMS.txt
