@@ -93,6 +93,31 @@ jobs:
           npm test
           npm run lint
 
+      # FUNDING.yml ger knappen på repots STARTSIDA; appens länk kommer ur
+      # repo-variabeln PA_DONATE. Två olika ställen för samma sak, och de glider
+      # isär tyst: FUNDING.yml är committad och syns i en diff, variabeln finns
+      # bara i Settings. Det var precis så 2.2.0 gick ut med "Support on Ko-fi"
+      # i katalogen men ingen adress att peka på.
+      #
+      # Varning, aldrig throw: en fork som inte vill ha någon donationslänk är
+      # ett giltigt läge, och att be om pengar i någon annans namn är värre än
+      # att inte be alls.
+      - name: Varna om donationslänken tappats
+        shell: pwsh
+        env:
+          PA_DONATE: ${{ vars.PA_DONATE }}
+        run: |
+          $funding = '.github/FUNDING.yml'
+          $declared = (Test-Path $funding) -and
+            (Select-String -Path $funding -Pattern '^\s*ko_fi:\s*\S' -Quiet)
+          if ($declared -and -not $env:PA_DONATE) {
+            Write-Host ("::warning title=PA_DONATE saknas::FUNDING.yml deklarerar en " +
+              "Ko-fi-mottagare, men repo-variabeln PA_DONATE ar tom. Appen byggs utan " +
+              "donationslank. Sätt den under Settings > Secrets and variables > Actions > Variables.")
+          } else {
+            Write-Host "Donationslanken: $(if ($env:PA_DONATE) { 'satt' } else { 'inte deklarerad' })"
+          }
+
       - name: Bygg paketet
         shell: pwsh
         env:
