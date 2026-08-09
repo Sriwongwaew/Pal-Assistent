@@ -101,6 +101,33 @@ export function checkOutcome(check: UpdateCheck | null): CheckOutcome {
   return check.newer ? "newer" : "latest";
 }
 
+/**
+ * Får den här filen laddas ner och **köras**?
+ *
+ * GitHub kan i teorin svara med vilken URL som helst i `browser_download_url`,
+ * och den URL:en pekar ut en binär som startas. Kontrollen är därför en av de
+ * fyra spärrarna i `/api/update/install` – ta den inte bort.
+ *
+ * Den jämför den **tolkade** adressen, inte strängen. En `startsWith` på
+ * `https://github.com/<repo>/releases/download/` ser rätt ut men släpper igenom
+ * `.../releases/download/../../någon-annan`, eftersom `fetch` normaliserar bort
+ * `..` medan strängjämförelsen inte gör det. `new URL` normaliserar sökvägen
+ * först, och skiljer dessutom på värd och användarnamn: `https://github.com@ond.se/`
+ * har värden `ond.se`, vilket en strängjämförelse missar helt.
+ */
+export function isTrustedAssetUrl(url: string, repo: string): boolean {
+  if (!repo) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  if (parsed.host !== "github.com") return false;
+  return parsed.pathname.startsWith(`/${repo}/releases/download/`);
+}
+
 /** En rad ur utgåvans noteringar, redo att renderas. */
 export interface NoteBlock {
   kind: "rubrik" | "punkt" | "text";

@@ -6,8 +6,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, notesToBlocks, parseUpdatePrefs,
-  serializeUpdatePrefs, shouldCheck, shouldShow, type UpdateCheck, type UpdatePrefs,
+  CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, isTrustedAssetUrl, notesToBlocks,
+  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow,
+  type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
 
 const check = (over: Partial<UpdateCheck> = {}): UpdateCheck => ({
@@ -137,5 +138,55 @@ describe("notesToBlocks", () => {
       { kind: "text", text: "| kolumn | värde |" },
       { kind: "text", text: "> citat" },
     ]);
+  });
+});
+
+/* Spärren som avgör vad som får laddas ner och köras. Facit är skrivet som de
+ * adresser en angripare skulle försöka med: alla utom den första pekar bort
+ * från våra egna utgåvor, och en av dem passerade den gamla strängjämförelsen. */
+describe("isTrustedAssetUrl", () => {
+  const REPO = "Sriwongwaew/Pal-Assistent";
+  const asset = `https://github.com/${REPO}/releases/download/v2.2.1/PalAssistent-Setup.exe`;
+
+  it("godtar en riktig utgåvefil ur vårt repo", () => {
+    assert.equal(isTrustedAssetUrl(asset, REPO), true);
+  });
+
+  it("är avstängd utan repo – ett bygge från källkoden ska aldrig installera", () => {
+    assert.equal(isTrustedAssetUrl(asset, ""), false);
+  });
+
+  it("normaliserar bort .. innan den jämför", () => {
+    // Den här börjar med rätt prefix och släpptes därför igenom av en
+    // startsWith – medan fetch normaliserar den till github.com/nagon-annan.
+    const traversal =
+      `https://github.com/${REPO}/releases/download/../../../nagon-annan/setup.exe`;
+    assert.equal(traversal.startsWith(`https://github.com/${REPO}/releases/download/`), true);
+    assert.equal(isTrustedAssetUrl(traversal, REPO), false);
+  });
+
+  it("låter sig inte luras av användarnamn i adressen", () => {
+    // Värden här är ond.se, inte github.com.
+    assert.equal(
+      isTrustedAssetUrl(`https://github.com@ond.se/${REPO}/releases/download/v1/x.exe`, REPO),
+      false,
+    );
+  });
+
+  it("kräver https och rätt värd", () => {
+    assert.equal(isTrustedAssetUrl(asset.replace("https:", "http:"), REPO), false);
+    assert.equal(isTrustedAssetUrl(asset.replace("github.com", "githubb.com"), REPO), false);
+  });
+
+  it("avvisar ett annat repo med vårt namn som prefix", () => {
+    assert.equal(
+      isTrustedAssetUrl(`https://github.com/${REPO}-ond/releases/download/v1/x.exe`, REPO),
+      false,
+    );
+  });
+
+  it("avvisar det som inte är en URL alls", () => {
+    assert.equal(isTrustedAssetUrl("", REPO), false);
+    assert.equal(isTrustedAssetUrl("javascript:alert(1)", REPO), false);
   });
 });

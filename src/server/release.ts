@@ -12,6 +12,7 @@
  */
 
 import { serverT } from "@/i18n/server";
+import { isTrustedAssetUrl as trustedAssetUrl } from "@/lib/update";
 import { isNewer } from "@/lib/version";
 
 /** `owner/namn`, tomt när appen inte är byggd av utgåve-workflowen. */
@@ -150,13 +151,10 @@ export function releaseIsNewer(release: ReleaseInfo): boolean {
 /**
  * Nedladdningen får bara komma från utgåvorna i vårt eget repo.
  *
- * GitHub kan i teorin svara med vilken URL som helst i `browser_download_url`,
- * och den URL:en pekar ut en fil vi laddar ner och **kör**. Kontrollen nedan är
- * det som gör att ett kapat eller felkonfigurerat svar inte blir en körning av
- * någon annans binär. Ta inte bort den.
+ * Själva jämförelsen ligger i `src/lib/update.ts` för att kunna testas utan
+ * miljövariabler; här knyts den bara till vårt eget PA_REPO. Ta inte bort den:
+ * URL:en pekar ut en fil vi laddar ner och **kör**.
  */
 export function isTrustedAssetUrl(url: string): boolean {
-  if (!REPO) return false;
-  const prefix = `https://github.com/${REPO}/releases/download/`;
-  return url.startsWith(prefix);
+  return trustedAssetUrl(url, REPO);
 }

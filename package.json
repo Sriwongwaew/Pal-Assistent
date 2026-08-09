@@ -7,10 +7,10 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "predev": "node scripts/ensure-data.mjs",
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1",
     "prebuild": "node scripts/ensure-data.mjs",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 127.0.0.1",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "passive-text": "node scripts/passive-text.mjs",
@@ -21,6 +21,10 @@
     "prepackage": "node scripts/ensure-data.mjs",
     "package": "powershell -NoProfile -ExecutionPolicy Bypass -File packaging/build.ps1",
     "test": "tsc -p tsconfig.test.json && node --test \"tests-dist/tests/*.test.js\""
+  },
+  "overrides": {
+    "postcss": "^8.5.26",
+    "sharp": "^0.35.3"
   },
   "dependencies": {
     "@fontsource/m-plus-rounded-1c": "^5.3.0",

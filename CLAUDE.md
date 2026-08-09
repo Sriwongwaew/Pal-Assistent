@@ -79,6 +79,15 @@ npm run docs-images   # finns varje bild dokumentationen pekar på? (CI kör den
 npm run docs-shots    # tar om README:s sex skärmdumpar (kräver en server, se nedan)
 ```
 
+**`overrides` i package.json är inte skräp som blivit kvar.** `next` låser `postcss` till exakt
+8.4.31 och `sharp` till `^0.34.3`, och båda har kända sårbarheter som Next själv bara åtgärdar
+genom att gå till 16 — alltså en brytande uppgradering för en app som står på 15.5.23, senaste
+15.x. De två raderna tvingar upp dem inom samma major (8.5.x, 0.35.x) och `npm audit` går från tre
+höga till noll. Exponeringen var i praktiken låg — appen använder inte `next/image`, så `sharp`
+anropas aldrig, och `postcss` ser bara vår egen handskrivna `globals.css` — men en tyst
+`audit`-utskrift är hela poängen: nästa riktiga varning ska synas, inte drunkna. Tas raderna bort
+kommer de tre tillbaka. Kolla om de kan tas bort igen när projektet går till Next 16.
+
 `npm test` täcker sannolikhetsmatematiken (`perfectPlan`, `inheritOdds`, `condenseReach`) med
 **handräknat facit** i varje test. Kör det efter varje ändring i `src/lib` – en felräknad
 sannolikhet ser precis lika trovärdig ut som en riktig, och varken bygge, typecheck eller lint
@@ -183,6 +192,24 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   Used by `/api/save/scan` (valfri `?root=`) and `/api/save/import` (`{ root?, path? }`).
   `/api/save/status?path=` är live-lägets billiga koll och gör bara en `fs.stat` – ingen Python.
   Alla tre är `force-dynamic`.
+- `src/middleware.ts` + `src/lib/localOrigin.ts` – **ursprungskontrollen, och den är en
+  säkerhetsgräns, inte en formalitet.** Att servern binder `127.0.0.1` stoppar nätverket, inte
+  webbläsaren: varje sida användaren har öppen kan skicka förfrågningar till loopback. Två
+  angrepp följde av det, och båda är verifierade som stoppade. **CSRF:** `POST
+  /api/update/install` tar varken body eller egna huvuden och är alltså en "simple request" utan
+  preflight — en godtycklig sida kunde be appen ladda ner installern och döda sig själv. Samma
+  lucka i `/api/save/import`, vars body läses med `request.text()` och JSON-tolkas efteråt, så
+  `text/plain` slipper preflighten. **DNS-rebinding:** en domän som byter till 127.0.0.1 räknas
+  som samma ursprung, och då går svaren att läsa — `scan?root=C:\` är en filbläddrare och
+  `/data/pal-data.json` är hela boxen plus spelarnamnet. Kontrollen är därför `Host` = loopback
+  (stoppar rebinding, för webbläsaren skickar fortfarande angriparens domännamn) och `Origin` =
+  vårt eget när det finns (stoppar CSRF). Båda huvudena sätts av webbläsaren och går inte att
+  förfalska från JS — det är hela skälet att det är just de två. Tre saker att inte ändra
+  tillbaka: den sitter som **middleware** och inte per rutt, eftersom `/data/pal-data.json` är en
+  statisk fil som ingen rutt äger; beslutet ligger i `src/lib` för att kunna testas
+  (`tests/localOrigin.test.ts` är de två angreppen skrivna som förfrågningar); och `dev`/`start`
+  i package.json har `-H 127.0.0.1`, för `next dev` binder annars 0.0.0.0 och gör `scan` till en
+  filbläddrare för hela kaféets wifi.
 
 ## Språk (i18n)
 
@@ -506,10 +533,15 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    URL), URL:en måste ligga under `https://github.com/<PA_REPO>/releases/download/`, och SHA-256
    jämförs mot `SHA256SUMS.txt` i samma utgåva innan något startas. Tas någon av dem bort är det
    en fjärrkörningsbugg, inte en uppdateringsfunktion.
+   URL-kontrollen (`isTrustedAssetUrl` i `src/lib/update.ts`) jämför den **tolkade** adressen och
+   inte strängen, och det är inte pedanteri: en `startsWith` på prefixet släpper igenom
+   `.../releases/download/../../nagon-annan`, eftersom `fetch` normaliserar bort `..` medan
+   strängjämförelsen inte gör det — och `https://github.com@ond.se/...` har värden `ond.se`.
+   Rutten sitter dessutom bakom ursprungskontrollen (se `src/middleware.ts` under Architecture);
+   utan den kunde vilken webbsida som helst utlösa en installation med en tom POST.
 5. **Bytet görs av ett skript i temp**, inte av oss: installern måste stänga appen för att skriva
    över dess filer, och en process kan inte vänta in sin egen död. Rutten svarar, avslutar sig
-   själv efter 1,5 s, och skriptet kör installern tyst och startar programmet igen.
-6. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
+   själv efter 1,5 s, och skriptet kör installern tyst och startar programmet igen.6. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
    blir Edge-fönstret kvar och visar en död sida mitt under uppdateringen, och mutexen släpps
    aldrig så den nya versionen bara öppnar ett fönster mot en gammal port.
 
