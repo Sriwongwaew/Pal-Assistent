@@ -28,8 +28,8 @@ else:
 
 Both a folder and a `Level.sav` directly will work. The folder is searched four levels down, and
 quotes from Explorer's *"Copy as path"* are stripped automatically. Worlds found are listed with
-their timestamps so you can pick a specific one — or let **senast sparade världen** (*most recently
-saved world*) follow along when you switch worlds.
+their timestamps so you can pick a specific one — or let **Latest saved world** follow along when
+you switch worlds.
 
 ### Live mode
 
@@ -70,24 +70,33 @@ Search, filter and sort along the top. Search matches species, nickname, element
 
 ## Recommendations
 
-### Kondensera nu (*condense now*)
+The page is a work order, read top to bottom, in the order the three sections appear.
 
-One action card per species that already has enough duplicates, ranked by biggest gain. The card
-tells you what you win (0★ → 2★), how many specimens it consumes, how many box slots it frees — and
-above all **what the one you keep is good at**, with the game's work icons and "best in box" in
-green.
+### Keep these
 
-That last part is there for a reason: it's easy to feed away your best miner just because it
+What *not* to feed, grouped by reason — several gold passives, a complete set, a clean carrier,
+perfect IVs, Lucky, best of its species. It comes before the queue on purpose: recognise a pal here
+first, and you will not go looking for it further down. Click any pal for Base Info.
+
+### Condense
+
+One row per species that already has enough duplicates, biggest gain first. The row tells you the
+star jump, how many specimens it consumes, how many box slots it frees, and warning dots for
+anything you might regret. Expand it and you also get **what the one you keep is good at**, with
+the game's work icons and "best in box" in green — plus what the stars are actually worth in HP,
+attack and defence, rather than a star count you have to convert yourself.
+
+That first part is there for a reason: it is easy to feed away your best miner just because it
 happened to be a duplicate.
 
-### Nästan där (*almost there*)
+### Almost there
 
-Species a few specimens short of the next star. Worth knowing before you release a pal.
+Species a few duplicates short of the next star, plus a collapsed list of the ones that are far off
+or already maxed. Worth knowing before you release a pal.
 
-### Spara dessa (*keep these*)
-
-Grouped by reason — best of its species, perfect IVs, rare passives, Lucky, alpha. Click for Base
-Info.
+Costs are **cumulative, not a total**: 4 duplicates for the first star, then 8 more for the second,
+12 for the third and 24 for the fourth — 48 in all. So the same pile of duplicates is worth very
+different amounts depending on where the species already stands.
 
 ---
 
@@ -171,7 +180,7 @@ about double on average) and for **siblings from the same clutch sharing eggs**.
 ### Free mode
 
 If you only want the shortest path from your box to a species, with no passive requirements,
-**fritt läge** (*free mode*) gives you that chain directly.
+**free mode** gives you that chain directly.
 
 ### About the odds
 
@@ -181,8 +190,8 @@ They're good enough for what they're used for: comparing two plans against each 
 
 ### Your choices are saved
 
-Target, purpose, wanted passives and IV goal survive a trip to the box and back. **Rensa allt**
-(*clear all*) at the top resets them.
+Target, purpose, wanted passives and IV goal survive a trip to the box and back. **Clear all** at
+the top resets them.
 
 ---
 
