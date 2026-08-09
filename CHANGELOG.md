@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 2.2.0 – 2026-08-09
+
 
 - **A "check for updates" button, at the bottom of every page.** The app asks GitHub once a day and
   is quiet the rest of the time. That is right for a notice you never asked for and wrong the moment
