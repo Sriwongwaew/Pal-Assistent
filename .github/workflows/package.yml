@@ -1,20 +1,22 @@
-# Bygger den kompletta installern och provkör den. Windows krävs.
+# Builds the complete installer and test-runs it. Windows required.
 #
-# Den här filen är sanningen om hur paketet byggs, och den anropas från tre håll:
+# This file is the truth about how the package is built, and it is called from
+# three places:
 #
-#   1. push till main när paketeringens indata ändrats (sökvägarna nedan)
-#   2. en gång i veckan, för att fånga drift utifrån – nya versioner av Node,
-#      Inno Setup, PyInstaller eller chocolatey kan sabba bygget utan att en enda
-#      rad i repot ändrats, och det vill man inte upptäcka den dag man ska släppa
-#   3. release.yml, via workflow_call, före publicering
+#   1. push to main when the packaging inputs changed (the paths below)
+#   2. once a week, to catch drift from the outside — new versions of Node, Inno
+#      Setup, PyInstaller or chocolatey can break the build without a single line
+#      in the repo changing, and you do not want to find that out on the day you
+#      mean to release
+#   3. release.yml, via workflow_call, before publishing
 #
-# Att den ligger i en egen fil är hela poängen: röktestet nedan är åttio rader,
-# och två kopior av det hade garanterat glidit isär.
+# Living in its own file is the whole point: the smoke test below is eighty
+# lines, and two copies of it would have drifted apart for certain.
 #
-# Varför INTE varje push: de flesta ändringar rör src/components och src/lib, och
-# dem täcker Linux-CI:n fullständigt på en tredjedel av tiden. Ett Windows-jobb
-# som blir rött av en nätverkshicka i choco på en CSS-ändring lär bara upp en att
-# ignorera rött. Vill du ändå ha det på allt: ta bort paths-blocket.
+# Why NOT on every push: most changes touch src/components and src/lib, and the
+# Linux CI covers those completely in a third of the time. A Windows job that
+# goes red from a network hiccup in choco on a CSS change only teaches you to
+# ignore red. If you do want it on everything: drop the paths block.
 
 name: Package
 
@@ -23,10 +25,10 @@ on:
     inputs:
       ref:
         description: >-
-          Tagg eller commit att bygga. Tomt = det som utlöste körningen.
-          Den automatiska utgåvan skapar sin tagg först och pekar hit, annars
-          hade paketet byggts från commiten FÖRE versionshöjningen – och
-          installern fått fel versionsnummer i sig.
+          Tag or commit to build. Empty = whatever triggered the run.
+          The automatic release creates its tag first and points here, otherwise
+          the package would have been built from the commit BEFORE the version
+          bump — and the installer would carry the wrong version number.
         type: string
         required: false
         default: ""
@@ -44,22 +46,23 @@ on:
       - "package-lock.json"
       - ".github/workflows/**"
   schedule:
-    # Måndag 05:00 UTC. Fångar att omvärlden ändrat sig sedan sist.
+    # Monday 05:00 UTC. Catches that the outside world has changed since last
+    # time.
     - cron: "0 5 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Avbryt aldrig: körningen kan vara den som en release väntar på.
+# Never cancel: the run may be the one a release is waiting for.
 concurrency:
   group: package-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
-    # Installern byggs med Inno Setup, launchern kompileras med csc.exe ur
-    # .NET Framework, och palsave.exe är en Windows-binär.
+    # The installer is built with Inno Setup, the launcher is compiled with
+    # csc.exe from .NET Framework, and palsave.exe is a Windows binary.
     runs-on: windows-latest
     timeout-minutes: 45
 
@@ -94,15 +97,16 @@ jobs:
           npm test
           npm run lint
 
-      # FUNDING.yml ger knappen på repots STARTSIDA; appens länk kommer ur
-      # repo-variabeln PA_DONATE. Två olika ställen för samma sak, och de glider
-      # isär tyst: FUNDING.yml är committad och syns i en diff, variabeln finns
-      # bara i Settings. Det var precis så 2.2.0 gick ut med "Support on Ko-fi"
-      # i katalogen men ingen adress att peka på.
+      # FUNDING.yml gives the button on the repo's FRONT PAGE; the app's link
+      # comes from the repository variable PA_DONATE. Two different places for
+      # the same thing, and they drift apart quietly: FUNDING.yml is committed
+      # and shows up in a diff, the variable only exists in Settings. That is
+      # exactly how 2.2.0 shipped with "Support on Ko-fi" in the catalogue but no
+      # address to point at.
       #
-      # Varning, aldrig throw: en fork som inte vill ha någon donationslänk är
-      # ett giltigt läge, och att be om pengar i någon annans namn är värre än
-      # att inte be alls.
+      # A warning, never a throw: a fork that wants no donation link at all is a
+      # valid state, and asking for money in someone else's name is worse than
+      # not asking at all.
       - name: Warn if the donation link was dropped
         shell: pwsh
         env:
@@ -112,30 +116,33 @@ jobs:
           $declared = (Test-Path $funding) -and
             (Select-String -Path $funding -Pattern '^\s*ko_fi:\s*\S' -Quiet)
           if ($declared -and -not $env:PA_DONATE) {
-            Write-Host ("::warning title=PA_DONATE is not set::FUNDING.yml deklarerar en " +
-              "Ko-fi-mottagare, men repo-variabeln PA_DONATE ar tom. Appen byggs utan " +
-              "donationslank. Sätt den under Settings > Secrets and variables > Actions > Variables.")
+            Write-Host ("::warning title=PA_DONATE is not set::FUNDING.yml declares a " +
+              "Ko-fi recipient, but the repository variable PA_DONATE is empty. The app " +
+              "is built without a donation link. Set it under Settings > Secrets and " +
+              "variables > Actions > Variables.")
           } else {
-            Write-Host "Donationslanken: $(if ($env:PA_DONATE) { 'satt' } else { 'inte deklarerad' })"
+            Write-Host "Donation link: $(if ($env:PA_DONATE) { 'set' } else { 'not declared' })"
           }
 
       - name: Build the package
         shell: pwsh
         env:
-          # github.repository är "owner/namn" – exakt det uppdateringskollen vill
-          # ha. Det är också strömbrytaren för hela uppdateringsfunktionen.
+          # github.repository is "owner/name" — exactly what the update check
+          # wants. It is also the on/off switch for the whole update feature.
           PA_REPO: ${{ github.repository }}
           PA_DONATE: ${{ vars.PA_DONATE }}
         run: |
-          # Byggloggen kräver inloggning för att läsas; annoteringar gör det inte.
-          # Utan det här är ett fallet paketbygge bara "Process completed with exit
-          # code 1" för den som felsöker utifrån – och build.ps1 kastar med tydliga
-          # meddelanden som då aldrig når fram. Det kostade en kväll en gång.
+          # The build log requires a login to read; annotations do not. Without
+          # this, a failed package build is just "Process completed with exit
+          # code 1" to anyone debugging from the outside — and build.ps1 throws
+          # with clear messages that would then never arrive. It cost an evening
+          # once.
           $ErrorActionPreference = 'Continue'
           npm run package *>&1 | Tee-Object -FilePath package.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            # Annoteringar är enradiga: %0A är radbrytning, och % måste escapas först.
+            # Annotations are single-line: %0A is a line break, and % has to be
+            # escaped first.
             $tail = (Get-Content package.log -Tail 30) -join "`n"
             $esc = $tail -replace '%', '%25' -replace "`r", '' -replace "`n", '%0A'
             Write-Host "::error title=Package build failed ($code)::$esc"
@@ -145,39 +152,42 @@ jobs:
       - name: Verify the package carries nobody's box
         shell: pwsh
         run: |
-          # Sista spärren mot att en utvecklares egen save följer med ut. Bygget
-          # utgår alltid från data/pal-data.base.json, men filen är 1,7 MB JSON
-          # och ett misstag där syns inte i en diff.
+          # The last barrier against a developer's own save going out with the
+          # build. The build always starts from data/pal-data.base.json, but the
+          # file is 1.7 MB of JSON and a mistake in there does not show up in a
+          # diff.
           $data = Get-Content 'packaging/build/payload/public/data/pal-data.json' -Raw | ConvertFrom-Json
           if ($data.pals.Count -ne 0 -or $data.player -ne '') {
-            throw "Nyttolasten innehåller $($data.pals.Count) pals och spelaren '$($data.player)'."
+            throw "The payload contains $($data.pals.Count) pals and the player '$($data.player)'."
           }
-          # implants kommer ur savens item-behållare och är alltså också personligt.
-          # Tre utfall, och de får inte slås ihop: fältet ska finnas som ett TOMT
-          # objekt. Saknas det helt har tömningen i build.ps1 inte kört, och då
-          # vet spärren ingenting om vad nästa bygge bär.
+          # implants come from the save's item containers and are therefore just
+          # as personal. Three outcomes, and they must not be conflated: the
+          # field has to be there as an EMPTY object. If it is missing entirely,
+          # the blanking in build.ps1 did not run, and then the barrier knows
+          # nothing about what the next build carries.
           #
-          # Läs aldrig $data.implants innan nyckeln är kontrollerad: @($null).Count
-          # är 1 i PowerShell, så en saknad nyckel rapporterades tidigare som
-          # "bär 1 implantat" – rätt utgång (bygget stannar) av fel skäl, och det
-          # skickar felsökningen åt fel håll.
+          # Never read $data.implants before the key has been checked:
+          # @($null).Count is 1 in PowerShell, so a missing key used to be
+          # reported as "carries 1 implant" — the right outcome (the build stops)
+          # for the wrong reason, and it sends debugging the wrong way.
           $prop = $data.PSObject.Properties['implants']
           if (-not $prop -or $null -eq $prop.Value) {
-            throw "Nyttolasten saknar 'implants' - tömningen i build.ps1 kördes inte."
+            throw "The payload has no 'implants' - the blanking in build.ps1 did not run."
           }
-          # Bara antalet, aldrig id:na: bygglogen är publik och passiv-id:na är
-          # precis det förråd spärren finns för att hålla inne.
+          # The count only, never the ids: the build log is public, and the
+          # passive ids are precisely the stash the barrier exists to keep in.
           $impl = @($prop.Value.PSObject.Properties).Count
-          if ($impl -ne 0) { throw "Nyttolasten bär $impl implantat ur någons förråd." }
-          Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
+          if ($impl -ne 0) { throw "The payload carries $impl implants from someone's stash." }
+          Write-Host "The box is empty - $($data.species.Count) species left."
 
-      # Installern startas på riktigt.
+      # The installer is started for real.
       #
-      # Det här är det enda steget som testar den färdiga produkten i stället för
-      # källkoden, och buggarna det fångar passerar både typecheck och tester utan
-      # att blinka: saknad `static/` ger en ostylad sida, saknade spelikoner ger
-      # tomma rutor, och hittas inte palsave.exe faller servern tillbaka på Python
-      # – som mottagaren inte har. Alla tre har hänt under utvecklingen.
+      # This is the only step that tests the finished product rather than the
+      # source, and the bugs it catches pass both typecheck and tests without
+      # blinking: a missing `static/` gives an unstyled page, missing game icons
+      # give empty boxes, and if palsave.exe is not found the server falls back
+      # to Python — which the recipient does not have. All three have happened
+      # during development.
       - name: Install and start the app
         shell: pwsh
         run: |
@@ -188,12 +198,13 @@ jobs:
 
           foreach ($f in 'PalAssistent.exe','server.js','node\node.exe',
                          'tools\palsave\palsave.exe','public\data\pal-data.json') {
-            if (-not (Test-Path (Join-Path $dir $f))) { throw "Installationen saknar $f." }
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "The installation is missing $f." }
           }
-          if (-not (Test-Path (Join-Path $dir 'unins000.exe'))) { throw "Ingen avinstallerare." }
+          if (-not (Test-Path (Join-Path $dir 'unins000.exe'))) { throw "No uninstaller." }
 
-          # Servern startas direkt, utan launchern: fönstret kräver en skärm och
-          # en Edge-profil, och det vi vill veta är om appen fungerar.
+          # The server is started directly, without the launcher: the window
+          # needs a screen and an Edge profile, and what we want to know is
+          # whether the app works.
           $env:PORT = '3131'; $env:HOSTNAME = '127.0.0.1'; $env:NODE_ENV = 'production'
           $server = Start-Process (Join-Path $dir 'node\node.exe') -ArgumentList 'server.js' `
             -WorkingDirectory $dir -PassThru -WindowStyle Hidden
@@ -205,49 +216,50 @@ jobs:
               Start-Sleep -Milliseconds 500
               try { if ((Invoke-WebRequest "$base/" -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200) { $up = $true; break } } catch {}
             }
-            if (-not $up) { throw "Servern svarade aldrig." }
+            if (-not $up) { throw "The server never answered." }
 
             foreach ($p in '/','/box','/breeding','/best-for','/recommendations') {
               $r = Invoke-WebRequest "$base$p" -UseBasicParsing -TimeoutSec 30
-              if ($r.StatusCode -ne 200) { throw "$p svarade $($r.StatusCode)." }
+              if ($r.StatusCode -ne 200) { throw "$p answered $($r.StatusCode)." }
             }
 
-            # Stilarna serveras bara om .next-package/static kopierats in.
+            # The styles are only served if .next-package/static was copied in.
             $html = (Invoke-WebRequest "$base/" -UseBasicParsing -TimeoutSec 30).Content
             $css = [regex]::Match($html, '/_next/static/css/[^"]+\.css').Value
-            if (-not $css) { throw "Sidan refererar ingen CSS - static saknas i paketet." }
+            if (-not $css) { throw "The page references no CSS - static is missing from the package." }
             if ((Invoke-WebRequest "$base$css" -UseBasicParsing -TimeoutSec 30).StatusCode -ne 200) {
-              throw "CSS-filen gick inte att hämta: $css"
+              throw "The CSS file could not be fetched: $css"
             }
 
-            # Spelikonerna ligger i public/ och kopieras separat.
+            # The game icons live in public/ and are copied separately.
             if ((Invoke-WebRequest "$base/icons/alpha.webp" -UseBasicParsing -TimeoutSec 30).StatusCode -ne 200) {
-              throw "Spelikonerna saknas i paketet."
+              throw "The game icons are missing from the package."
             }
 
             $data = Invoke-RestMethod "$base/data/pal-data.json" -TimeoutSec 60
-            if ($data.pals.Count -ne 0 -or $data.player -ne '') { throw "Paketet bär en box." }
-            if ($data.species.Count -lt 100) { throw "Artlistan ser stympad ut ($($data.species.Count))." }
+            if ($data.pals.Count -ne 0 -or $data.player -ne '') { throw "The package carries a box." }
+            if ($data.species.Count -lt 100) { throw "The species list looks truncated ($($data.species.Count))." }
 
-            # Avgörande: den frysta läsaren måste svara. Nämner felet Python har
-            # den inte hittats, och då fungerar "Läs in från spelet" inte hos någon.
+            # Decisive: the frozen reader has to answer. If the error mentions
+            # Python it was not found, and then "Read from the game" works for
+            # nobody.
             $scan = Invoke-RestMethod "$base/api/save/scan" -TimeoutSec 180
             if ($scan.error -and $scan.error -match 'Python') {
-              throw "palsave.exe hittades inte - servern föll tillbaka på Python: $($scan.error)"
+              throw "palsave.exe was not found - the server fell back to Python: $($scan.error)"
             }
 
-            # PA_REPO måste ha bakats in, annars kan ingen uppdatera sig.
+            # PA_REPO must have been baked in, or nobody can update themselves.
             $upd = Invoke-RestMethod "$base/api/update/check" -TimeoutSec 60
-            if (-not $upd.enabled) { throw "Uppdateringskollen är avstängd - PA_REPO saknas i bygget." }
+            if (-not $upd.enabled) { throw "The update check is off - PA_REPO is missing from the build." }
 
-            Write-Host "Installationen startar, svarar och läser saver. $($data.species.Count) arter."
+            Write-Host "The installation starts, answers and reads saves. $($data.species.Count) species."
           }
           finally {
             Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           }
 
-      # Artefakten är både det release.yml publicerar och det du laddar ner när du
-      # vill prova ett bygge utan att göra en utgåva av det.
+      # The artifact is both what release.yml publishes and what you download
+      # when you want to try a build without making a release of it.
       - name: Upload the installer
         uses: actions/upload-artifact@v7
         with:

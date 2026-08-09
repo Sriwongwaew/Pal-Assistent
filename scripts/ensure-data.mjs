@@ -1,20 +1,20 @@
 /**
- * Ser till att public/data/pal-data.json finns innan appen körs eller byggs.
+ * Makes sure public/data/pal-data.json exists before the app is run or built.
  *
- * Varför filen är delad i två:
+ * Why the file is split in two:
  *
- *   data/pal-data.base.json     versionshanterad. Bara den statiska halvan –
- *                               arter, avelstabell, passiver, ikoner, EXP-tabell.
- *                               `pals` är tom och `player` är "".
- *   public/data/pal-data.json   genererad och gitignorerad. Det är hit
- *                               "Läs in från spelet" skriver DIN box.
+ *   data/pal-data.base.json     version controlled. The static half only —
+ *                               species, breeding table, passives, icons, EXP
+ *                               table. `pals` is empty and `player` is "".
+ *   public/data/pal-data.json   generated and gitignored. This is where
+ *                               "Read from the game" writes YOUR box.
  *
- * Utan den uppdelningen hamnar ens egen save i repot vid första commit – med
- * spelarnamn, alla pals och deras positioner. Nu kan man importera hur mycket
- * man vill utan att `git status` ens reagerar.
+ * Without that split your own save ends up in the repo on the first commit —
+ * player name, every pal and where they stand. As it is you can import as much
+ * as you like without `git status` so much as reacting.
  *
- * Körs automatiskt via predev/prebuild/prepackage. Finns arbetsfilen redan rörs
- * den aldrig.
+ * Runs automatically via predev/prebuild/prepackage. If the working file is
+ * already there it is never touched.
  */
 
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
@@ -31,12 +31,12 @@ if (existsSync(live)) {
 
 if (!existsSync(base)) {
   console.error(
-    `Hittar varken ${live} eller ${base}.\n` +
-      "Utan grunddatan kan appen inte starta – hämta den från repot igen.",
+    `Cannot find ${live} or ${base}.\n` +
+      "Without the base data the app cannot start - fetch it from the repo again.",
   );
   process.exit(1);
 }
 
 mkdirSync(dirname(live), { recursive: true });
 copyFileSync(base, live);
-console.log("public/data/pal-data.json skapad ur grunddatan (tom box).");
+console.log("public/data/pal-data.json created from the base data (empty box).");

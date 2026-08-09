@@ -1,16 +1,16 @@
-﻿# Bygger hela installationspaketet: npm run package kör den här.
+﻿# Builds the complete installation package: npm run package runs this.
 #
-# Resultatet är dist\PalAssistent-<version>-Setup.exe – en installer som inte
-# kräver att mottagaren har vare sig Node, Python eller något annat. Allt som
-# behövs ligger i paketet:
+# The result is dist\PalAssistent-<version>-Setup.exe - an installer that does not
+# require the recipient to have Node, Python or anything else. Everything needed
+# is in the package:
 #
-#   PalAssistent.exe   launchern (packaging\Launcher.cs, kompilerad med csc)
-#   server.js + .next-package\   Next i standalone-läge
-#   node\node.exe      din egen Node, MIT-licensierad och fri att skicka med
-#   tools\palsave\     save-läsaren som exe, med libooz.dll inbakad
-#   public\            ikoner och pal-data.json (tömd på din box)
+#   PalAssistent.exe   the launcher (packaging\Launcher.cs, compiled with csc)
+#   server.js + .next-package\   Next in standalone mode
+#   node\node.exe      your own Node, MIT licensed and free to ship
+#   tools\palsave\     the save reader as an exe, with libooz.dll baked in
+#   public\            icons and pal-data.json (emptied of your box)
 #
-# Stegen går att hoppa över var för sig när man itererar, t.ex.
+# The steps can be skipped one by one while iterating, e.g.
 #   powershell -File packaging\build.ps1 -SkipNextBuild -SkipPalsave
 
 param(
@@ -22,8 +22,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repo = Split-Path -Parent $PSScriptRoot
-# Versionen har EN källa: package.json. Installern får den via /DAppVersion och
-# appen via next.config.ts, så en utgåva aldrig kan säga två olika saker.
+# The version has ONE source: package.json. The installer gets it via
+# /DAppVersion and the app via next.config.ts, so a release can never say two
+# different things.
 $version = (Get-Content (Join-Path $repo 'package.json') -Raw | ConvertFrom-Json).version
 $build = Join-Path $PSScriptRoot 'build'
 $payload = Join-Path $build 'payload'
@@ -33,17 +34,18 @@ $distDir = Join-Path $repo 'dist'
 
 function Step($text) { Write-Host "==> $text" -ForegroundColor Cyan }
 
-# --- 1. Next i standalone-läge ----------------------------------------------
-# PA_PACKAGE styr både output-läget och distDir (se next.config.ts). Egen distDir
-# betyder att en dev-server som kör kan fortsätta köra – bygget rör aldrig .next.
+# --- 1. Next in standalone mode ----------------------------------------------
+# PA_PACKAGE controls both the output mode and distDir (see next.config.ts). A
+# separate distDir means a running dev server can keep running - the build never
+# touches .next.
 
 if (-not $SkipNextBuild) {
-    Step 'Bygger Next (standalone, .next-package)'
+    Step 'Building Next (standalone, .next-package)'
     Push-Location $repo
     try {
         $env:PA_PACKAGE = '1'
         npm run build
-        if ($LASTEXITCODE -ne 0) { throw "npm run build misslyckades ($LASTEXITCODE)" }
+        if ($LASTEXITCODE -ne 0) { throw "npm run build failed ($LASTEXITCODE)" }
     }
     finally {
         Remove-Item Env:\PA_PACKAGE -ErrorAction SilentlyContinue
@@ -51,16 +53,16 @@ if (-not $SkipNextBuild) {
     }
 }
 if (-not (Test-Path (Join-Path $nextDir 'standalone\server.js'))) {
-    throw "Hittar inte standalone-bygget. Kör utan -SkipNextBuild."
+    throw "Cannot find the standalone build. Run without -SkipNextBuild."
 }
 
-# --- 2. save-läsaren som exe -------------------------------------------------
-# --collect-all behövs: palworld_save_tools laddar sina rawdata-avkodare dynamiskt
-# och statisk analys hittar dem inte. libooz.dll läggs in som binär och hamnar i
-# _internal, där palsave.py letar via sys._MEIPASS.
+# --- 2. the save reader as an exe --------------------------------------------
+# --collect-all is needed: palworld_save_tools loads its rawdata decoders
+# dynamically and static analysis does not find them. libooz.dll goes in as a
+# binary and ends up in _internal, where palsave.py looks for it via sys._MEIPASS.
 
 if (-not $SkipPalsave) {
-    Step 'Bygger palsave.exe (PyInstaller)'
+    Step 'Building palsave.exe (PyInstaller)'
     python -m PyInstaller --onedir --noconfirm --clean --console `
         --name palsave `
         --collect-all palworld_save_tools `
@@ -69,47 +71,49 @@ if (-not $SkipPalsave) {
         --workpath (Join-Path $build 'work') `
         --specpath $build `
         (Join-Path $repo 'tools\palsave.py')
-    if ($LASTEXITCODE -ne 0) { throw "PyInstaller misslyckades ($LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed ($LASTEXITCODE)" }
 }
 if (-not (Test-Path (Join-Path $pyDist 'palsave.exe'))) {
-    throw "Hittar inte palsave.exe. Kör utan -SkipPalsave."
+    throw "Cannot find palsave.exe. Run without -SkipPalsave."
 }
 
-# --- 3. ikonen ---------------------------------------------------------------
+# --- 3. the icon -------------------------------------------------------------
 
-Step 'Ritar ikonen'
+Step 'Drawing the icon'
 & (Join-Path $PSScriptRoot 'make-icon.ps1') | Out-Null
 
-# --- 4. sätt ihop nyttolasten ------------------------------------------------
+# --- 4. assemble the payload -------------------------------------------------
 
-Step 'Sätter ihop nyttolasten'
+Step 'Assembling the payload'
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Path $payload -Force | Out-Null
 
-# Standalone-trädet är basen: server.js, package.json och de node_modules som
-# filspårningen faktiskt kom fram till.
+# The standalone tree is the base: server.js, package.json and the node_modules
+# the file tracing actually arrived at.
 Copy-Item (Join-Path $nextDir 'standalone\*') $payload -Recurse -Force
 
-# Next kopierar INTE static till standalone – det står i deras dokumentation och
-# är lätt att missa, för servern startar ändå och sidan blir bara ostylad.
+# Next does NOT copy static into standalone - it says so in their documentation
+# and it is easy to miss, because the server starts anyway and the page merely
+# comes out unstyled.
 $staticSrc = Join-Path $nextDir 'static'
 $staticDst = Join-Path $payload '.next-package\static'
 New-Item -ItemType Directory -Path $staticDst -Force | Out-Null
 Copy-Item "$staticSrc\*" $staticDst -Recurse -Force
 
-# public/ likaså: bara data\ följde med av sig själv, inte de 56 spelikonerna.
+# public/ likewise: only data\ came along by itself, not the 56 game icons.
 Copy-Item (Join-Path $repo 'public') $payload -Recurse -Force
 
-# tools\ som filspårningen tog med innehåller palsave.py utan libooz.dll (värdelös
-# utan Python) och hela tools\backup – alltså din förra box, 2 MB som absolut inte
-# ska skickas till någon annan. Bort med alltihop, in med exe-versionen.
+# The tools\ the file tracing picked up holds palsave.py without libooz.dll
+# (useless without Python) and the whole of tools\backup - that is, your previous
+# box, 2 MB that must absolutely not be sent to anyone else. Out with all of it,
+# in with the exe version.
 $toolsDst = Join-Path $payload 'tools'
 if (Test-Path $toolsDst) { Remove-Item $toolsDst -Recurse -Force }
 New-Item -ItemType Directory -Path (Join-Path $toolsDst 'palsave') -Force | Out-Null
 Copy-Item "$pyDist\*" (Join-Path $toolsDst 'palsave') -Recurse -Force
 
-# Node självt. MIT-licens, fritt att distribuera; licenstexten följer med.
-Step 'Kopierar node.exe'
+# Node itself. MIT licensed, free to distribute; the licence text comes along.
+Step 'Copying node.exe'
 $nodeExe = (Get-Command node -ErrorAction Stop).Source
 New-Item -ItemType Directory -Path (Join-Path $payload 'node') -Force | Out-Null
 Copy-Item $nodeExe (Join-Path $payload 'node\node.exe') -Force
@@ -118,61 +122,62 @@ if (Test-Path $nodeLicense) {
     Copy-Item $nodeLicense (Join-Path $payload 'node\LICENSE') -Force
 }
 
-# --- 5. tomma boxen ----------------------------------------------------------
-# Bundlen innehåller din egen box. Den statiska halvan (arter, avelstabell,
-# passiver, ikoner) ska följa med, men pals/player/exported/implants nollas –
-# annars öppnar mottagaren programmet och ser dina pals.
+# --- 5. the empty box --------------------------------------------------------
+# The bundle contains your own box. The static half (species, breeding table,
+# passives, icons) is meant to ship, but pals/player/exported/implants are
+# blanked - otherwise the recipient opens the program and sees your pals.
 #
-# implants läses ur savens item-behållare och är alltså också ditt: läggs ett nytt
-# fält till i AppData som kommer UR SAVEN ska det nollas här i samma andetag.
+# implants are read from the save's item containers and are therefore yours too:
+# if a new field is added to AppData that comes FROM THE SAVE, blank it here in
+# the same breath.
 
-Step 'Tömmer boxen ur pal-data.json'
+Step 'Emptying the box from pal-data.json'
 $dataFile = Join-Path $payload 'public\data\pal-data.json'
 $blankScript = @'
 const fs = require("fs");
-// argv[0] är node, argv[1] är den här filen – första riktiga argumentet är [2].
+// argv[0] is node, argv[1] is this file - the first real argument is [2].
 const file = process.argv[2];
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 data.pals = [];
 data.player = "";
 data.exported = "";
-// Tomt objekt, inte delete: {} betyder "läst, du äger inga" och är sant i en
-// färsk installation. `undefined` hade betytt "vet inte" och fått appen att
-// tiga om implantat ända till första inläsningen.
+// An empty object, not delete: {} means "read, you own none" and is true in a
+// fresh installation. `undefined` would have meant "do not know" and made the
+// app keep quiet about implants until the first import.
 data.implants = {};
 fs.writeFileSync(file, JSON.stringify(data));
-console.log("    arter kvar: " + data.species.length + ", pals: " + data.pals.length
-  + ", implantat: " + Object.keys(data.implants).length);
+console.log("    species left: " + data.species.length + ", pals: " + data.pals.length
+  + ", implants: " + Object.keys(data.implants).length);
 '@
 $blankFile = Join-Path $build 'blank-data.js'
-# Set-Content -Encoding utf8 lägger på en BOM i Windows PowerShell 5.1. Node
-# klarar det, men skriv rent ändå – filen är inte till för att bråka om.
+# Set-Content -Encoding utf8 adds a BOM in Windows PowerShell 5.1. Node copes
+# with it, but write it clean anyway - the file is not there to argue about.
 [System.IO.File]::WriteAllText($blankFile, $blankScript, (New-Object System.Text.UTF8Encoding($false)))
 node $blankFile $dataFile
-if ($LASTEXITCODE -ne 0) { throw "Kunde inte tömma pal-data.json" }
+if ($LASTEXITCODE -ne 0) { throw "Could not empty pal-data.json" }
 
-# --- 6. launchern ------------------------------------------------------------
-# csc.exe ingår i .NET Framework 4 och finns därmed på varje Windows – ingen
-# verktygskedja att installera. winexe = inget konsolfönster bakom appen.
+# --- 6. the launcher ---------------------------------------------------------
+# csc.exe ships with .NET Framework 4 and is therefore on every Windows - no
+# toolchain to install. winexe = no console window behind the app.
 
-Step 'Kompilerar launchern'
+Step 'Compiling the launcher'
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-if (-not (Test-Path $csc)) { throw "Hittar inte csc.exe ($csc)" }
+if (-not (Test-Path $csc)) { throw "Cannot find csc.exe ($csc)" }
 & $csc /nologo /target:winexe /platform:anycpu /optimize+ `
     /out:"$(Join-Path $payload 'PalAssistent.exe')" `
     /win32icon:"$(Join-Path $PSScriptRoot 'app.ico')" `
     /r:System.dll /r:System.Windows.Forms.dll `
     "$(Join-Path $PSScriptRoot 'Launcher.cs')"
-if ($LASTEXITCODE -ne 0) { throw "csc misslyckades ($LASTEXITCODE)" }
+if ($LASTEXITCODE -ne 0) { throw "csc failed ($LASTEXITCODE)" }
 
 $size = (Get-ChildItem $payload -Recurse -File | Measure-Object -Property Length -Sum).Sum
-Write-Host ("    nyttolast: {0:N0} MB" -f [math]::Round($size / 1MB, 0)) -ForegroundColor DarkGray
+Write-Host ("    payload: {0:N0} MB" -f [math]::Round($size / 1MB, 0)) -ForegroundColor DarkGray
 
-# --- 7. installern -----------------------------------------------------------
+# --- 7. the installer --------------------------------------------------------
 
 if (-not $SkipInstaller) {
-    # Per-användare-installationen först: `winget install JRSoftware.InnoSetup`
-    # utan förhöjda rättigheter hamnar under LOCALAPPDATA, inte i Program Files.
+    # The per-user installation first: `winget install JRSoftware.InnoSetup`
+    # without elevated rights lands under LOCALAPPDATA, not in Program Files.
     $iscc = @(
         "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
         "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
@@ -181,33 +186,34 @@ if (-not $SkipInstaller) {
 
     if (-not $iscc) {
         Write-Host ''
-        Write-Host 'Inno Setup saknas - nyttolasten ar klar men ingen installer byggdes.' -ForegroundColor Yellow
-        Write-Host 'Installera fran https://jrsoftware.org/isdl.php och kor om.' -ForegroundColor Yellow
-        Write-Host "Nyttolast: $payload" -ForegroundColor Yellow
+        Write-Host 'Inno Setup is missing - the payload is ready but no installer was built.' -ForegroundColor Yellow
+        Write-Host 'Install it from https://jrsoftware.org/isdl.php and run again.' -ForegroundColor Yellow
+        Write-Host "Payload: $payload" -ForegroundColor Yellow
         return
     }
 
-    Step "Bygger installern (version $version)"
+    Step "Building the installer (version $version)"
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
     & $iscc /Qp "/DAppVersion=$version" (Join-Path $PSScriptRoot 'palassistent.iss')
-    if ($LASTEXITCODE -ne 0) { throw "ISCC misslyckades ($LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
 
-    # Kontrollsummorna som uppdateringsfunktionen verifierar mot innan den kör
-    # något. Formatet är sha256sum:s, alltså "<hash>  <filnamn>".
+    # The checksums the update feature verifies against before it runs anything.
+    # The format is sha256sum's, that is "<hash>  <filename>".
     #
-    # .NET direkt i stället för Get-FileHash, och det är inte en stilfråga.
-    # Uppmätt på GitHubs runner: `npm run package` startar det här skriptet i
-    # Windows PowerShell 5.1 från ett steg som körs i PowerShell 7, och då
-    # svarar 5.1 "Get-FileHash is not recognized" – trots att resten av skriptet,
-    # inklusive ConvertFrom-Json och Copy-Item, fungerar. Något i den ärvda
-    # miljön (PSModulePath pekar på 7:ans moduler) gör att cmdletar som måste
-    # laddas vid anrop inte hittas. Bygget gick därför hela vägen igenom och dog
-    # på allra sista raden, medan samma skript alltid fungerat lokalt.
+    # .NET directly instead of Get-FileHash, and that is not a matter of style.
+    # Measured on GitHub's runner: `npm run package` starts this script in
+    # Windows PowerShell 5.1 from a step running in PowerShell 7, and then 5.1
+    # answers "Get-FileHash is not recognized" - even though the rest of the
+    # script, including ConvertFrom-Json and Copy-Item, works. Something in the
+    # inherited environment (PSModulePath points at 7's modules) means cmdlets
+    # that have to be loaded on call are not found. The build therefore went all
+    # the way through and died on the very last line, while the same script has
+    # always worked locally.
     #
-    # Slutsatsen är inte "undvik Get-FileHash" utan **lita inte på modulladdning
-    # i det här skriptet**: det körs alltid som barnprocess till någon annans
-    # skal. .NET-anropet finns i varje PowerShell som kan starta skriptet.
-    Step 'Räknar kontrollsummor'
+    # The conclusion is not "avoid Get-FileHash" but **do not rely on module
+    # loading in this script**: it always runs as a child process of someone
+    # else's shell. The .NET call exists in every PowerShell that can start it.
+    Step 'Computing checksums'
     $setup = Join-Path $distDir 'PalAssistent-Setup.exe'
     $sha = [System.Security.Cryptography.SHA256]::Create()
     $stream = [System.IO.File]::OpenRead($setup)
@@ -218,6 +224,6 @@ if (-not $SkipInstaller) {
         (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "    $hash" -ForegroundColor DarkGray
 
-    Write-Host ("KLART: {0} ({1:N0} MB, version {2})" -f `
+    Write-Host ("DONE: {0} ({1:N0} MB, version {2})" -f `
         $setup, [math]::Round((Get-Item $setup).Length / 1MB, 0), $version) -ForegroundColor Green
 }

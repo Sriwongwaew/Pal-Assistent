@@ -1,22 +1,23 @@
-# Publicerar en GitHub-utgåva. Kan starta på tre sätt.
+# Publishes a GitHub release. Can start in three ways.
 #
-#   1. AUTOMATISKT, söndag kväll. Finns det något under "## Unreleased" i
-#      CHANGELOG.md höjs versionen, taggen skapas och utgåvan publiceras.
-#      Finns det inget händer ingenting alls – en lugn vecka är inte ett fel.
-#   2. MANUELLT från Actions-fliken, med valfritt versionssteg.
-#   3. Av en tagg du pushat själv (`npm version minor && git push --follow-tags`).
+#   1. AUTOMATICALLY, Sunday evening. If there is anything under "## Unreleased"
+#      in CHANGELOG.md the version is bumped, the tag is created and the release
+#      is published. If there is nothing, nothing happens at all — a quiet week
+#      is not a failure.
+#   2. MANUALLY from the Actions tab, with an optional version step.
+#   3. By a tag you pushed yourself (`npm version minor && git push --follow-tags`).
 #
-# Kadensen kommer alltså från schemat, men SÄKERHETEN kommer inte därifrån. Den
-# kommer från grindarna i package.yml: typecheck, tester, lint, hela paketet
-# byggt, och installern faktiskt installerad och startad. Går något av det fel
-# publiceras ingenting. Det är därför det går att släppa ofta utan att det
-# skickas ut något trasigt.
+# So the cadence comes from the schedule, but the SAFETY does not. That comes
+# from the gates in package.yml: typecheck, tests, lint, the whole package built,
+# and the installer actually installed and started. If any of it fails, nothing
+# is published. That is what makes it safe to release often without shipping
+# something broken.
 #
-# Varför utgåvan inte bara pushar en tagg och låter tagg-triggern göra jobbet:
-# GitHub startar med flit inga workflows från händelser som GITHUB_TOKEN skapat,
-# just för att undvika slingor. En tagg som pushas härifrån väcker alltså
-# ingenting. Därför gör den här filen hela kedjan själv – och slipper en
-# långlivad personlig token som hade behövts annars.
+# Why the release does not simply push a tag and let the tag trigger do the work:
+# GitHub deliberately starts no workflows from events created by GITHUB_TOKEN,
+# precisely to avoid loops. A tag pushed from here therefore wakes nothing. So
+# this file does the whole chain itself — and avoids the long-lived personal
+# token that would otherwise be needed.
 
 name: Release
 
@@ -25,8 +26,8 @@ on:
     tags:
       - "v*"
   schedule:
-    # Söndag 17:00 UTC. Veckans ändringar hinner sätta sig, och notisen når
-    # användarna i lugn och ro i stället för mitt i en speltimme.
+    # Sunday 17:00 UTC. The week's changes have had time to settle, and the
+    # notice reaches users calmly rather than in the middle of a play session.
     - cron: "0 17 * * 0"
   workflow_dispatch:
     inputs:
@@ -39,14 +40,14 @@ on:
 permissions:
   contents: read
 
-# En utgåva i taget, och avbryt aldrig en som redan börjat publicera – halvvägs
-# genom en release är det värsta stället att bli avbruten på.
+# One release at a time, and never cancel one that has started publishing —
+# halfway through a release is the worst place to be interrupted.
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  # Avgör om det finns något att släppa, och skapar i så fall taggen.
+  # Decides whether there is anything to release, and creates the tag if so.
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -72,41 +73,41 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Kom vi hit via en tagg är beslutet redan fattat.
+          # If we got here from a tag, the decision has already been made.
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "Utlöst av taggen $GITHUB_REF_NAME."
+            echo "Triggered by tag $GITHUB_REF_NAME."
             echo "release=true"        >> "$GITHUB_OUTPUT"
             echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          steg="${SELECTED_STEP:-$(node scripts/changelog.mjs bump)}"
-          if [[ "$steg" == "none" ]]; then
-            echo "Inget under '## Unreleased' – ingen utgåva den här gången."
+          step="${SELECTED_STEP:-$(node scripts/changelog.mjs bump)}"
+          if [[ "$step" == "none" ]]; then
+            echo "Nothing under '## Unreleased' - no release this time."
             echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Släpper som $steg."
+          echo "Releasing as $step."
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # npm version kör preversion (kontrollerar att noteringar finns) och
-          # version (stämplar CHANGELOG och lägger den i commiten). Behöver inga
-          # installerade beroenden.
-          npm version "$steg"
+          # npm version runs preversion (checks that notes exist) and version
+          # (stamps CHANGELOG and adds it to the commit). Needs no installed
+          # dependencies.
+          npm version "$step"
 
-          tagg="v$(node -p "require('./package.json').version")"
-          # Explicita pushar: --follow-tags tar bara annoterade taggar, och npm
-          # skapar inte alltid sådana.
+          tag="v$(node -p "require('./package.json').version")"
+          # Explicit pushes: --follow-tags only takes annotated tags, and npm
+          # does not always create those.
           git push origin HEAD:main
-          git push origin "$tagg"
+          git push origin "$tag"
 
-          echo "release=true"   >> "$GITHUB_OUTPUT"
-          echo "tag=$tagg"      >> "$GITHUB_OUTPUT"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag"     >> "$GITHUB_OUTPUT"
 
-  # Bygger installern ur taggen och provinstallerar den. Publiceras aldrig något
-  # som inte klarat det här.
+  # Builds the installer from the tag and test-installs it. Nothing that fails
+  # this is ever published.
   package:
     needs: prepare
     if: needs.prepare.outputs.release == 'true'
@@ -117,15 +118,15 @@ jobs:
   publish:
     needs: [prepare, package]
     if: needs.prepare.outputs.release == 'true'
-    # Publiceringen är filhantering och ett API-anrop – ingen anledning att
-    # betala för en Windows-runner till det.
+    # Publishing is file handling and one API call — no reason to pay for a
+    # Windows runner for that.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
-      # Måste vara taggen: CHANGELOG.md ska vara den stämplade versionen.
+      # Must be the tag: CHANGELOG.md has to be the stamped version.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.tag }}
@@ -135,17 +136,18 @@ jobs:
           name: PalAssistent-Setup
           path: dist
 
-      # Utgåvans text kommer ur CHANGELOG.md, inte ur commit-rubrikerna. Samma
-      # text visas i appen när den säger att en uppdatering finns, så den är
-      # skriven för den som använder appen.
+      # The release text comes from CHANGELOG.md, never from the commit
+      # subjects. The same text is shown in the app when it says an update is
+      # available, so it is written for the person using the app.
       - name: Read the notes from CHANGELOG.md
         run: node scripts/changelog.mjs notes "${{ needs.prepare.outputs.tag }}" > release-notes.md
 
       - name: Verify the checksum
         run: |
-          # Appens uppdateringsfunktion vägrar installera när hashen inte matchar,
-          # så en felaktig SHA256SUMS.txt gör utgåvan oanvändbar för alla som
-          # redan kör programmet – utan att något syns i bygget.
+          # The app's update feature refuses to install when the hash does not
+          # match, so a wrong SHA256SUMS.txt makes the release unusable for
+          # everyone already running the program — without anything showing up
+          # in the build.
           cd dist && sha256sum --check SHA256SUMS.txt
 
       - name: Publish the release

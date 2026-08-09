@@ -1,23 +1,23 @@
 /**
- * CHANGELOG.md som enda källa för utgåvans text.
+ * CHANGELOG.md as the single source of the release text.
  *
- *   node scripts/changelog.mjs check          finns det något att släppa alls?
+ *   node scripts/changelog.mjs check          is there anything to release at all?
  *   node scripts/changelog.mjs bump           patch | minor | major
- *   node scripts/changelog.mjs stamp          döper om "Unreleased" till versionen
- *                                             i package.json och dagens datum
- *   node scripts/changelog.mjs notes 2.1.0    skriver ut just den versionens avsnitt
+ *   node scripts/changelog.mjs stamp          renames "Unreleased" to the version
+ *                                             in package.json and today's date
+ *   node scripts/changelog.mjs notes 2.1.0    prints that version's section
  *
- * `check` körs som npm:s `preversion`, `stamp` som `version`. Uppdelningen finns av
- * en konkret anledning: npm höjer package.json INNAN `version` körs och backar inte
- * när skriptet failar. Låg hela kontrollen i `stamp` blev resultatet ett höjt men
- * ocommittat nummer, och nästa försök hoppade över en version. `preversion` kör
- * före höjningen, så ett stopp där lämnar allting orört.
+ * `check` runs as npm's `preversion`, `stamp` as `version`. The split exists for
+ * a concrete reason: npm bumps package.json BEFORE `version` runs and does not
+ * roll back when the script fails. With the whole check inside `stamp` the result
+ * was a bumped but uncommitted number, and the next attempt skipped a version.
+ * `preversion` runs before the bump, so stopping there leaves everything as it was.
  *
- * `notes` körs av utgåve-workflowen och blir utgåvans text.
+ * `notes` is run by the release workflow and becomes the release text.
  *
- * Båda **vägrar** när avsnittet är tomt. Det är hela poängen: en utgåva utan
- * noteringar är en utgåva ingen förstår, och det enda som säkert får någon att
- * skriva dem är att bygget stannar annars.
+ * Both **refuse** when the section is empty. That is the whole point: a release
+ * without notes is a release nobody understands, and the only thing that reliably
+ * makes someone write them is the build stopping otherwise.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -27,22 +27,22 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const file = join(root, "CHANGELOG.md");
 
-/** Rubriken i CHANGELOG.md. Filen är på engelska – den läses av användarna. */
+/** The heading in CHANGELOG.md. The file is English — users read it. */
 const UNRELEASED = "Unreleased";
 
 /**
- * Versionssteget skrivs som `<!-- bump: minor -->` under "Unreleased".
+ * The version step is written as `<!-- bump: minor -->` under "Unreleased".
  *
- * En kommentar och inte en rubrik, av två skäl: den syns inte i den renderade
- * texten som användarna möter, och den går att lämna kvar utan att någon undrar
- * vad den betyder. Utan markör blir det `patch`, vilket är rätt gissning för de
- * flesta utgåvor och det ofarliga valet när någon glömt.
+ * A comment and not a heading, for two reasons: it does not show up in the
+ * rendered text users meet, and it can be left in place without anyone wondering
+ * what it means. With no marker it is `patch`, which is the right guess for most
+ * releases and the harmless choice when someone forgot.
  */
-const BUMP_MONSTER = /<!--\s*bump:\s*(patch|minor|major)\s*-->/i;
-/** Alla HTML-kommentarer plockas bort innan texten blir utgåvans beskrivning. */
-const KOMMENTARER = /<!--[\s\S]*?-->/g;
+const BUMP_PATTERN = /<!--\s*bump:\s*(patch|minor|major)\s*-->/i;
+/** Every HTML comment is stripped before the text becomes the release body. */
+const COMMENTS = /<!--[\s\S]*?-->/g;
 
-/** Rubriknivå 2 inleder ett avsnitt. Allt fram till nästa sådan hör till det. */
+/** A level-2 heading starts a section. Everything up to the next one belongs to it. */
 function sections(text) {
   const lines = text.split(/\r?\n/);
   const found = [];
@@ -51,7 +51,7 @@ function sections(text) {
   });
   return found.map((s, i) => ({
     ...s,
-    // Kroppen är raderna efter rubriken fram till nästa rubrik (eller filslut).
+    // The body is the lines after the heading up to the next one (or end of file).
     body: lines
       .slice(s.index + 1, found[i + 1]?.index ?? lines.length)
       .join("\n")
@@ -59,7 +59,7 @@ function sections(text) {
   }));
 }
 
-/** "2.1.0 – 2026-08-15" och "[2.1.0] - ..." räknas båda som version 2.1.0. */
+/** "2.1.0 – 2026-08-15" and "[2.1.0] - ..." both count as version 2.1.0. */
 function versionOf(title) {
   const match = title.match(/^\[?(\d+\.\d+\.\d+[^\]\s]*)\]?/);
   return match ? match[1] : null;
@@ -69,7 +69,7 @@ function read() {
   try {
     return readFileSync(file, "utf8");
   } catch {
-    console.error(`Hittar inte ${file}.`);
+    console.error(`Cannot find ${file}.`);
     process.exit(1);
   }
 }
@@ -78,7 +78,7 @@ function read() {
 
 function notes(wanted) {
   if (!wanted) {
-    console.error("Ange vilken version: node scripts/changelog.mjs notes 2.1.0");
+    console.error("Say which version: node scripts/changelog.mjs notes 2.1.0");
     process.exit(1);
   }
   const version = wanted.replace(/^v/i, "");
@@ -86,21 +86,21 @@ function notes(wanted) {
 
   if (!hit) {
     console.error(
-      `CHANGELOG.md saknar avsnitt för ${version}.\n` +
-        "Lägg till det under rubriken \"## " + version + "\" och tagga om.",
+      `CHANGELOG.md has no section for ${version}.\n` +
+        "Add it under the heading \"## " + version + "\" and tag again.",
     );
     process.exit(1);
   }
   if (!hit.body) {
-    console.error(`Avsnittet för ${version} i CHANGELOG.md är tomt.`);
+    console.error(`The section for ${version} in CHANGELOG.md is empty.`);
     process.exit(1);
   }
 
-  // Kommentarer är instruktioner till oss själva, inte till användarna. De ska
-  // aldrig hamna i utgåvans beskrivning eller i appens "Vad är nytt?"-ruta.
-  const text = hit.body.replace(KOMMENTARER, "").replace(/\n{3,}/g, "\n\n").trim();
+  // Comments are instructions to ourselves, not to users. They must never end up
+  // in the release body or in the app's "What's new?" box.
+  const text = hit.body.replace(COMMENTS, "").replace(/\n{3,}/g, "\n\n").trim();
   if (!text) {
-    console.error(`Avsnittet för ${version} innehåller bara kommentarer.`);
+    console.error(`The section for ${version} contains nothing but comments.`);
     process.exit(1);
   }
 
@@ -109,55 +109,55 @@ function notes(wanted) {
 
 // ------------------------------------------------------------- check / stamp
 
-/** Hämtar "Unreleased"-avsnittet, eller avbryter med ett begripligt besked. */
+/** Returns the "Unreleased" section, or stops with a message that explains itself. */
 function unreleasedOrDie(found) {
   const unreleased = found.find((s) => s.title === UNRELEASED);
   if (!unreleased) {
-    console.error(`CHANGELOG.md saknar rubriken "## ${UNRELEASED}".`);
+    console.error(`CHANGELOG.md has no "## ${UNRELEASED}" heading.`);
     process.exit(1);
   }
   if (!unreleased.body) {
     console.error(
-      `Inga rader under "## ${UNRELEASED}" i CHANGELOG.md.\n` +
-        "Skriv vad som ändrats för den som använder appen, så går utgåvan igenom.",
+      `No lines under "## ${UNRELEASED}" in CHANGELOG.md.\n` +
+        "Write what changed for the person using the app and the release will go through.",
     );
     process.exit(1);
   }
   return unreleased;
 }
 
-/** Är det värt en utgåva? Kommentarer räknas inte som innehåll. */
+/** Is it worth a release? Comments do not count as content. */
 function unreleasedText(found) {
-  return unreleasedOrDie(found).body.replace(KOMMENTARER, "").trim();
+  return unreleasedOrDie(found).body.replace(COMMENTS, "").trim();
 }
 
 function check() {
   const text = unreleasedText(sections(read()));
   if (!text) {
     console.error(
-      `"## ${UNRELEASED}" innehåller bara kommentarer – inget att släppa.`,
+      `"## ${UNRELEASED}" contains nothing but comments - nothing to release.`,
     );
     process.exit(1);
   }
   const rows = text.split("\n").filter((line) => line.trim()).length;
-  console.log(`"${UNRELEASED}" har ${rows} rader – redo att släppa.`);
+  console.log(`"${UNRELEASED}" has ${rows} lines - ready to release.`);
 }
 
 /**
- * Vilket versionssteg utgåvan ska ta. Skrivs ut naket så ett skalskript kan
- * använda svaret direkt; skriv aldrig något annat till stdout här.
+ * Which version step the release should take. Printed bare so a shell script can
+ * use the answer directly; never write anything else to stdout here.
  *
- * Svarar `none` när det inte finns något att släppa – då ska den automatiska
- * utgåvan lägga sig, inte falla. En vecka utan ändringar är inte ett fel.
+ * Answers `none` when there is nothing to release — then the automatic release
+ * should stand down, not fail. A week without changes is not an error.
  */
 function bump() {
   const found = sections(read());
   const unreleased = found.find((s) => s.title === UNRELEASED);
-  if (!unreleased || !unreleased.body.replace(KOMMENTARER, "").trim()) {
+  if (!unreleased || !unreleased.body.replace(COMMENTS, "").trim()) {
     process.stdout.write("none\n");
     return;
   }
-  const match = unreleased.body.match(BUMP_MONSTER);
+  const match = unreleased.body.match(BUMP_PATTERN);
   process.stdout.write((match?.[1]?.toLowerCase() ?? "patch") + "\n");
 }
 
@@ -169,15 +169,16 @@ function stamp() {
 
   if (found.some((s) => versionOf(s.title) === version)) {
     console.error(
-      `CHANGELOG.md har redan ett avsnitt för ${version}. ` +
-        "Flytta dina rader till \"Unreleased\" om du menade att göra om utgåvan.",
+      `CHANGELOG.md already has a section for ${version}. ` +
+        "Move your lines to \"Unreleased\" if you meant to redo the release.",
     );
     process.exit(1);
   }
 
   const unreleased = unreleasedOrDie(found);
 
-  // Lokalt datum, inte UTC: en utgåva kvart över midnatt ska inte dateras igår.
+  // Local date, not UTC: a release a quarter past midnight should not be dated
+  // yesterday.
   const now = new Date();
   const date = [
     now.getFullYear(),
@@ -188,12 +189,12 @@ function stamp() {
   const lines = text.split(/\r?\n/);
   lines[unreleased.index] = `## ${UNRELEASED}\n\n## ${version} – ${date}`;
 
-  // Markören gällde den här utgåvan och ska inte bli kvar i det släppta
-  // avsnittet – nästa gång ska den skrivas på nytt eller utebli.
-  const utan = lines.filter((line) => !BUMP_MONSTER.test(line) || line.replace(BUMP_MONSTER, "").trim());
-  writeFileSync(file, utan.join("\n"));
+  // The marker applied to this release and must not be left in the released
+  // section — next time it should be written afresh or left out.
+  const kept = lines.filter((line) => !BUMP_PATTERN.test(line) || line.replace(BUMP_PATTERN, "").trim());
+  writeFileSync(file, kept.join("\n"));
 
-  console.log(`CHANGELOG.md: "${UNRELEASED}" blev ${version} – ${date}.`);
+  console.log(`CHANGELOG.md: "${UNRELEASED}" became ${version} – ${date}.`);
 }
 
 // --------------------------------------------------------------------------
@@ -204,6 +205,6 @@ else if (command === "bump") bump();
 else if (command === "stamp") stamp();
 else if (command === "notes") notes(argument);
 else {
-  console.error("Användning: changelog.mjs check | bump | stamp | notes <version>");
+  console.error("Usage: changelog.mjs check | bump | stamp | notes <version>");
   process.exit(1);
 }

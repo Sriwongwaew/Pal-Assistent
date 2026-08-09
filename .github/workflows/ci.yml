@@ -1,17 +1,17 @@
-# Kontrollerar varje push och varje pull request.
+# Checks every push and every pull request.
 #
-# Utgåve-workflowen kör samma grind, men först när en tagg pushas – alltså långt
-# efter att felet skrevs. Den här körs direkt, och tar ungefär en och en halv
-# minut. Poängen är att aldrig upptäcka ett trasigt bygge samma dag man tänkt
-# släppa något.
+# The release workflow runs the same gate, but only once a tag is pushed — long
+# after the mistake was written. This one runs straight away and takes about a
+# minute and a half. The point is to never discover a broken build on the day
+# you meant to ship something.
 #
-# Körs på Linux med flit: appen i sig är plattformsoberoende, och en Linux-runner
-# startar på sekunder mot Windows dryga minut.
+# Runs on Linux on purpose: the app itself is platform independent, and a Linux
+# runner starts in seconds against Windows' good minute.
 #
-# Det Windows-specifika – installern, launchern, palsave.exe – ligger i
-# package.yml, som körs när paketeringens indata ändrats, en gång i veckan, och
-# före varje utgåva. Den uppdelningen är medveten: nästan alla ändringar rör
-# src/components och src/lib, och dem täcker det här jobbet fullständigt.
+# The Windows-specific parts — the installer, the launcher, palsave.exe — live in
+# package.yml, which runs when the packaging inputs change, once a week, and
+# before every release. That split is deliberate: nearly every change touches
+# src/components and src/lib, and this job covers those completely.
 
 name: CI
 
@@ -25,7 +25,7 @@ on:
 permissions:
   contents: read
 
-# En körning per gren. Pushar man tre gånger i rad är bara den sista intressant.
+# One run per branch. Push three times in a row and only the last one matters.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -43,9 +43,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Först, och före npm ci: kollen använder bara Nodes egna moduler och tar
-      # ett par sekunder. En trasig bildlänk i README syns inte i något annat
-      # steg – och README är det enda de flesta någonsin läser av projektet.
+      # First, and before npm ci: the check uses nothing but Node's own modules
+      # and takes a couple of seconds. A broken image link in the README shows up
+      # in no other step — and the README is all most people ever read of the
+      # project.
       - name: Documentation images
         run: npm run docs-images
 
@@ -54,16 +55,16 @@ jobs:
       - name: Types
         run: npm run typecheck
 
-      # Sannolikhetsmatematiken. En felräknad chans ser precis lika trovärdig ut
-      # som en riktig, och varken bygget, typecheck eller lint fångar den – det
-      # är därför testerna finns och därför de aldrig får hoppas över.
+      # The probability maths. A miscalculated chance looks exactly as credible
+      # as a real one, and neither the build, typecheck nor lint catches it —
+      # that is why the tests exist and why they must never be skipped.
       - name: Tests
         run: npm test
 
       - name: Lint
         run: npm run lint
 
-      # Bygget fångar sådant som typecheck missar: en klientkomponent som råkat
-      # importera serverkod, en sida som kraschar under prerendering.
+      # The build catches what typecheck misses: a client component that has
+      # imported server code by accident, a page that crashes during prerender.
       - name: Build
         run: npm run build

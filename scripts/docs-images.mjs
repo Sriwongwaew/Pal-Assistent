@@ -1,24 +1,24 @@
 /**
- * Kontrollerar att varje bild dokumentationen pekar på faktiskt finns.
+ * Checks that every image the documentation points at actually exists.
  *
- * Varför det behöver en spärr: en trasig bildlänk syns inte någonstans i det
- * vanliga arbetet. `npm run build` bryr sig inte om markdown, typecheck ser
- * inte filen, och lokalt renderas README sällan. Först på GitHub blir den en
- * radda blå alt-texter med sönderikon — alltså precis på det enda ställe där
- * README är hela förstaintrycket.
+ * Why that needs a guard: a broken image link shows up nowhere in normal work.
+ * `npm run build` does not care about markdown, typecheck does not see the file,
+ * and locally the README is rarely rendered. Only on GitHub does it become a row
+ * of blue alt texts with a broken icon — that is, in the one place where the
+ * README is the entire first impression.
  *
- * Felet vi faktiskt gick på: bilderna döptes om till engelska
- * (`oversikt.png` → `overview.png`) i samma veva som dokumentationen
- * översattes, men referenserna i README följde inte med. Fem av sex bilder dog
- * och `breeding.png` levde vidare, eftersom den råkade heta likadant på båda
- * språken — vilket gjorde det ännu svårare att se, för sidan såg ju inte helt
- * trasig ut.
+ * The mistake we actually made: the images were renamed to English
+ * (`oversikt.png` → `overview.png`) at the same time the documentation was
+ * translated, but the references in the README did not follow. Five of six
+ * images died and `breeding.png` lived on, because it happened to have the same
+ * name in both languages — which made it even harder to spot, since the page did
+ * not look entirely broken.
  *
- * Brutna referenser är därför ett fel som stoppar CI. Föräldralösa bilder (en
- * fil i docs/img som ingen text nämner) är bara en **varning**: det är oftast
- * andra halvan av samma omdöpning, men en bild kan mycket väl ligga där för
- * något annat än README — utgåvetexter, issues — och då vore ett hårt fel bara
- * i vägen.
+ * Broken references are therefore an error that stops CI. Orphaned images (a file
+ * in docs/img that no text mentions) are only a **warning**: usually that is the
+ * other half of the same rename, but an image may well be there for something
+ * other than the README — release notes, issues — and then a hard error would
+ * only be in the way.
  *
  *   node scripts/docs-images.mjs
  */
@@ -28,16 +28,16 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
-/** Mappar vi aldrig letar i: inte vår dokumentation, och stora. */
+/** Directories we never look in: not our documentation, and large. */
 const SKIP_DIRS = new Set([
   "node_modules", ".git", ".next", ".next-package", "dist", "out",
   "tests-dist", "packaging/build", "_to_delete",
 ]);
 
-/** Bildmappen vars innehåll ska vara använt. */
+/** The image directory whose contents are meant to be used. */
 const IMG_DIR = "docs/img";
 
-/** ![alt](sökväg) och <img src="sökväg">, som är de två formerna vi använder. */
+/** ![alt](path) and <img src="path">, the two forms we use. */
 const MARKDOWN_IMG = /!\[[^\]]*\]\(([^)\s]+)/g;
 const HTML_IMG = /<img[^>]+src="([^"]+)"/g;
 
@@ -56,7 +56,7 @@ async function markdownFiles(dir = ROOT) {
   return out;
 }
 
-/** Referenser vi inte kan – eller ska – kontrollera mot disken. */
+/** References we cannot — or should not — check against the disk. */
 function external(target) {
   return /^(https?:|data:|mailto:|#|\/\/)/i.test(target);
 }
@@ -79,18 +79,19 @@ for (const file of files.sort()) {
 
   for (const [pattern, kind] of [[MARKDOWN_IMG, "md"], [HTML_IMG, "html"]]) {
     for (const match of text.matchAll(pattern)) {
-      // Titeln i ![alt](fil.png "Titel") är inte del av sökvägen.
+      // The title in ![alt](file.png "Title") is not part of the path.
       const target = match[1].split('"')[0].trim();
       if (!target || external(target)) continue;
 
-      // Sökvägen är relativ mot filen som nämner den, inte mot repots rot –
-      // README ligger i roten idag, men docs/*.md gör det inte.
+      // The path is relative to the file that mentions it, not to the repo root
+      // — the README sits in the root today, but docs/*.md do not.
       const resolved = path.resolve(path.dirname(file), decodeURI(target));
       const rel = path.relative(ROOT, resolved).replaceAll("\\", "/");
       referenced.add(rel);
 
       if (!(await exists(resolved))) {
-        // Radnumret är hela värdet i felutskriften: det ska gå att klicka.
+        // The line number is the whole value of the error output: it should be
+        // clickable.
         const before = text.slice(0, match.index).split(/\r?\n/).length;
         broken.push({
           file: path.relative(ROOT, file).replaceAll("\\", "/"),
@@ -104,7 +105,7 @@ for (const file of files.sort()) {
   }
 }
 
-/* Andra halvan av en omdöpning: filen finns men ingen nämner den längre. */
+/* The other half of a rename: the file is there but nobody mentions it any more. */
 const orphans = [];
 try {
   for (const entry of await readdir(path.join(ROOT, IMG_DIR), { withFileTypes: true })) {
@@ -113,29 +114,30 @@ try {
     if (!referenced.has(rel)) orphans.push(rel);
   }
 } catch {
-  // Ingen bildmapp är inget fel – projektet behöver inte ha skärmdumpar.
+  // No image directory is not an error — a project need not have screenshots.
 }
 
-console.log(`Läste ${files.length} markdown-filer, ${referenced.size} bildreferenser.`);
+console.log(`Read ${files.length} markdown files, ${referenced.size} image references.`);
 
 if (orphans.length > 0) {
-  console.log(`\nAnvänds inte av någon text (${orphans.length}):`);
+  console.log(`\nUsed by no text (${orphans.length}):`);
   for (const file of orphans) console.log(`  ${file}`);
-  console.log("  Ligger de kvar efter en omdöpning kan de tas bort.");
+  console.log("  If they are left over from a rename they can be deleted.");
 }
 
 if (broken.length === 0) {
-  console.log("\nAlla bilder finns.");
+  console.log("\nEvery image is there.");
   process.exit(0);
 }
 
-console.error(`\nSaknade bilder (${broken.length}):`);
+console.error(`\nMissing images (${broken.length}):`);
 for (const b of broken) {
   console.error(`  ${b.file}:${b.line} → ${b.target}`);
   console.error(`    ${b.source}`);
 }
 console.error(
-  "\nAntingen är sökvägen fel eller så saknas filen. Har en bild bytt namn ska" +
-  "\nreferensen med – GitHub visar annars bara alt-texten och en sönderikon.",
+  "\nEither the path is wrong or the file is missing. If an image was renamed," +
+  "\nthe reference has to follow - otherwise GitHub shows only the alt text and" +
+  "\na broken icon.",
 );
 process.exit(1);

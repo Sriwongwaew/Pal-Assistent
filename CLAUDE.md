@@ -1,9 +1,19 @@
 # CLAUDE.md – PalAssistent
 
-Instructions for Claude agents working in this repo. **The user (Ken) communicates in Swedish,
-and code comments are Swedish — keep it that way.** UI copy, on the other hand, is **no longer
-hardcoded in any language**: it lives in message catalogues (see "Språk" below). Never put a
-user-visible string in a component or in `src/lib`.
+Instructions for Claude agents working in this repo. **Swedish is for talking to Ken — that is the
+only thing that defaults to it.** Everything written down has its own rule:
+
+- **The pipeline and everything around the flow is English**, comments included: `.github/workflows/*`,
+  the scripts CI runs (`scripts/changelog.mjs`, `docs-images.mjs`, `ensure-data.mjs`) and
+  `packaging/build.ps1`. That covers what they *print*, too — job output, warnings and thrown
+  errors are read in the Actions tab, by anyone, and half of them end up in a public annotation.
+- **Code comments in the app itself are Swedish** — `src/**`, `tools/**`, `packaging/Launcher.cs`,
+  `packaging/palassistent.iss`, `globals.css`. Keep it that way.
+- **Anything a user or an outsider reads is English**: README, CHANGELOG, the release text, the
+  repo's own docs.
+
+UI copy is **not hardcoded in any language**: it lives in message catalogues (see "Språk" below).
+Never put a user-visible string in a component or in `src/lib`.
 
 ## What this is
 
