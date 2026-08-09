@@ -13,6 +13,31 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **"Update" now actually installs the update.** Pressing it closed the app and left you on the
+  same version: the installer was started by the app itself, and everything the app starts is torn
+  down together with it — so the installation was killed a second or two in, before it had written
+  anything. The swap is now handed to the program's own launcher, which runs it once the app is
+  properly closed, waits for it to finish and starts the new version. It also waits for the app to
+  release its files before installing (the old wait never waited at all), keeps working when your
+  Windows user name contains å, ä or ö, and writes an `update.log` next to the app's settings so a
+  failed update leaves evidence instead of a shrug.
+
+  This fix cannot fix itself: to get it, install this version by hand once. From here on, updating
+  from inside the app works.
+
+- **The app now only listens to itself.** PalAssistent runs a small web server on your own machine,
+  and until now any web page you happened to have open in another tab could send it requests —
+  enough to make the app start installing an update you never asked for, or, with a DNS trick, to
+  read your box straight out of it. Every request is now checked against where it came from and
+  refused unless it came from the app's own window. Nothing you do changes; you will not notice it
+  at all.
+
+- **Stricter check on what an update is allowed to download.** The rule that says an installer may
+  only come from this project's own releases now compares the actual address rather than the text
+  of it, so an address that merely *starts* the right way no longer passes.
+
+- **Bundled components updated** to versions without known vulnerabilities.
+
 ## 2.2.1 – 2026-08-09
 
 - **"Check for updates" has moved to the left rail**, next to the theme and language controls,

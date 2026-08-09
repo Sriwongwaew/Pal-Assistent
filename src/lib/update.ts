@@ -128,6 +128,75 @@ export function isTrustedAssetUrl(url: string, repo: string): boolean {
   return parsed.pathname.startsWith(`/${repo}/releases/download/`);
 }
 
+/** Filnamnen uppdateringen lägger ut. Måste stämma med `Launcher.cs`. */
+export const UPDATE_DIR_NAME = "update";
+export const UPDATE_SCRIPT_NAME = "uppdatera.cmd";
+export const UPDATE_INSTALLER_NAME = "PalAssistent-Setup.exe";
+
+/**
+ * Skriptet som byter ut programmet mot den nedladdade versionen.
+ *
+ * Tre saker i den här texten är inlärda med möda, och alla tre ser ut som
+ * petitesser tills uppdateringen tyst slutar fungera:
+ *
+ * 1. **`timeout` går inte att använda.** Den kräver en riktig konsol och
+ *    avslutar direkt med "Input redirection is not supported" så fort stdin är
+ *    omdirigerad – vilket den alltid är här. Väntan blev alltså noll sekunder,
+ *    och installern startade medan appen fortfarande höll sina filer öppna.
+ *    Vi väntar därför på att processen faktiskt är borta, med `ping` som klocka.
+ * 2. **Ingen sökväg står i texten.** En `.cmd` läses i datorns OEM-teckentabell,
+ *    inte i UTF-8, så ett användarnamn med å, ä eller ö hade gjort sökvägen
+ *    obegriplig för cmd. Allt kommer i stället från `%~dp0` (mappen skriptet
+ *    ligger i) och `%PA_APP_EXE%` (miljövariabel från launchern) – båda går som
+ *    Unicode hela vägen. Det gör dessutom skriptet identiskt för alla, alltså
+ *    testbart.
+ * 3. **Skriptet städar bort sig självt.** `(goto)` får cmd att släppa
+ *    handtaget på filen först; resten av raden är redan inläst och körs ändå.
+ *    Utan det blir en 70 MB stor installer kvar i användarens LOCALAPPDATA
+ *    efter varje uppdatering.
+ *
+ * Kommentarerna i själva skriptet är på engelska och utan å/ä/ö, av samma
+ * kodtabellsskäl som punkt 2. Förklaringen bor här i stället.
+ */
+export function updateScript(): string {
+  return (
+    [
+      "@echo off",
+      "rem PalAssistent update. Started by PalAssistent.exe when the server has",
+      "rem exited - never by the server itself, whose children die with the job",
+      "rem object that keeps node.exe and the window in check.",
+      "setlocal",
+      "",
+      "rem Where to start again afterwards. The launcher passes this as an",
+      "rem environment variable; the fallback is the default install location.",
+      "if not defined PA_APP_EXE set " +
+        '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalAssistent\\PalAssistent.exe"',
+      'set "PA_WORK=%~dp0"',
+      'set "PA_WORK=%PA_WORK:~0,-1%"',
+      "",
+      "rem Wait for the app to let go of its files. Not with timeout: it needs a",
+      "rem console and exits immediately when stdin is redirected, which it is.",
+      "set /a PA_TRIES=0",
+      ":wait",
+      'tasklist /fi "imagename eq PalAssistent.exe" /nh 2>nul | ' +
+        'find /i "PalAssistent.exe" >nul || goto install',
+      "set /a PA_TRIES+=1",
+      "if %PA_TRIES% GEQ 60 goto install",
+      "ping -n 2 127.0.0.1 >nul",
+      "goto wait",
+      "",
+      ":install",
+      `"%PA_WORK%\\${UPDATE_INSTALLER_NAME}" /SILENT /SUPPRESSMSGBOXES /NORESTART ` +
+        '/LOG="%PA_WORK%\\..\\update.log"',
+      'start "" "%PA_APP_EXE%"',
+      "",
+      "rem Remove our own folder. (goto) makes cmd let go of this file first,",
+      "rem while the rest of the line has already been read and still runs.",
+      '(goto) 2>nul & rd /s /q "%PA_WORK%"',
+    ].join("\r\n") + "\r\n"
+  );
+}
+
 /** En rad ur utgåvans noteringar, redo att renderas. */
 export interface NoteBlock {
   kind: "rubrik" | "punkt" | "text";

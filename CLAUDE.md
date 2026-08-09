@@ -427,6 +427,9 @@ Fjorton saker som är inlärda med möda – ändra inte tillbaka:
    tolkar det som "fönstret stängdes" och dödar servern i samma sekund som den startat.
 3. **Job Object med `KILL_ON_JOB_CLOSE`** är enda garantin att `node.exe` följer med i graven
    när launchern dödas i Aktivitetshanteraren. Annars ligger en osynlig server kvar till omstart.
+   Priset är att **allt servern startar också ligger i jobbet** och dör med det — det var därför
+   den första självuppdateringen aldrig fungerade. Se punkt 5 under "Utgåvor och
+   självuppdatering" innan du låter en rutt starta något som ska överleva appen.
 4. **Servern binder `127.0.0.1`.** `/api/save/scan` tar en godtycklig mapp och listar filer fyra
    nivåer ner – på `0.0.0.0` vore det en filbläddrare för hela nätverket.
 5. **BOM krävs på `.ps1`, `.cs` och `.iss`.** Windows PowerShell 5.1 och `csc.exe` läser filer
@@ -539,9 +542,32 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    strängjämförelsen inte gör det — och `https://github.com@ond.se/...` har värden `ond.se`.
    Rutten sitter dessutom bakom ursprungskontrollen (se `src/middleware.ts` under Architecture);
    utan den kunde vilken webbsida som helst utlösa en installation med en tom POST.
-5. **Bytet görs av ett skript i temp**, inte av oss: installern måste stänga appen för att skriva
-   över dess filer, och en process kan inte vänta in sin egen död. Rutten svarar, avslutar sig
-   själv efter 1,5 s, och skriptet kör installern tyst och startar programmet igen.6. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
+5. **Bytet görs av ett skript, och skriptet startas av launchern — aldrig av servern.** Installern
+   måste stänga appen för att skriva över dess filer, och en process kan inte vänta in sin egen
+   död, så ett litet `.cmd` gör jobbet. Men *vem* som startar det är hela skillnaden mellan en
+   uppdatering som fungerar och en som inte gör det: `node.exe` ligger i job-objektet (punkt 3
+   under Paketering), **allt node startar ärver medlemskapet** — `detached` hjälper inte, ett
+   jobb följer med barnen — och när launchern släpper handtaget dödar `KILL_ON_JOB_CLOSE` hela
+   släktet, inklusive en installer mitt i installationen. Symptomet är precis det man inte gissar
+   på: *appen stängs, ingenting installeras, och nästa start är samma version.* Så här hänger det
+   ihop nu, och ingen del av kedjan är valfri:
+   - Rutten laddar ner, kontrollsummerar och lägger installern + `uppdatera.cmd` i
+     `%LOCALAPPDATA%\PalAssistent\update\`. **Skriptet skrivs sist** — det är dess existens
+     launchern går på. Sedan svarar den och avslutar sig efter 1,5 s. Den startar ingenting.
+   - Launchern kör `RunPendingUpdate` allra sist, när servern är död, fönstret stängt och
+     job-handtaget släppt. Launchern är själv inte medlem i jobbet, så det den startar går fritt.
+     Den kör bara ett skript som är **nyare än launcherns egen starttid**; ett äldre är en rest
+     från en avbruten uppdatering och raderas i stället för att köras vid nästa vanliga avslut.
+   - Skriptet (`updateScript` i `src/lib/update.ts`, testat) väntar tills `PalAssistent.exe`
+     verkligen är borta, kör installern tyst, startar programmet igen och raderar sin egen mapp.
+     Två fällor i den texten, båda tysta: **`timeout` går inte att använda** — den kräver en
+     konsol och avslutar direkt med "Input redirection is not supported" när stdin är
+     omdirigerad, vilket den alltid är här, så väntan blev noll sekunder. Och **ingen sökväg får
+     stå i skriptet**: en `.cmd` läses i datorns OEM-teckentabell, så ett användarnamn med å, ä
+     eller ö hade gett en annan sökväg. Allt kommer från `%~dp0` och `%PA_APP_EXE%`, som
+     launchern sätter som miljövariabel — Unicode hela vägen. Att skriptet därmed är identiskt
+     för alla är också det som gör det testbart.
+6. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
    blir Edge-fönstret kvar och visar en död sida mitt under uppdateringen, och mutexen släpps
    aldrig så den nya versionen bara öppnar ett fönster mot en gammal port.
 

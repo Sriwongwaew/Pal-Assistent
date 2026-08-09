@@ -7,7 +7,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, isTrustedAssetUrl, notesToBlocks,
-  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow,
+  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow, updateScript,
+  UPDATE_INSTALLER_NAME,
   type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
 
@@ -188,5 +189,52 @@ describe("isTrustedAssetUrl", () => {
   it("avvisar det som inte är en URL alls", () => {
     assert.equal(isTrustedAssetUrl("", REPO), false);
     assert.equal(isTrustedAssetUrl("javascript:alert(1)", REPO), false);
+  });
+});
+
+/* Bytesskriptet.
+ *
+ * Det körs en gång per uppdatering, på någon annans dator, utan att någon ser
+ * det. Går det sönder ser symptomet inte ut som ett fel: appen stängs, ingenting
+ * installeras, och nästa start är samma version. Testerna nedan är alltså de
+ * enda som säger ifrån innan en utgåva är släppt. */
+describe("updateScript", () => {
+  const script = updateScript();
+
+  it("använder inte timeout – den avslutar direkt när stdin är omdirigerad", () => {
+    // Fällan som gjorde att installern startade medan appen ännu höll filerna:
+    // "timeout" kräver en konsol och svarar "Input redirection is not supported".
+    assert.equal(/^\s*timeout\b/m.test(script), false);
+  });
+
+  it("väntar på att programmet verkligen är borta innan installern körs", () => {
+    const wait = script.indexOf("tasklist");
+    const install = script.indexOf(UPDATE_INSTALLER_NAME);
+    assert.ok(wait > 0, "ingen väntan på processen");
+    assert.ok(wait < install, "installern körs före väntan");
+    assert.match(script, /if %PA_TRIES% GEQ 60 goto install/);
+  });
+
+  it("startar programmet igen efter installationen", () => {
+    assert.ok(script.indexOf(UPDATE_INSTALLER_NAME) < script.indexOf("%PA_APP_EXE%"));
+    assert.match(script, /start "" "%PA_APP_EXE%"/);
+  });
+
+  it("är helt fritt från sökvägar och från å, ä, ö", () => {
+    // En .cmd läses i datorns OEM-teckentabell, inte i UTF-8: ett användarnamn
+    // med å i skulle bli en annan sökväg. Allt kommer därför från %~dp0 och en
+    // miljövariabel, och texten i sig håller sig inom ASCII.
+    assert.equal(/[^\x20-\x7e\r\n]/.test(script), false);
+    assert.equal(/[A-Za-z]:\\/.test(script), false);
+    assert.match(script, /set "PA_WORK=%~dp0"/);
+  });
+
+  it("städar bort sin egen mapp till sist", () => {
+    assert.match(script, /\(goto\) 2>nul & rd \/s \/q "%PA_WORK%"/);
+  });
+
+  it("kör installern tyst och skriver en logg att felsöka ur", () => {
+    assert.match(script, /\/SILENT \/SUPPRESSMSGBOXES \/NORESTART/);
+    assert.match(script, /\/LOG="%PA_WORK%\\\.\.\\update\.log"/);
   });
 });

@@ -75,6 +75,11 @@ internal static class Program
     private static string PortFile { get { return Path.Combine(StateDir, "port"); } }
     private static string BrowserProfile { get { return Path.Combine(StateDir, "browser"); } }
 
+    /// Där /api/update/install lägger sin nedladdade installer och sitt skript.
+    /// Samma sökväg finns i route.ts – ändras den ena måste den andra med.
+    private static string UpdateDir { get { return Path.Combine(StateDir, "update"); } }
+    private static string UpdateScript { get { return Path.Combine(UpdateDir, "uppdatera.cmd"); } }
+
     [STAThread]
     private static int Main()
     {
@@ -113,6 +118,10 @@ internal static class Program
 
         Directory.CreateDirectory(StateDir);
 
+        // Tidsstämpeln avgör senare om en väntande uppdatering hör till den här
+        // körningen eller är en rest från en avbruten. Se RunPendingUpdate.
+        DateTime startedUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
+
         int port = FindFreePort();
         if (port == 0)
         {
@@ -144,6 +153,56 @@ internal static class Program
             StopServer(serverProcess);
             try { File.Delete(PortFile); } catch { }
             if (job != IntPtr.Zero) CloseHandle(job);
+            // Sist av allt, och med flit: nu är servern död, fönstret stängt och
+            // job-objektet borta. Se RunPendingUpdate för varför ordningen är hela
+            // poängen.
+            RunPendingUpdate(startedUtc);
+        }
+    }
+
+    /// Kör uppdateringsskriptet som /api/update/install lagt ut, om det finns.
+    ///
+    /// DET HÄR ÄR ENDA STÄLLET BYTET FÅR STARTAS IFRÅN. Servern kan inte göra det
+    /// själv, hur naturligt det än vore: node.exe ligger i job-objektet ovan, och
+    /// allt node startar ärver medlemskapet – `detached` hjälper inte, ett jobb
+    /// följer med barnen. När launchern sedan släpper handtaget dödar
+    /// KILL_ON_JOB_CLOSE hela släktet, alltså också installern mitt i
+    /// installationen. Symptomet är precis det man inte gissar på: appen stängs,
+    /// ingenting installeras, och nästa start är samma version. Launchern är
+    /// däremot inte själv medlem i jobbet, så det den startar går fritt.
+    ///
+    /// Skriptet får sökvägen till programmet som miljövariabel i stället för
+    /// inbakad i sin text: en .cmd läses i datorns OEM-teckentabell, så ett
+    /// användarnamn med å, ä eller ö i sökvägen hade blivit obegripligt för cmd.
+    /// Miljövariabler går som Unicode hela vägen.
+    private static void RunPendingUpdate(DateTime launcherStartUtc)
+    {
+        try
+        {
+            if (!File.Exists(UpdateScript)) return;
+
+            // Skriptet ska ha skrivits av den server vi just körde. Ett äldre är
+            // en rest från en uppdatering som avbröts, och att köra en gammal
+            // installer vid nästa vanliga avslut vore både förvirrande och fel.
+            if (File.GetLastWriteTimeUtc(UpdateScript) < launcherStartUtc)
+            {
+                try { Directory.Delete(UpdateDir, true); } catch { }
+                return;
+            }
+
+            var info = new ProcessStartInfo("cmd.exe", "/c \"" + UpdateScript + "\"")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = StateDir,
+            };
+            info.EnvironmentVariables["PA_APP_EXE"] = Path.Combine(AppDir, AppName + ".exe");
+            Process.Start(info);
+        }
+        catch
+        {
+            // Går det inte att starta bytet är appen oförändrad och fungerar. En
+            // ruta om det här, efter att fönstret redan stängts, vore ett spöke.
         }
     }
 

@@ -1,7 +1,8 @@
-/** POST /api/update/install – hämtar senaste installationsfilen och kör den.
+/** POST /api/update/install – hämtar senaste installationsfilen och lägger den
+ * till rätta.
  *
- * Den här rutten laddar ner en binär och startar den. Fyra kontroller står
- * mellan den och en fjärrkörningsbugg, och ingen av dem är valfri:
+ * Den här rutten laddar ner en binär som strax kommer att köras. Fyra kontroller
+ * står mellan den och en fjärrkörningsbugg, och ingen av dem är valfri:
  *
  *   1. Bara den installerade appen får göra det (PA_PACKAGED). Ett `npm run
  *      dev` ska aldrig kunna installera över sin egen källkod.
@@ -9,22 +10,37 @@
  *      versionsnummer och ingen kontrollsumma – bara "kör igång".
  *   3. Nedladdningen måste komma från vårt eget repos utgåvor
  *      (`isTrustedAssetUrl`).
- *   4. SHA-256 jämförs mot SHA256SUMS.txt i samma utgåva innan filen körs.
- *      Stämmer den inte raderas filen och ingenting startas.
+ *   4. SHA-256 jämförs mot SHA256SUMS.txt i samma utgåva innan filen ens rör
+ *      disken. Stämmer den inte skrivs ingenting, och då finns det heller
+ *      ingenting för launchern att hitta och köra.
  *
- * Själva bytet görs av ett litet skript i temp-mappen, inte av oss: installern
- * behöver stänga appen för att kunna skriva över dess filer, och en process kan
- * inte gärna vänta in sin egen död. Skriptet väntar ut oss, kör installern tyst
- * och startar programmet igen.
+ * Själva bytet görs av ett litet skript, inte av oss: installern behöver stänga
+ * appen för att kunna skriva över dess filer, och en process kan inte gärna
+ * vänta in sin egen död. Skriptet väntar ut oss, kör installern tyst och startar
+ * programmet igen.
+ *
+ * **Men skriptet startas inte härifrån.** Vi lägger det bara på en avtalad plats
+ * och avslutar oss; launchern kör det när den städat undan resten. Skälet är
+ * job-objektet i `Launcher.cs`: node.exe ligger i det, allt node startar ärver
+ * medlemskapet, och när launchern släpper handtaget dödar `KILL_ON_JOB_CLOSE`
+ * hela släktet – inklusive en installer mitt i installationen. Symptomet är
+ * precis det man inte gissar på: appen stängs, ingenting installeras, och nästa
+ * start är samma version. Launchern är däremot inte själv medlem i jobbet, så
+ * det den startar går fritt. Starta alltså aldrig något härifrån igen.
  */
 
 import { serverT } from "@/i18n/server";
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import {
+  updateScript,
+  UPDATE_DIR_NAME,
+  UPDATE_INSTALLER_NAME,
+  UPDATE_SCRIPT_NAME,
+} from "@/lib/update";
 import {
   ASSET_NAME,
   isTrustedAssetUrl,
@@ -42,6 +58,20 @@ const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 
 function fail(error: string, status = 500) {
   return NextResponse.json({ ok: false, error }, { status });
+}
+
+/**
+ * Mappen launchern hämtar uppdateringen ur. Samma sökväg finns i `Launcher.cs`
+ * (`StateDir\update`) – ändras den ena måste den andra med, annars händer
+ * ingenting alls när användaren trycker på knappen.
+ *
+ * Den ligger hos användaren och inte i programmappen, av samma skäl som portfilen
+ * och webbläsarprofilen: installern skriver över programmappen medan det här
+ * ligger kvar och används.
+ */
+function updateDir(): string {
+  const local = process.env.LOCALAPPDATA ?? path.join(homedir(), "AppData", "Local");
+  return path.join(local, "PalAssistent", UPDATE_DIR_NAME);
 }
 
 /** Plockar ut kontrollsumman för en fil ur ett sha256sum-formaterat dokument. */
@@ -102,8 +132,7 @@ export async function POST() {
 
   // --- hämta och kontrollera -------------------------------------------------
 
-  const work = await mkdtemp(path.join(tmpdir(), "palassistent-update-"));
-  const installer = path.join(work, ASSET_NAME);
+  const work = updateDir();
 
   try {
     const [binary, sums] = await Promise.all([
@@ -113,46 +142,27 @@ export async function POST() {
 
     const expected = sumFor(sums, ASSET_NAME);
     if (!expected) {
-      await rm(work, { recursive: true, force: true });
       return fail(t("api.noSumLine", { sums: SUMS_NAME, asset: ASSET_NAME }));
     }
 
     const actual = createHash("sha256").update(binary).digest("hex");
     if (actual !== expected) {
-      await rm(work, { recursive: true, force: true });
       return fail(t("api.badChecksum"));
     }
 
-    await writeFile(installer, binary);
-
-    // --- lämna över till skriptet --------------------------------------------
-    // /SILENT visar en förloppsindikator men frågar ingenting. Installern stänger
-    // appen själv (CloseApplications i .iss), och skriptet startar den igen.
-    const appExe = path.join(process.cwd(), "PalAssistent.exe");
-    const script = path.join(work, "uppdatera.cmd");
-    await writeFile(
-      script,
-      [
-        "@echo off",
-        "rem Väntar ut appen innan installern får skriva i mappen.",
-        "timeout /t 3 /nobreak >nul",
-        `"${installer}" /SILENT /SUPPRESSMSGBOXES /NORESTART`,
-        `start "" "${appExe}"`,
-      ].join("\r\n"),
-      "utf8",
-    );
-
-    const child = spawn(process.env.COMSPEC ?? "cmd.exe", ["/c", script], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      cwd: work,
-    });
-    child.unref();
+    // --- lämna över till launchern -------------------------------------------
+    // Först nu rörs disken. En avbruten nedladdning ska inte kunna lämna efter
+    // sig något som ser ut som en färdig uppdatering – launchern kör det den
+    // hittar här utan att fråga.
+    await rm(work, { recursive: true, force: true });
+    await mkdir(work, { recursive: true });
+    await writeFile(path.join(work, UPDATE_INSTALLER_NAME), binary);
+    // Skriptet skrivs SIST: det är dess existens launchern går på.
+    await writeFile(path.join(work, UPDATE_SCRIPT_NAME), updateScript(), "utf8");
 
     // Servern måste dö för att installern ska komma åt filerna. Launchern ser
-    // att den gjort det och stänger fönstret, så mutex och port släpps innan
-    // den nya versionen startar.
+    // att den gjort det, stänger fönstret och startar sedan skriptet – i den
+    // ordningen, så att mutex och port är släppta innan den nya versionen kommer.
     setTimeout(() => process.exit(0), 1500);
 
     return NextResponse.json({
