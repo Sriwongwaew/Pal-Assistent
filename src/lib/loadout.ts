@@ -6,6 +6,7 @@
  * saknas. Rollens passiver kommer ur samma poängsättning som `recommendPassives`,
  * så förslagen är elementanpassade och tar hänsyn till vad du har bärare av.
  */
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import {
   isElementBoost, isStamina, PURPOSES, recommendPassives,
   type PassiveRec, type PurposeId,
@@ -52,6 +53,7 @@ export function idealLoadout(
   species: Species,
   purposeId: PurposeId,
   work: WorkType | null = null,
+  locale: Locale = DEFAULT_LOCALE,
 ): Loadout {
   const purpose = PURPOSES.find((p) => p.id === purposeId) ?? PURPOSES[0]!;
   /* `all`, inte `picks`: `picks` innehåller bara passiver du redan har en bärare
@@ -60,7 +62,7 @@ export function idealLoadout(
      fanns aldrig bland riddjursförslagen trots att den är rollens bästa passiv.
      Att man saknar den syns på `carriers: 0` i kortet, inte genom att dölja den. */
   const { all } = recommendPassives(data, counts, {
-    purpose, target: species, work, limit: SLOTS * 3,
+    purpose, target: species, work, limit: SLOTS * 3, locale,
   });
   const ranked = all.slice(0, SLOTS * 3);
   const picks = ranked.slice(0, SLOTS);

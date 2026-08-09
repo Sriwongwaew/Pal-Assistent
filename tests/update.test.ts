@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  CHECK_INTERVAL_MS, emptyUpdatePrefs, notesToBlocks, parseUpdatePrefs,
+  CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, notesToBlocks, parseUpdatePrefs,
   serializeUpdatePrefs, shouldCheck, shouldShow, type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
 
@@ -68,6 +68,33 @@ describe("shouldShow", () => {
     const skipped: UpdatePrefs = { lastCheck: 0, skipped: "2.1.0" };
     assert.equal(shouldShow(check({ latest: "2.1.0" }), skipped), false);
     assert.equal(shouldShow(check({ latest: "2.2.0" }), skipped), true);
+  });
+});
+
+describe("checkOutcome", () => {
+  it("skiljer 'du kör den senaste' från 'kunde inte fråga'", () => {
+    // Hela poängen med knappen: ett misslyckat anrop får aldrig se ut som ett
+    // friskintyg. Båda har newer: false, och bara den ena vet något.
+    assert.equal(checkOutcome(check({ newer: false })), "latest");
+    assert.equal(
+      checkOutcome(check({ newer: false, error: "Kunde inte nå GitHub." })),
+      "failed",
+    );
+  });
+
+  it("svarar 'newer' bara när det finns något att hämta", () => {
+    assert.equal(checkOutcome(check()), "newer");
+  });
+
+  it("ett svar utan version är inget svar", () => {
+    // Rutten utelämnar `latest` när uppslaget kastade. Att kalla det "latest"
+    // vore att påstå något om en version vi aldrig fick veta.
+    assert.equal(checkOutcome(check({ latest: undefined, newer: false })), "failed");
+  });
+
+  it("är avstängd i bygget från källkoden och utan svar alls", () => {
+    assert.equal(checkOutcome(check({ enabled: false })), "off");
+    assert.equal(checkOutcome(null), "off");
   });
 });
 

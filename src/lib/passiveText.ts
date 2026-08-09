@@ -19,7 +19,10 @@
  * Ligger i src/lib och inte i pal-data.json med flit: den statiska halvan
  * genereras utanför repot, och allt man lägger i den försvinner nästa gång den
  * regenereras. */
+import { msg, type Msg } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import type { PassiveDef } from "./types";
+import { PASSIVE_TEXT_EN } from "./passiveTextEn";
 
 /** World Tree-passiverna delar sista meningen – den är lång och står tre gånger. */
 const WT = "World Tree-resurser försvinner inte när du kommer nära";
@@ -205,25 +208,43 @@ export const PASSIVE_TEXT: Record<string, string> = {
 
 export type FxKey = "atk" | "craft" | "move" | "hp" | "ele" | "def";
 
-const FX_LABEL: Record<FxKey, string> = {
-  atk: "Attack", craft: "Arbetshastighet", move: "Rörelse",
-  hp: "HP", ele: "Elementskada", def: "Försvar",
+/* Fx-radens etiketter kan inte gå via katalogen som resten av gränssnittet:
+   raden byggs ihop av flera delar här i `src/lib`, där det inte finns någon
+   översättare att fråga (se types.ts). Tabellen är därför per språk, precis som
+   passivtexterna ovanför – och faller tillbaka på engelska av samma skäl. */
+const FX_LABEL: Partial<Record<Locale, Record<FxKey, string>>> = {
+  en: {
+    atk: "Attack", craft: "Work speed", move: "Movement",
+    hp: "HP", ele: "Element damage", def: "Defence",
+  },
+  sv: {
+    atk: "Attack", craft: "Arbetshastighet", move: "Rörelse",
+    hp: "HP", ele: "Elementskada", def: "Försvar",
+  },
+};
+
+/** Spelets egen text per språk. Engelskan är genererad ur uppströms-l10n,
+    svenskan handöversatt – och allt annat läser engelskan, som katalogen. */
+const GAME_TEXT: Partial<Record<Locale, Record<string, string>>> = {
+  en: PASSIVE_TEXT_EN,
+  sv: PASSIVE_TEXT,
 };
 
 /**
  * "Attack +20 % · Arbetshastighet −50 %" ur poängsättningens egna siffror.
  *
- * Reservlösningen när en ny passiv dykt upp i datasetet men ingen svensk text
- * hunnit skrivas: den är ofullständig (se filhuvudet) men aldrig fel, och den
- * säger i alla fall åt vilket håll passiven drar. Delas med `recommendPassives`,
- * som visar samma rad som motivering.
+ * Reservlösningen när en ny passiv dykt upp i datasetet men ingen text hunnit
+ * skrivas: den är ofullständig (se filhuvudet) men aldrig fel, och den säger i
+ * alla fall åt vilket håll passiven drar. Delas med `recommendPassives`, som
+ * visar samma rad som motivering.
  */
-export function describeEffects(fx: PassiveDef["fx"]): string {
+export function describeEffects(fx: PassiveDef["fx"], locale: Locale = DEFAULT_LOCALE): string {
   if (!fx) return "";
-  return (Object.keys(FX_LABEL) as FxKey[])
+  const labels = FX_LABEL[locale] ?? FX_LABEL[DEFAULT_LOCALE]!;
+  return (Object.keys(labels) as FxKey[])
     .map((k) => [k, fx[k] ?? 0] as const)
     .filter(([, v]) => v !== 0)
-    .map(([k, v]) => `${FX_LABEL[k]} ${v > 0 ? "+" : "−"}${Math.abs(v)} %`)
+    .map(([k, v]) => `${labels[k]} ${v > 0 ? "+" : "−"}${Math.abs(v)} %`)
     .join(" · ");
 }
 
@@ -235,18 +256,22 @@ export interface PassiveText {
 }
 
 /** Beskrivningen av en passiv: spelets text först, fx-raden som reserv. */
-export function passiveText(id: string, def?: PassiveDef): PassiveText {
-  const game = PASSIVE_TEXT[id];
+export function passiveText(
+  id: string,
+  def?: PassiveDef,
+  locale: Locale = DEFAULT_LOCALE,
+): PassiveText {
+  const game = (GAME_TEXT[locale] ?? {})[id] ?? PASSIVE_TEXT_EN[id];
   if (game) return { text: game, fromGame: true };
-  const derived = describeEffects(def?.fx);
+  const derived = describeEffects(def?.fx, locale);
   return { text: derived || null, fromGame: false };
 }
 
 /** Nivån i ord – samma indelning som bannerns färg (`passiveVisual`). */
-export function tierLabel(tier: number): string {
-  if (tier >= 5) return "World Tree";
-  if (tier === 4) return "Legendarisk";
-  if (tier >= 1) return `Tier ${tier}`;
-  if (tier <= -1) return "Negativ";
-  return "Okänd nivå";
+export function tierLabel(tier: number): Msg {
+  if (tier >= 5) return msg("tier.worldTree");
+  if (tier === 4) return msg("tier.legendary");
+  if (tier >= 1) return msg("tier.numbered", { n: tier });
+  if (tier <= -1) return msg("tier.negative");
+  return msg("tier.unknown");
 }

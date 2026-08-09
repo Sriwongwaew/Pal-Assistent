@@ -6,6 +6,7 @@
  * utpekad mapp i stället, `{ path }` väljer en bestämd Level.sav i den mappen.
  */
 
+import { serverT } from "@/i18n/server";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
@@ -41,6 +42,7 @@ function fail(error: string, status = 500) {
 }
 
 export async function POST(request: Request) {
+  const t = await serverT();
   // Tom body betyder "ta den senast sparade världen i spelets mapp". En trasig
   // body är däremot ett fel – annars skulle en felskriven sökväg tyst läsa in
   // fel värld.
@@ -52,15 +54,15 @@ export async function POST(request: Request) {
     try {
       parsed = JSON.parse(body) as { path?: unknown; root?: unknown };
     } catch {
-      return fail("Ogiltig JSON i anropet.", 400);
+      return fail(t("api.badJson"), 400);
     }
     const wantedPath = field(parsed.path);
     if (wantedPath === null) {
-      return fail("Fältet 'path' måste vara en sökväg till en Level.sav.", 400);
+      return fail(t("api.badPathField"), 400);
     }
     const wantedRoot = field(parsed.root);
     if (wantedRoot === null) {
-      return fail("Fältet 'root' måste vara en sökväg till en mapp.", 400);
+      return fail(t("api.badRootField"), 400);
     }
     requested = wantedPath;
     root = wantedRoot;
@@ -74,14 +76,14 @@ export async function POST(request: Request) {
     ok: false as const,
     error: error instanceof Error ? error.message : String(error),
   }));
-  if (!scan.ok) return fail(scan.error ?? "Kunde inte söka efter saves.");
+  if (!scan.ok) return fail(scan.error ?? t("api.scanFailed"));
 
   const saves = scan.saves ?? [];
   if (saves.length === 0) {
     return fail(
       root
-        ? `Hittade ingen Level.sav i ${scan.root ?? root}.`
-        : "Hittade ingen Level.sav under %LOCALAPPDATA%\\Pal\\Saved\\SaveGames.",
+        ? t("api.noSavInFolder", { folder: scan.root ?? root })
+        : t("api.noSavInDefault"),
       404,
     );
   }
@@ -92,28 +94,28 @@ export async function POST(request: Request) {
   if (!target) {
     return fail(
       root
-        ? `Den valda save-filen ligger inte i ${scan.root ?? root}.`
-        : "Den valda save-filen ligger inte i spelets save-mapp.",
+        ? t("api.saveNotInFolder", { folder: scan.root ?? root })
+        : t("api.saveNotInDefault"),
       400,
     );
   }
 
   const read = await runPalsave<RawSaveRead>(["read", target.path]);
-  if (!read.ok || !read.pals) return fail(read.error ?? "Kunde inte läsa save-filen.");
+  if (!read.ok || !read.pals) return fail(read.error ?? t("api.readFailed"));
 
   let base: AppData;
   try {
     base = JSON.parse(await readFile(DATA_FILE, "utf8")) as AppData;
   } catch (error) {
     return fail(
-      `Kunde inte läsa ${path.basename(DATA_FILE)}: ` +
-        (error instanceof Error ? error.message : String(error)),
+      `${t("api.readFileFailed", { file: path.basename(DATA_FILE) })} `
+        + (error instanceof Error ? error.message : String(error)),
     );
   }
 
   const { pals, skipped } = mapSavePals(base.species, read.pals);
   if (pals.length === 0) {
-    return fail("Saven lästes men innehöll inga pals som matchar artlistan.");
+    return fail(t("api.noMatchingPals"));
   }
 
   const previousIds = new Set(base.pals.map((p) => p.id));
@@ -122,6 +124,9 @@ export async function POST(request: Request) {
     player: read.player ?? "",
     pals,
     modified: read.modified ?? target.modified,
+    // Skickas vidare orört, inklusive undefined: en äldre palsave.exe utan
+    // fältet ska ge "vet inte", inte "tomt förråd". Se mergeIntoAppData.
+    implants: read.implants,
   });
 
   // Skriv via temp + rename så appen aldrig kan läsa en halvskriven fil.
@@ -133,8 +138,8 @@ export async function POST(request: Request) {
     await rename(tmp, DATA_FILE);
   } catch (error) {
     return fail(
-      "Kunde inte skriva pal-data.json: " +
-        (error instanceof Error ? error.message : String(error)),
+      `${t("api.writeFailed")} `
+        + (error instanceof Error ? error.message : String(error)),
     );
   }
 

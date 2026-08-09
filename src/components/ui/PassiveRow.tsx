@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useT } from "@/i18n/LocaleContext";
 import { MaskIcon } from "./GameIcon";
 
 /* Dumb: passiv-banner i Palworlds in-game-stil, med spelets riktiga pil-ikoner (rank_N). */
@@ -105,12 +108,13 @@ export function PassiveNames({
 }
 
 export function PassiveList({ items }: { items: { id: string; name: string; tier: number }[] }) {
+  const t = useT();
   return (
     <span className="prows">
       {items.length ? (
         items.map((p) => <PassiveRow key={p.id} id={p.id} name={p.name} tier={p.tier} />)
       ) : (
-        <span className="prow sm empty"><span className="nm">Inga passiver</span><span className="arr" /></span>
+        <span className="prow sm empty"><span className="nm">{t("pal.noPassives")}</span><span className="arr" /></span>
       )}
     </span>
   );

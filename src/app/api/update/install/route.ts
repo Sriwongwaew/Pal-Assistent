@@ -18,6 +18,7 @@
  * och startar programmet igen.
  */
 
+import { serverT } from "@/i18n/server";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -67,9 +68,10 @@ async function download(url: string): Promise<Buffer> {
 }
 
 export async function POST() {
+  const t = await serverT();
   if (!PACKAGED) {
     return fail(
-      "Uppdatering går bara i den installerade appen, inte när den körs från källkoden.",
+      t("api.packagedOnly"),
       400,
     );
   }
@@ -78,22 +80,24 @@ export async function POST() {
 
   let release;
   try {
-    release = await latestRelease(true);
+    // 0 = ingen cache. Det är de här URL:erna och den här kontrollsumman vi
+    // laddar ner och kör; ett sex timmar gammalt svar duger inte till det.
+    release = await latestRelease(0);
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error));
   }
 
   if (!releaseIsNewer(release)) {
-    return fail("Du kör redan den senaste versionen.", 400);
+    return fail(t("api.alreadyLatest"), 400);
   }
   if (!release.installer) {
-    return fail("Utgåvan saknar installationsfil.", 400);
+    return fail(t("api.noInstaller"), 400);
   }
   if (!release.sums) {
-    return fail("Utgåvan saknar kontrollsummor – uppdaterar inte utan dem.", 400);
+    return fail(t("api.noChecksums"), 400);
   }
   if (!isTrustedAssetUrl(release.installer.url) || !isTrustedAssetUrl(release.sums.url)) {
-    return fail("Nedladdningen pekar utanför projektets utgåvor. Avbryter.", 400);
+    return fail(t("api.badDownloadHost"), 400);
   }
 
   // --- hämta och kontrollera -------------------------------------------------
@@ -110,13 +114,13 @@ export async function POST() {
     const expected = sumFor(sums, ASSET_NAME);
     if (!expected) {
       await rm(work, { recursive: true, force: true });
-      return fail(`${SUMS_NAME} saknar rad för ${ASSET_NAME}. Avbryter.`);
+      return fail(t("api.noSumLine", { sums: SUMS_NAME, asset: ASSET_NAME }));
     }
 
     const actual = createHash("sha256").update(binary).digest("hex");
     if (actual !== expected) {
       await rm(work, { recursive: true, force: true });
-      return fail("Kontrollsumman stämmer inte med utgåvan. Filen kastades.");
+      return fail(t("api.badChecksum"));
     }
 
     await writeFile(installer, binary);
@@ -154,7 +158,7 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       version: release.version,
-      message: "Uppdateringen är hämtad och kontrollerad. Appen startar om.",
+      message: t("api.updateReady"),
     });
   } catch (error) {
     await rm(work, { recursive: true, force: true }).catch(() => {});

@@ -1,9 +1,12 @@
+"use client";
+
 /* Dumb: målbilden i avelsplaneraren – arten du siktar på med precis de passiver
    planen ska ge den. Planen under är en lista med steg och odds; den säger
    aldrig hur *resultatet* ser ut. Kortet gör det: samma porträtt som i Boxen,
    samma banners som i spelets Pal-meny, och tomma platser för de passiver som
    ännu inte är valda (spelet ger högst fyra). */
 /* eslint-disable @next/next/no-img-element */
+import { useT } from "@/i18n/LocaleContext";
 import type { CSSProperties } from "react";
 import { ELEMENT_ICON, ELEMENT_META, WORK_META, WORK_TYPES } from "@/lib/constants";
 import type { IvGoal } from "@/lib/breeding";
@@ -32,21 +35,23 @@ export interface GoalCardProps {
 const IV_KEYS = ["HP", "ATK", "DEF"] as const;
 
 export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: GoalCardProps) {
+  const t = useT();
   const els: readonly ElementType[] = species?.elements.length ? species.elements : ["Normal"];
   const workLevels = species
-    ? WORK_TYPES.map((t) => [t, species.ws[t] ?? 0] as const).filter(([, lv]) => lv > 0)
+    ? WORK_TYPES.map((w) => [w, species.ws[w] ?? 0] as const).filter(([, lv]) => lv > 0)
     : [];
   const slotsLeft = Math.max(0, slots - wanted.length);
 
   const status = !species
-    ? "Välj arten du siktar på i rutnätet ovan – bilden fylls i här."
+    ? t("goal.pickSpecies")
     : done
-      ? `Klart – ${done} uppfyller redan målet.`
+      ? t("goal.done", { pal: done })
       : owned === 0
-        ? "Du äger ingen än. Art-vägen längre ner visar hur du får fram den."
-        : `${owned} i boxen · ${wanted.length
-          ? "ingen av dem har alla önskade passiver än"
-          : "välj passiverna till höger"}`;
+        ? t("goal.ownNone")
+        : t("goal.owned", {
+          n: owned,
+          rest: wanted.length ? t("goal.noneComplete") : t("goal.pickPassives"),
+        });
 
   return (
     // Elementfärgen bär informationen även här: samma ton som palens bricka i
@@ -62,7 +67,7 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
             : <span className="q">?</span>}
         </div>
         <div className="gwho">
-          <div className="gname">{species ? species.name : "Ingen art vald"}</div>
+          <div className="gname">{species ? species.name : t("goal.noSpecies")}</div>
           <div className="chips">
             {species && (
               <>
@@ -74,7 +79,7 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
                 ))}
                 {/* Datasetet har 0 för arter utan index (Lamball, platshållarna).
                     "No.0" ser ut som ett riktigt nummer – hellre ingen chip alls. */}
-                {species.deck > 0 && <span className="chip">No.{species.deck}</span>}
+                {species.deck > 0 && <span className="chip">{t("pal.deck", { n: species.deck })}</span>}
               </>
             )}
           </div>
@@ -83,14 +88,14 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
       </div>
 
       <div className="gsec">
-        <span className="gk">Passiva färdigheter · mål</span>
+        <span className="gk">{t("goal.passives")}</span>
         <div className="prows">
           {wanted.map((p) => <PassiveRow key={p.id} id={p.id} name={p.name} tier={p.tier} />)}
           {/* Tomma platser, inte en kortare lista: det syns direkt att det
               finns plats kvar, precis som i spelets 2×2-panel. */}
           {Array.from({ length: slotsLeft }, (_, i) => (
             <span key={`slot${i}`} className="prow sm slot">
-              <span className="nm">tom plats</span>
+              <span className="nm">{t("goal.emptySlot")}</span>
             </span>
           ))}
         </div>
@@ -98,7 +103,7 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
 
       <div className="gcols">
         <div className="gsec">
-          <span className="gk">Talang · IV-mål</span>
+          <span className="gk">{t("goal.ivGoal")}</span>
           {ivGoal === "perfect" ? (
             <div className="gtiles">
               {IV_KEYS.map((k) => (
@@ -109,19 +114,19 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
             </div>
           ) : (
             <div className="ghint">
-              <b>Snabb optimal</b> – bästa IV-snitt bland dina föräldrar, ingen jakt på 100:or.
+              <b>{t("breed.ivFast")}</b>{t("goal.ivFastHint")}
             </div>
           )}
         </div>
 
         {workLevels.length > 0 && (
           <div className="gsec">
-            <span className="gk">Arbetslämplighet</span>
+            <span className="gk">{t("pal.work")}</span>
             <div className="gwork">
-              {workLevels.map(([t, lv]) => (
-                <span key={t} className={`wi ${work === t ? "on" : ""}`}
-                  title={`${WORK_META[t]!.label} Lv ${lv}`}>
-                  <WorkIcon type={t} size={18} />
+              {workLevels.map(([w, lv]) => (
+                <span key={w} className={`wi ${work === w ? "on" : ""}`}
+                  title={t("pal.workLv", { name: WORK_META[w]!.label, n: lv })}>
+                  <WorkIcon type={w} size={18} />
                   <b>{lv}</b>
                 </span>
               ))}

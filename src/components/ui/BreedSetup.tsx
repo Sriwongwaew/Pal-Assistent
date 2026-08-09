@@ -20,10 +20,13 @@
  * nästa punkt att beta av, och vid fyra önskade passiver är det direkt felaktigt
  * råd: `philanthropistVerdict` säger 0,5× netto. Flytta dem inte tillbaka upp,
  * och lägg dem inte i "N kvar". */
+import { useT } from "@/i18n/LocaleContext";
+import type { MessageKey } from "@/i18n";
+import { useRichT } from "@/i18n/rich";
 import type { CSSProperties, ReactNode } from "react";
 import type { BreedSetup, PartnerPal, PoolVerdict } from "@/lib/breedRate";
 import {
-  CAP_FREE, CAP_RATE, alphaChance, bralohaBonus, dynamoffCut, eggSeconds, eggSpeed,
+  CAP_FREE, CAP_RATE, alphaChance, bralohaBonus, dynamoffCut, eggSeconds,
   eggTimeText, grintaleExtra, philanthropistVerdict, speedText,
 } from "@/lib/breedRate";
 import type { Species } from "@/lib/types";
@@ -40,7 +43,7 @@ function PalRow({
 }: {
   sp: Species | null;
   row: PartnerPal;
-  where: string;
+  where: MessageKey;
   skill: string;
   effect: string;
   next: ReactNode;
@@ -49,6 +52,7 @@ function PalRow({
    *  så den inte läses som en del av multiplikatorn högst upp. */
   offRate?: boolean;
 }) {
+  const t = useT();
   if (!sp) return null;
   const body = (
     <>
@@ -59,11 +63,11 @@ function PalRow({
         <DeckNo sp={sp} />
       </span>
       {row.owned > 0
-        ? <Tag kind="keep">ÄGD ×{row.owned}</Tag>
-        : <Tag kind="cond">FÅNGA</Tag>}
+        ? <Tag kind="keep">{t("setup.ownedN", { n: row.owned })}</Tag>
+        : <Tag kind="cond">{t("best.own.catch")}</Tag>}
       {row.owned > 0 && (row.placed
-        ? <Tag kind="info">{where} ✓</Tag>
-        : <Tag kind="cond">flytta {where.toLowerCase()}</Tag>)}
+        ? <Tag kind="info">{t(where)} ✓</Tag>
+        : <Tag kind="cond">{t("setup.moveTo", { where: t(where).toLowerCase() })}</Tag>)}
       <Stars count={row.stars} />
       <span className={offRate ? "eff off" : "eff"}>{effect}</span>
     </>
@@ -71,7 +75,7 @@ function PalRow({
   return (
     <div className="bsrow" style={{ "--elc": elementColor(sp) } as CSSProperties}>
       {onPick
-        ? <button type="button" className="bshit" onClick={onPick} title={`Planera ${sp.name}`}>{body}</button>
+        ? <button type="button" className="bshit" onClick={onPick} title={t("setup.planSpecies", { name: sp.name })}>{body}</button>
         : <span className="bshit">{body}</span>}
       <div className="hint"><b>{skill}</b> · {next}</div>
     </div>
@@ -83,31 +87,32 @@ function PalRow({
  *  i odds, och vilken som väger tyngst avgörs av hur många passiver planen
  *  siktar på – inte av något användaren kan gissa. */
 function PoolNote({ v }: { v: PoolVerdict }) {
+  const t = useT();
+  const rich = useRichT();
   const net = <b>{speedText(v.net)}</b>;
   // "dina 1 önskade passiver" är inte svenska, och raden syns vid varje val.
-  const yours = v.wanted === 1 ? "din enda önskade passiv" : `dina ${v.wanted} önskade passiver`;
+  const yours = v.wanted === 1 ? t("setup.yourOne") : t("setup.yourMany", { n: v.wanted });
   if (v.wanted === 0) {
-    return (
-      <>
-        Du har inga önskade passiver, så ingenting av den hamnar i vägen:{" "}
-        netto {net}. Jagar du bara <b>IV</b> är den alltså gratis – IV ärvs
-        oberoende av passiver.
-      </>
-    );
+    return <>{rich("setup.poolNone", { net, iv: <b>IV</b> })}</>;
   }
   const trade = <>
-    {" "}Sista steget går <b>{pct(v.cleanOdds)}</b> → <b>{pct(v.dirtyOdds)}</b> per ägg, alltså{" "}
-    <b>{speedText(v.eggFactor)} fler ägg</b>, mot <b>{speedText(v.speedFactor)} snabbare</b> takt.
+    {" "}{rich("setup.poolTrade", {
+      clean: <b>{pct(v.cleanOdds)}</b>,
+      dirty: <b>{pct(v.dirtyOdds)}</b>,
+      eggs: <b>{t("setup.moreEggs", { factor: speedText(v.eggFactor) })}</b>,
+      speed: <b>{t("setup.fasterRate", { factor: speedText(v.speedFactor) })}</b>,
+    })}
   </>;
   return v.net < 1
     ? <>
-        <b>Lönar sig inte med {yours}.</b> Den sitter på de två du
-        parar, alltså i arvspoolen, och där är den skräp.{trade} Netto {net} – låt den vara.
-        Den lönar sig vid <b>tre önskade eller färre</b>, och är gratis i ren IV-jakt.
+        <b>{t("setup.poolNotWorth", { yours })}</b>{" "}
+        {t("setup.poolNotWorthBody")}{trade}{" "}
+        {rich("setup.poolNotWorthTail", { net, three: <b>{t("setup.threeOrFewer")}</b> })}
       </>
     : <>
-        <b>Lönar sig med {yours}:</b> netto {net}.{trade}{" "}
-        Vid <b>fyra</b> önskade vänder det till en förlust – poolen blir för trång.
+        <b>{t("setup.poolWorth", { yours })}</b>{" "}
+        {rich("setup.poolWorthNet", { net })}{trade}{" "}
+        {rich("setup.poolWorthTail", { four: <b>{t("setup.four")}</b> })}
       </>;
 }
 
@@ -122,6 +127,8 @@ export function BreedSetupPanel({
   passiveTier: (id: string) => number;
   onPickTarget?: (s: number) => void;
 }) {
+  const t = useT();
+  const rich = useRichT();
   const { braloha, dynamoff, grintale, broncherry, broncherryAqua, philanthropist, nocturnal } = setup;
   const verdict = philanthropistVerdict(wanted, braloha.placed ? braloha.stars : null);
   const spOf = (row: PartnerPal) => (row.s === null ? null : speciesOf(row.s));
@@ -131,23 +138,28 @@ export function BreedSetupPanel({
   /* Vad kondenseringen är värd, i den enhet raden handlar om. Att säga "2★"
      räcker inte – poängen är procenten, och den är inte linjär i stjärnor. */
   const bralohaNext = braloha.owned === 0
-    ? <>Ger <b>{pct(bralohaBonus(0))}</b> direkt, <b>{pct(bralohaBonus(4))}</b> vid 4★.</>
+    ? rich("setup.bralohaNone", { now: <b>{pct(bralohaBonus(0))}</b>, max: <b>{pct(bralohaBonus(4))}</b> })
     : braloha.reach > braloha.stars
-      ? <>
-          Nu <b>{pct(bralohaBonus(braloha.stars))}</b> – dina {braloha.owned - 1} dubbletter räcker
-          till <b>{braloha.reach}★</b> och <b>{pct(bralohaBonus(braloha.reach))}</b>.
-        </>
-      : <>Ger <b>{pct(bralohaBonus(braloha.stars))}</b>{braloha.stars < 4 && <> · {pct(bralohaBonus(4))} vid 4★</>}.</>;
+      ? rich("setup.bralohaReach", {
+        now: <b>{pct(bralohaBonus(braloha.stars))}</b>,
+        dupes: braloha.owned - 1,
+        star: <b>{braloha.reach}★</b>,
+        then: <b>{pct(bralohaBonus(braloha.reach))}</b>,
+      })
+      : <>
+        {rich("setup.bralohaNow", { now: <b>{pct(bralohaBonus(braloha.stars))}</b> })}
+        {braloha.stars < 4 && t("setup.bralohaAtFour", { max: pct(bralohaBonus(4)) })}
+      </>;
 
   return (
     <details className="bsetup">
       <summary>
-        <span className="ttl">Avelsbas</span>
+        <span className="ttl">{t("setup.title")}</span>
         <span className="num">{speedText(setup.rate)}</span>
-        <span className="meta">≈{eggTimeText(setup.seconds)} per ägg</span>
+        <span className="meta">{t("setup.perEgg", { time: eggTimeText(setup.seconds) })}</span>
         {setup.todo > 0
-          ? <Tag kind="cond">{setup.todo} kvar</Tag>
-          : <Tag kind="keep">full uppställning</Tag>}
+          ? <Tag kind="cond">{t("setup.todo", { n: setup.todo })}</Tag>
+          : <Tag kind="keep">{t("setup.full")}</Tag>}
       </summary>
 
       {/* Mätaren står mot CAP_FREE, inte mot spelets absoluta tak. Skälet är
@@ -164,52 +176,61 @@ export function BreedSetupPanel({
           )}
         </div>
         <div className="hint">
-          Taket <b>utan att röra oddsen</b> är <b>{speedText(CAP_FREE)}</b> =
-          ≈{eggTimeText(eggSeconds(CAP_FREE))} per ägg: en 4★ Braloha i basen och Grintale
-          i partyt. Philanthropist på båda föräldrarna tar det till{" "}
-          {speedText(CAP_RATE)} (≈{eggTimeText(eggSeconds(CAP_RATE))}) men lägger sig i
-          arvspoolen – se längst ner.
+          {rich("setup.cap", {
+            free: <b>{t("setup.capFree")}</b>,
+            rate: <b>{speedText(CAP_FREE)}</b>,
+            time: eggTimeText(eggSeconds(CAP_FREE)),
+            capRate: speedText(CAP_RATE),
+            capTime: eggTimeText(eggSeconds(CAP_RATE)),
+          })}
         </div>
       </div>
 
-      <div className="bsgrp">I basen</div>
+      <div className="bsgrp">{t("setup.atBase")}</div>
       <PalRow
-        sp={spOf(braloha)} row={braloha} where="I BASEN" skill="Balmy Weather"
+        sp={spOf(braloha)} row={braloha} where="setup.atBaseTag" skill="Balmy Weather"
         effect={braloha.placed ? `+${pct(bralohaBonus(braloha.stars))}` : "—"}
         next={bralohaNext} onPick={pick(braloha)}
       />
       <PalRow
-        sp={spOf(dynamoff)} row={dynamoff} where="I BASEN" skill="Electro-Massage Incubation"
+        sp={spOf(dynamoff)} row={dynamoff} where="setup.atBaseTag" skill="Electro-Massage Incubation"
         effect={dynamoff.placed ? `−${pct(dynamoffCut(dynamoff))}` : "—"} offRate
-        next={<>Kortar <b>kläckningen</b> i inkubatorn, inte farmens timer – därför ligger den
-          utanför takten ovan. <b>−{pct(dynamoffCut(dynamoff, 0))}</b> direkt,{" "}
-          <b>−{pct(dynamoffCut(dynamoff, 4))}</b> vid 4★. Störst nytta ihop med Grintale:
-          fler ägg är bara fler ägg om kläckarna hinner med.</>}
+        next={rich("setup.dynamoff", {
+          hatch: <b>{t("setup.hatching")}</b>,
+          now: <b>−{pct(dynamoffCut(dynamoff, 0))}</b>,
+          max: <b>−{pct(dynamoffCut(dynamoff, 4))}</b>,
+        })}
         onPick={pick(dynamoff)}
       />
 
-      <div className="bsgrp">I partyt</div>
+      <div className="bsgrp">{t("setup.inParty")}</div>
       <PalRow
-        sp={spOf(grintale)} row={grintale} where="I PARTYT" skill="Glaring Cat's Eye"
+        sp={spOf(grintale)} row={grintale} where="setup.inPartyTag" skill="Glaring Cat's Eye"
         effect={grintale.placed ? speedText(1 + grintaleExtra()) : "—"}
-        next={<>Varje upplockat ägg har <b>{pct(grintaleExtra())}</b> chans att ge ett extra,
-          alltså <b>{speedText(1 + grintaleExtra())} fler ägg</b> ur samma par. Det extra ägget
-          är en <b>egen passivdragning</b>, så det räknas fullt ut i planens siffror. Platt –
-          ingen stjärnskalning – och stackar inte med fler Grintale.</>}
+        next={rich("setup.grintale", {
+          chance: <b>{pct(grintaleExtra())}</b>,
+          more: <b>{t("setup.moreEggs", { factor: speedText(1 + grintaleExtra()) })}</b>,
+          roll: <b>{t("setup.ownRoll")}</b>,
+        })}
         onPick={pick(grintale)}
       />
       <PalRow
-        sp={spOf(broncherryAqua)} row={broncherryAqua} where="I PARTYT" skill="Purity's Full Bloom"
+        sp={spOf(broncherryAqua)} row={broncherryAqua} where="setup.inPartyTag" skill="Purity's Full Bloom"
         effect={pct(alphaChance(broncherryAqua, true))}
-        next={<>Chans att ett upplockat ägg blir <b>alpha-ägg</b>: {pct(alphaChance(broncherryAqua, true))} →{" "}
-          <b>{pct(alphaChance(broncherryAqua, true, 4))}</b> vid 4★.</>}
+        next={rich("setup.broncherryAqua", {
+          alpha: <b>{t("setup.alphaEgg")}</b>,
+          now: pct(alphaChance(broncherryAqua, true)),
+          max: <b>{pct(alphaChance(broncherryAqua, true, 4))}</b>,
+        })}
         onPick={pick(broncherryAqua)}
       />
       <PalRow
-        sp={spOf(broncherry)} row={broncherry} where="I PARTYT" skill="Love's First Blossom"
+        sp={spOf(broncherry)} row={broncherry} where="setup.inPartyTag" skill="Love's First Blossom"
         effect={pct(alphaChance(broncherry, false))}
-        next={<>Samma sak, svagare: {pct(alphaChance(broncherry, false))} →{" "}
-          <b>{pct(alphaChance(broncherry, false, 4))}</b> vid 4★. Ingendera stackar med sig själv.</>}
+        next={rich("setup.broncherry", {
+          now: pct(alphaChance(broncherry, false)),
+          max: <b>{pct(alphaChance(broncherry, false, 4))}</b>,
+        })}
         onPick={pick(broncherry)}
       />
 
@@ -219,11 +240,13 @@ export function BreedSetupPanel({
           man parar, alltså i arvspoolen – de köper takt med odds. Låg de kvar i
           mitten lästes de som nästa punkt att beta av, och vid fyra önskade
           passiver är det ett felaktigt råd (se PoolNote). */}
-      <div className="bsgrp">Passiver på de två du parar – köper takt med odds</div>
+      <div className="bsgrp">{t("setup.passivesGroup")}</div>
       <div className="hint bslead">
-        De två här sitter på <b>de två du lägger i avelsboxen</b>, alltså föräldrarna i
-        planens steg – inte på Braloha eller någon i partyt. Och eftersom allt en förälder
-        bär hamnar i <b>arvspoolen</b>, är de de enda i panelen som <b>kostar något</b>.
+        {rich("setup.passivesLead", {
+          two: <b>{t("setup.theTwo")}</b>,
+          pool: <b>{t("setup.pool")}</b>,
+          cost: <b>{t("setup.costSomething")}</b>,
+        })}
       </div>
       <div className="bsrow pv bsopt">
         <PassiveRow id={philanthropist.id} name={passiveName(philanthropist.id)} tier={passiveTier(philanthropist.id)} />
@@ -236,30 +259,26 @@ export function BreedSetupPanel({
         <div className="hint">
           <PoolNote v={verdict} />{" "}
           {philanthropist.carriers > 0
-            ? <>Du har <b>{philanthropist.carriers}</b> bärare i boxen om du ändå vill.</>
-            : <>Ingen bärare i boxen – den måste fångas eller avlas fram först.</>}
+            ? rich("setup.carriersAnyway", { n: <b>{philanthropist.carriers}</b> })
+            : t("setup.noCarrier")}
         </div>
       </div>
       <div className="bsrow pv bsopt">
         <PassiveRow id={nocturnal.id} name={passiveName(nocturnal.id)} tier={passiveTier(nocturnal.id)} />
         {/* Dämpad med flit: Insomnia har ingen uppmätt siffra, och en etikett i
             samma accent som de riktiga procenten hade fått den att se ut som en. */}
-        <span className="eff txt">nattpass</span>
+        <span className="eff txt">{t("setup.nightShift")}</span>
         <div className="hint">
-          Paret pausar inte när det blir natt. Effekten är upptid, inte takt, så den
-          ligger inte i siffran ovan – men den är verklig, och störst om du sover när spelet
-          gör det. Den <b>kostar samma pool-plats som Philanthropist</b> och delar därför
-          dess räkning: värd det när du siktar på få passiver, inte när du siktar på fyra.{" "}
-          {nocturnal.carriers > 0 && <>Du har <b>{nocturnal.carriers}</b> bärare.</>}
+          {rich("setup.nocturnal", { cost: <b>{t("setup.nocturnalCost")}</b> })}{" "}
+          {nocturnal.carriers > 0 && rich("setup.carriers", { n: <b>{nocturnal.carriers}</b> })}
         </div>
       </div>
 
       {/* Den enda rena texten i sektionen, och den som sparar mest tid: allt
           nedan ser ut som det borde hjälpa och gör det inte. */}
       <div className="bswarn">
-        <b>Påverkar inte avelstiden:</b> Artisan, Work Slave, Serious och Lucky,
-        Statue of Power, matbuffar – och att kondensera <i>föräldrarna</i>. De snabbar
-        upp hantverk och insamling. Enda kondenseringen som gör skillnad är Bralohas egen.
+        <b>{t("setup.noEffectTitle")}</b>{" "}
+        {rich("setup.noEffectBody", { parents: <i>{t("setup.parents")}</i> })}
       </div>
     </details>
   );

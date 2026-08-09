@@ -1,5 +1,8 @@
 /* Dumb byggstenar för breeding-vyerna: mini-chips, stegkort, odds-badge. */
+"use client";
+
 import type { ReactNode } from "react";
+import { useT } from "@/i18n/LocaleContext";
 import type { Species } from "@/lib/types";
 import { DeckNo, ElementIcons, SpeciesIcon } from "./PalBits";
 
@@ -19,7 +22,8 @@ export function SpeciesMini({ sp, badge, badgeClass }: { sp: Species; badge?: st
 }
 
 export function OddsBadge({ odds, eggs }: { odds: string; eggs: string }) {
-  return <span className="oddbadge">🥚 {odds} / ägg · {eggs}</span>;
+  const t = useT();
+  return <span className="oddbadge">🥚 {t("breed.perEgg", { odds })} · {eggs}</span>;
 }
 
 export function StepCard({ num, children, hint }: { num?: ReactNode; children: ReactNode; hint?: ReactNode }) {

@@ -39,9 +39,18 @@ describe("parseBreedingPrefs", () => {
   it("tar tillbaka en hel uppsättning oförändrad", () => {
     const p: BreedingPrefs = {
       target: 1, base: 0, wanted: ["Legend", "Noukin"], ivGoal: "perfect",
-      purpose: "work", work: "Mining",
+      purpose: "work", work: "Mining", useImplants: false,
     };
     assert.deepEqual(roundTrip(p), p);
+  });
+
+  it("saknad useImplants blir PÅ, inte av", () => {
+    /* En uppsättning sparad före flaggan fanns ska inte tysta implantat-rådet.
+       Bara ett uttryckligt false stänger av det. */
+    const old = '{"target":1,"base":null,"wanted":[],"ivGoal":"fast","purpose":null,"work":null}';
+    assert.equal(parseBreedingPrefs(old, data).useImplants, true);
+    assert.equal(parseBreedingPrefs('{"useImplants":false}', data).useImplants, false);
+    assert.equal(parseBreedingPrefs('{"useImplants":"nej"}', data).useImplants, true);
   });
 
   it("ger tomma val för null, skräp-JSON och fel toppnivåtyp", () => {

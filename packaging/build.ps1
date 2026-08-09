@@ -120,8 +120,11 @@ if (Test-Path $nodeLicense) {
 
 # --- 5. tomma boxen ----------------------------------------------------------
 # Bundlen innehåller din egen box. Den statiska halvan (arter, avelstabell,
-# passiver, ikoner) ska följa med, men pals/player/exported nollas – annars
-# öppnar mottagaren programmet och ser dina pals.
+# passiver, ikoner) ska följa med, men pals/player/exported/implants nollas –
+# annars öppnar mottagaren programmet och ser dina pals.
+#
+# implants läses ur savens item-behållare och är alltså också ditt: läggs ett nytt
+# fält till i AppData som kommer UR SAVEN ska det nollas här i samma andetag.
 
 Step 'Tömmer boxen ur pal-data.json'
 $dataFile = Join-Path $payload 'public\data\pal-data.json'
@@ -133,8 +136,13 @@ const data = JSON.parse(fs.readFileSync(file, "utf8"));
 data.pals = [];
 data.player = "";
 data.exported = "";
+// Tomt objekt, inte delete: {} betyder "läst, du äger inga" och är sant i en
+// färsk installation. `undefined` hade betytt "vet inte" och fått appen att
+// tiga om implantat ända till första inläsningen.
+data.implants = {};
 fs.writeFileSync(file, JSON.stringify(data));
-console.log("    arter kvar: " + data.species.length + ", pals: " + data.pals.length);
+console.log("    arter kvar: " + data.species.length + ", pals: " + data.pals.length
+  + ", implantat: " + Object.keys(data.implants).length);
 '@
 $blankFile = Join-Path $build 'blank-data.js'
 # Set-Content -Encoding utf8 lägger på en BOM i Windows PowerShell 5.1. Node

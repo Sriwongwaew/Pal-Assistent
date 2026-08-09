@@ -14,7 +14,7 @@
 //      aktivitetsfältet.
 //   5. Stänger användaren fönstret avslutas servern med.
 //
-// Tre detaljer som ser onödiga ut men inte är det:
+// Fyra detaljer som ser onödiga ut men inte är det:
 //
 // * Vi väntar på FÖNSTRET, aldrig på msedge-processen. Chromium är ett tjugotal
 //   processer och den vi startar är sällan den som blir kvar – finns redan en
@@ -22,13 +22,19 @@
 //   på den skulle servern dödas i samma sekund som den startat.
 // * `--user-data-dir` ger appen en egen profil, alltså ett eget fönster och en
 //   egen ikon i aktivitetsfältet i stället för en flik i användarens vanliga
-//   Edge – och isolerar den från hens inställningar och tillägg.
+//   Edge. Egen profil är däremot INTE samma sak som tom profil: på en dator med
+//   jobbkonto loggar Edge in sig själv och synkar ner användarens alla tillägg
+//   i den. Därför `--disable-extensions` – se ShowWindow.
+// * Fönsterkollen går igenom alla toppnivåfönster, inte Process.MainWindowTitle.
+//   Skälet står vid AppWindowExists och det har kostat en app som stängde sig
+//   själv några sekunder efter start.
 // * Job-objektet med KILL_ON_JOB_CLOSE tar både node.exe och hela Edge-trädet
 //   i graven när launchern dör, hur den än dör. Utan det ligger en osynlig
 //   server kvar och äter minne, och kvarglömda renderarprocesser på profilen
 //   orsakar överlämningen ovan nästa gång programmet startas.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -239,6 +245,15 @@ internal static class Program
                 "--user-data-dir=\"" + BrowserProfile + "\"",
                 "--no-first-run",
                 "--no-default-browser-check",
+                // Egen profil, men inte tom: har datorn ett jobbkonto loggar Edge
+                // in sig själv i den och synkar ner användarens tillägg. En
+                // annonsblockerare som just landat där öppnar sitt "tack för att du
+                // använder …" i ett eget fönster ovanpå appen – och tillägg har
+                // ingenting att göra på en lokal sida som den här ändå.
+                // --disable-sync håller profilen tom, --disable-extensions gör att
+                // det som redan hunnit synkas ner aldrig startar.
+                "--disable-extensions",
+                "--disable-sync",
                 "--disable-features=Translate,msEdgeSplitScreen",
                 "--window-size=1400,900",
             }))
@@ -273,26 +288,77 @@ internal static class Program
             AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    /// Finns app-fönstret? Matchas på en Edge-process med vår titel. Att bara
-    /// leta efter titeln räcker inte: Utforskaren får ett fönster som heter
-    /// "PalAssistent" så fort någon öppnar installationsmappen, och det ska
-    /// definitivt inte hålla servern vid liv.
+    /// Finns app-fönstret? Vi går igenom ALLA synliga toppnivåfönster och letar
+    /// efter ett som både tillhör en msedge-process och har vår titel.
+    ///
+    /// Det uppenbara – Process.MainWindowTitle – är fel, och felet är otäckt:
+    /// hela Edge-profilen är EN process med flera fönster, och .NET ger då
+    /// titeln på det som råkar ligga överst i z-ordningen. Lägger sig ett annat
+    /// Edge-fönster ovanpå appen – ett tillägg som öppnar sitt "tack för att du
+    /// använder …", en utskriftsruta, DevTools – hittar vi plötsligt inget
+    /// PalAssistent-fönster alls. WaitForShutdown nedan drar då slutsatsen att
+    /// användaren stängt programmet, och 1,2 sekunder senare är servern dödad
+    /// och fönstret med den. Symptomet är en app som stänger sig själv strax
+    /// efter start, utan felmeddelande, "ibland".
+    ///
+    /// Att bara leta efter titeln räcker inte heller: Utforskaren får ett fönster
+    /// som heter "PalAssistent" så fort någon öppnar installationsmappen, och det
+    /// ska definitivt inte hålla servern vid liv. Därför kravet på msedge.
     private static bool AppWindowExists()
     {
+        var edge = new HashSet<uint>();
         foreach (Process p in Process.GetProcessesByName("msedge"))
         {
-            try
-            {
-                if (p.MainWindowHandle != IntPtr.Zero &&
-                    p.MainWindowTitle.IndexOf(AppName, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-            }
+            try { edge.Add((uint)p.Id); }
             catch { /* processen hann avsluta mellan uppräkning och fråga */ }
         }
-        return false;
+        if (edge.Count == 0) return false;
+
+        bool found = false;
+        // Delegaten ligger i en lokal variabel med flit: skickas den som ett
+        // uttryck direkt in i EnumWindows kan skräpsamlaren ta den mitt i anropet.
+        EnumWindowsProc scan = delegate(IntPtr window, IntPtr unused)
+        {
+            uint pid;
+            GetWindowThreadProcessId(window, out pid);
+            if (edge.Contains(pid) && IsWindowVisible(window) &&
+                WindowTitle(window).IndexOf(AppName, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                found = true;
+                return false; // hittat – sluta räkna upp
+            }
+            return true;
+        };
+        EnumWindows(scan, IntPtr.Zero);
+        GC.KeepAlive(scan);
+        return found;
     }
+
+    private static string WindowTitle(IntPtr window)
+    {
+        int length = GetWindowTextLength(window);
+        if (length <= 0) return "";
+        var text = new StringBuilder(length + 1);
+        GetWindowText(window, text, text.Capacity);
+        return text.ToString();
+    }
+
+    private delegate bool EnumWindowsProc(IntPtr window, IntPtr param);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr param);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetWindowTextLengthW")]
+    private static extern int GetWindowTextLength(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetWindowTextW")]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int max);
 
     /// Väntar tills app-fönstret finns (present=true) eller är borta (false).
     /// timeoutMs = -1 betyder "så länge som helst", vilket är fallet när vi väntar
@@ -367,6 +433,8 @@ internal static class Program
                     "--user-data-dir=\"" + BrowserProfile + "\"",
                     "--no-first-run",
                     "--no-default-browser-check",
+                    "--disable-extensions",
+                    "--disable-sync",
                 })) { UseShellExecute = false });
             }
             else

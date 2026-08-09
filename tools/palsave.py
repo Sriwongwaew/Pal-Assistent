@@ -373,15 +373,92 @@ def _container_names(
     return names
 
 
+#: Prefixet på det som Pal Surgery Table stoppar in i en pal. Resten av
+#: item-id:t ÄR passivens id, så inget uppslag behövs: id:t
+#: `PalPassiveSkillChange_Consumable_MoveSpeed_up_3` är ett implantat för Swift.
+_IMPLANT_PREFIX = "PalPassiveSkillChange_Consumable_"
+
+
+def _slot_item(blob: Any) -> tuple[str, int] | None:
+    """(item-id, antal) ur en item-slots RawData – eller None om den inte går att läsa.
+
+    Layouten är inte en property-lista utan en packad struct, och det är därför
+    bibliotekets egen avkodare inte duger: paltypes markerar
+    `ItemContainerSaveData.Value.Slots.Slots.RawData` som trasig sedan v0.3.7
+    ("UObject fields encoded into raw data"). Samma läge som pal-RawData, alltså
+    samma lösning – en tolerant egen läsare:
+
+        int32  slotIndex
+        int32  stackCount
+        int32  längd på id:t, NUL inräknad
+        char[] id + NUL
+        …därefter dynamisk item-data vi inte bryr oss om
+
+    Uppmätt mot en riktig 1.0-save: `00000000 d4020000 06000000 "Money\\0"` är
+    slot 0 med 724 guld. Vi läser aldrig till EOF med flit – svansen är UUID:n
+    och nollor, och att kräva EOF är precis vad som gör bibliotekets avkodare
+    värdelös här.
+    """
+    b = bytes(blob)
+    if len(b) < 13:
+        return None
+    try:
+        _index, count = struct.unpack_from("<ii", b, 0)
+        (length,) = struct.unpack_from("<i", b, 8)
+    except struct.error:
+        return None
+    # Negativ längd = UTF-16 i Unreals fstring. Item-id:n är ASCII; en negativ
+    # längd betyder att vi läst fel och ska släppa sloten, inte gissa.
+    if length <= 1 or 12 + length > len(b):
+        return None
+    raw = b[12 : 12 + length - 1]
+    if not all(32 <= c < 127 for c in raw):
+        return None
+    return raw.decode("ascii"), count
+
+
+def _implants(containers: Any) -> dict[str, int]:
+    """Passiv-id → antal implantat du äger, summerat över alla item-behållare.
+
+    Alla behållare räknas, inte bara spelarens: ett implantat i en kista hemma i
+    basen är lika mycket ditt som ett i ryggsäcken. Det som INTE görs är att läsa
+    ut hela inventariet – bara implantaten. Dels för att resten inte används av
+    någonting, dels för att `pal-data.json` följer med i installern och 526
+    item-id:n ur någons värld inte hör dit.
+    """
+    owned: dict[str, int] = {}
+    for entry in containers:
+        slots = entry.get("value", {}).get("Slots", {}).get("value", {}).get("values", [])
+        for slot in slots:
+            blob = slot.get("RawData", {}).get("value", {}).get("values")
+            if not blob:
+                continue
+            got = _slot_item(blob)
+            if got is None:
+                continue
+            item_id, count = got
+            if count <= 0 or not item_id.startswith(_IMPLANT_PREFIX):
+                continue
+            passive = item_id[len(_IMPLANT_PREFIX) :]
+            if passive:
+                owned[passive] = owned.get(passive, 0) + count
+    return owned
+
+
 def read_save(level_path: Path) -> dict[str, Any]:
     """Läser Level.sav och returnerar pals + spelarnamn i appens format."""
     world = _read_world(
         decompress_sav(level_path),
-        {"CharacterSaveParameterMap", "CharacterContainerSaveData"},
+        # ItemContainerSaveData är nyckel 8 och CharacterContainerSaveData 10, så
+        # implantaten är gratis: vi går redan förbi dem innan vi stannar. De
+        # ligger dessutom före InLockerCharacterInstanceIDArray, som biblioteket
+        # inte kan tolka alls – ordningen är alltså inte en detalj.
+        {"CharacterSaveParameterMap", "ItemContainerSaveData", "CharacterContainerSaveData"},
     )
     characters = world["CharacterSaveParameterMap"]["value"]
     containers = world["CharacterContainerSaveData"]["value"]
     names = _container_names(containers, level_path.parent)
+    implants = _implants(world["ItemContainerSaveData"]["value"])
 
     pals: list[dict[str, Any]] = []
     player_name = ""
@@ -451,7 +528,12 @@ def read_save(level_path: Path) -> dict[str, Any]:
             }
         )
 
-    return {"player": player_name, "pals": pals, "containers": sorted(set(names.values()))}
+    return {
+        "player": player_name,
+        "pals": pals,
+        "containers": sorted(set(names.values())),
+        "implants": implants,
+    }
 
 
 # ---------------------------------------------------------------- CLI

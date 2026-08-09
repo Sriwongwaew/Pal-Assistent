@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/i18n/LocaleContext";
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
@@ -22,6 +23,7 @@ const PalDataContext = createContext<PalDataValue | null>(null);
 
 /** Smart provider: hämtar exporten och beräknar all härledd data en gång. */
 export function PalDataProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const [data, setData] = useState<AppData | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** Räknare som både tvingar ny fetch och kringgår webbläsarens cache. */
@@ -60,14 +62,14 @@ export function PalDataProvider({ children }: { children: ReactNode }) {
   if (error) {
     return (
       <div className="content"><div className="wrap">
-        <div className="warnbox">Kunde inte läsa pal-datan: {error}</div>
+        <div className="warnbox">{t("api.dataFailed", { error })}</div>
       </div></div>
     );
   }
   if (!value) {
     return (
       <div className="content"><div className="wrap">
-        <div className="meta" style={{ padding: 40 }}>Laddar boxen…</div>
+        <div className="meta" style={{ padding: 40 }}>{t("api.loadingBox")}</div>
       </div></div>
     );
   }

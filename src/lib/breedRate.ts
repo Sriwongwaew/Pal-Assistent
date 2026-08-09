@@ -65,6 +65,8 @@
  *    insamling – aldrig avelstimern. Bara Braloha-exemplaret självt tjänar på
  *    att kondenseras, och då för sin partnerskill.
  */
+import { translate, type MessageKey, type Vars } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import { inheritOdds } from "./breeding";
 import { condenseReach } from "./scoring";
 import type { AppData, ScoredPal } from "./types";
@@ -340,11 +342,14 @@ const sv = (n: number, dec: number) => n.toFixed(dec).replace(".", ",");
 export const speedText = (speed: number): string => `${sv(speed, 1)}×`;
 
 /** Tiden för ett ägg: "86 s", "4 min 10 s", "5 min". */
-export function eggTimeText(seconds: number): string {
+export function eggTimeText(seconds: number, locale: Locale = DEFAULT_LOCALE): string {
+  const say = (key: MessageKey, vars: Vars) => translate(locale, key, vars);
   const s = Math.round(seconds);
-  if (s < 90) return `${s} s`;
+  if (s < 90) return say("time.seconds", { n: s });
   const rest = s % 60;
-  return rest ? `${Math.floor(s / 60)} min ${rest} s` : `${Math.floor(s / 60)} min`;
+  return rest
+    ? say("time.minutesSeconds", { m: Math.floor(s / 60), s: rest })
+    : say("time.minutes", { n: Math.floor(s / 60) });
 }
 
 /**
@@ -352,13 +357,14 @@ export function eggTimeText(seconds: number): string {
  * användbart som "52,3 h" och lovar mindre precision än ett estimat med
  * ±hundratals ägg i osäkerhet förtjänar.
  */
-export function spanText(seconds: number): string {
+export function spanText(seconds: number, locale: Locale = DEFAULT_LOCALE): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "–";
+  const say = (key: MessageKey, vars: Vars) => translate(locale, key, vars);
   const min = seconds / 60;
-  if (min < 90) return `${Math.round(min)} min`;
+  if (min < 90) return say("time.minutes", { n: Math.round(min) });
   const h = min / 60;
-  if (h < 36) return `${sv(h, 1)} h`;
+  if (h < 36) return say("time.hours", { n: sv(h, 1) });
   const d = Math.floor(h / 24);
   const rest = Math.round(h - d * 24);
-  return rest ? `${d} d ${rest} h` : `${d} d`;
+  return rest ? say("time.daysHours", { d, h: rest }) : say("time.days", { n: d });
 }

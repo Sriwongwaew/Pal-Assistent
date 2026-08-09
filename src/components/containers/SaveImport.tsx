@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePalData } from "@/context/PalDataContext";
+import { useT } from "@/i18n/LocaleContext";
+import type { Translator } from "@/i18n";
 import { SaveFolder } from "@/components/ui/SaveFolder";
 import {
   SAVE_PREFS_KEY, emptySavePrefs, parseSavePrefs, serializeSavePrefs,
@@ -59,7 +61,7 @@ const RESOLVE_TTL_MS = 60_000;
  * Felrutan visar `error` rakt av, så varje meddelande måste vara en hel mening.
  * Prefixade vyn i stället blev det "Kunde inte läsa saven: Live avstängt …".
  */
-const cause = (message: string) => `Kunde inte läsa saven: ${message}`;
+const cause = (t: Translator, message: string) => t("save.failed", { message });
 
 /**
  * Läser Level.sav direkt ur spelets mapp – ingen kopiering, inget filval.
@@ -70,6 +72,7 @@ const cause = (message: string) => `Kunde inte läsa saven: ${message}`;
  */
 export function SaveImport() {
   const { reload } = usePalData();
+  const t = useT();
 
   const [prefs, setPrefs] = useState<SavePrefs>(emptySavePrefs);
   const [loaded, setLoaded] = useState(false);
@@ -116,9 +119,9 @@ export function SaveImport() {
     if (!body.ok) throw new Error(body.error);
     // Spelets egen mapp används som platshållare i fältet.
     if (body.isDefault) setDefaultRoot(body.root);
-    if (!body.exists) throw new Error(`Mappen ${body.root} finns inte.`);
+    if (!body.exists) throw new Error(t("save.noFolder", { root: body.root }));
     return body.saves;
-  }, []);
+  }, [t]);
 
   const runScan = useCallback(async (root: string) => {
     setScanning(true);
@@ -152,7 +155,7 @@ export function SaveImport() {
       });
       const body = (await response.json()) as ImportOk | Failed;
       if (!body.ok) {
-        setError(cause(body.error));
+        setError(cause(t, body.error));
         return body.error;
       }
       lastRef.current = body.modified;
@@ -163,13 +166,13 @@ export function SaveImport() {
       return null;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      setError(cause(message));
+      setError(cause(t, message));
       return message;
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
-  }, [reload]);
+  }, [reload, t]);
 
   /**
    * Ett live-varv: leta rätt på saven, kolla dess tidsstämpel och läs bara om
@@ -182,11 +185,11 @@ export function SaveImport() {
     const miss = (message: string) => {
       failRef.current += 1;
       if (failRef.current < LIVE_MAX_FAILS) {
-        setError(cause(message));
+        setError(cause(t, message));
         return;
       }
       setPrefs((p) => ({ ...p, live: false }));
-      setError(`Live avstängt efter ${LIVE_MAX_FAILS} misslyckade försök: ${message}`);
+      setError(t("save.liveOff", { n: LIVE_MAX_FAILS, message }));
     };
 
     let target = prefs.path;
@@ -198,7 +201,7 @@ export function SaveImport() {
         try {
           const found = await scan(prefs.root);
           const newest = found[0]?.path;
-          if (!newest) throw new Error("Hittade ingen Level.sav att bevaka.");
+          if (!newest) throw new Error(t("save.noneToWatch"));
           resolvedAtRef.current = Date.now();
           setWatching(newest);
           target = newest;
@@ -230,7 +233,7 @@ export function SaveImport() {
     } catch (e: unknown) {
       miss(e instanceof Error ? e.message : String(e));
     }
-  }, [prefs.path, prefs.root, watching, scan, runImport]);
+  }, [prefs.path, prefs.root, watching, scan, runImport, t]);
 
   // Slingan startas om bara när live eller intervallet ändras – `tick` byter
   // identitet så fort något av dess beroenden gör det, och att bygga om timern
@@ -306,19 +309,19 @@ export function SaveImport() {
     <div className="saveimport" ref={boxRef}>
       <div className="sibar">
         {prefs.live && (
-          <span className={`livedot${busy ? " on" : ""}`} title="Live: läser om när spelet sparat">
-            <i />Live
+          <span className={`livedot${busy ? " on" : ""}`} title={t("save.liveDot")}>
+            <i />{t("save.live")}
           </span>
         )}
         <button className="ghost" onClick={manualImport} disabled={busy}>
-          {busy ? "Läser saven…" : "Läs in från spelet"}
+          {busy ? t("save.reading") : t("save.read")}
         </button>
         <button
           className={`ghost sfbtn${open ? " on" : ""}`}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
         >
-          Mapp
+          {t("save.folder")}
         </button>
       </div>
 
@@ -345,10 +348,12 @@ export function SaveImport() {
 
       {result && (
         <div className="okbox">
-          Läste {result.total} pals ur {result.player}s värld · {result.added} nya ·{" "}
-          {result.removed} borta · sparad {result.exported}
+          {t("save.result", {
+            total: result.total, player: result.player,
+            added: result.added, removed: result.removed, exported: result.exported,
+          })}
           {skippedCount > 0 && (
-            <span className="meta"> · {skippedCount} poster hoppades över (ej pals)</span>
+            <span className="meta">{t("save.skipped", { n: skippedCount })}</span>
           )}
         </div>
       )}

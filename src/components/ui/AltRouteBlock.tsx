@@ -1,3 +1,5 @@
+"use client";
+
 /* Dumb: "du kan också göra såhär" – en alternativ väg till målet, indragen
    under huvudplanen.
 
@@ -6,6 +8,7 @@
    följer: rubriken säger hur mycket den sparar, texten säger vilka två pals som
    gjorde den möjlig, och stegen står under i samma form som planens egna. */
 
+import { useT } from "@/i18n/LocaleContext";
 import type { AltRoute } from "@/lib/altRoutes";
 import type { ScoredPal, Species } from "@/lib/types";
 import { OddsBadge, SpeciesMini } from "./BreedBits";
@@ -31,11 +34,12 @@ function Parent({ pal, sp, nameOf, tierOf, wanted }: {
   pal: ScoredPal; sp: Species; nameOf: (id: string) => string;
   tierOf: (id: string) => number; wanted: readonly string[];
 }) {
+  const t = useT();
   return (
     <div className="altpal">
       <SpeciesMini sp={sp} />
       <span className="altmeta">
-        <GenderSymbol g={pal.g} /> Lv {pal.lv} · IV {pal.iv.join("/")}
+        <GenderSymbol g={pal.g} /> {t("pal.lv", { n: pal.lv })} · IV {pal.iv.join("/")}
       </span>
       <PassiveChips
         ids={pal.pv.filter((id) => wanted.includes(id))}
@@ -49,6 +53,7 @@ function Parent({ pal, sp, nameOf, tierOf, wanted }: {
 export function AltRouteBlock({
   routes, speciesOf, nameOf, tierOf, target, planEggs, oddsText, eggsText,
 }: AltRouteBlockProps) {
+  const t = useT();
   if (!routes.length) return null;
 
   return (
@@ -63,22 +68,21 @@ export function AltRouteBlock({
             style={{ ["--elc" as string]: elementColor(sp) }}
           >
             <div className="althd">
-              <span className="altlbl">Du kan också göra såhär</span>
-              <span className="altsave">~{Math.round(r.saves)} ägg snabbare</span>
+              <span className="altlbl">{t("alt.label")}</span>
+              <span className="altsave">{t("alt.saves", { n: Math.round(r.saves) })}</span>
               <span className="altsum">
-                {Math.ceil(r.totalEggs)} ägg mot planens {Math.ceil(planEggs)}
+                {t("alt.versus", { eggs: Math.ceil(r.totalEggs), plan: Math.ceil(planEggs) })}
               </span>
             </div>
 
             <div className="altwhy">
-              Du har nu två <b>{sp.name}</b> som tillsammans bär precis de önskade passiverna.
-              Parar du dem med <i>varandra</i> samlas alla {wanted.length} på en {sp.name} direkt
+              {t("alt.why", { name: sp.name, n: wanted.length })}
               {r.cleanAssembly
-                ? " – och eftersom ingen av dem släpar med något annat kan ungen inte få skräp."
-                : ` – men ${r.poolJunk.map(nameOf).join(" och ")} följer med in i arvspoolen.`}
+                ? t("alt.whyClean")
+                : t("alt.whyJunk", { names: r.poolJunk.map(nameOf).join(", ") })}
               {r.chain.length > 0
-                ? ` Därifrån är det ${r.chain.length} steg till ${speciesOf(target).name}.`
-                : ` ${sp.name} är redan målarten.`}
+                ? t("alt.whyChain", { n: r.chain.length, target: speciesOf(target).name })
+                : t("alt.whyTarget", { name: sp.name })}
             </div>
 
             <div className="altpair">
@@ -89,20 +93,20 @@ export function AltRouteBlock({
 
             <ol className="altsteps">
               <li>
-                <SpeciesMini sp={sp} badge="HOPSAMLING" badgeClass="q" />→
-                <span className="meta">{sp.name} med alla {wanted.length}</span>
+                <SpeciesMini sp={sp} badge={t("alt.assembly")} badgeClass="q" />→
+                <span className="meta">{t("alt.withAll", { name: sp.name, n: wanted.length })}</span>
                 <OddsBadge odds={oddsText(r.odds)} eggs={eggsText(r.odds)} />
-                {r.cleanAssembly && <span className="altclean">ren pool</span>}
+                {r.cleanAssembly && <span className="altclean">{t("alt.cleanPool")}</span>}
               </li>
               {r.chain.map((st, i) => (
                 <li key={i}>
-                  <SpeciesMini sp={speciesOf(st.from)} badge={i === 0 ? "DIN LINJE" : `STEG ${i}`} badgeClass="q" />＋
-                  <SpeciesMini sp={speciesOf(st.with)} badge="ÄGD" />→
+                  <SpeciesMini sp={speciesOf(st.from)} badge={i === 0 ? t("breed.yourLine") : t("breed.stepN", { n: i })} badgeClass="q" />＋
+                  <SpeciesMini sp={speciesOf(st.with)} badge={t("best.own.owned")} />→
                   <SpeciesMini sp={speciesOf(st.to)} />
                   <OddsBadge odds={oddsText(st.odds)} eggs={eggsText(st.odds)} />
                   {st.partner && st.pool > wanted.length && (
                     <span className="altjunk">
-                      +{st.pool - wanted.length} i poolen från partnern
+                      {t("alt.poolFromPartner", { n: st.pool - wanted.length })}
                     </span>
                   )}
                 </li>
@@ -110,9 +114,7 @@ export function AltRouteBlock({
             </ol>
 
             <div className="hint">
-              Uppskattningar, samma modell som planen ovan – jämförbara med varandra, men inte
-              exakta, och som där är oddsen &quot;minst de önskade&quot;. Vill du följa den här
-              vägen i stället: byt inget i väljarna, den utgår från pals du redan äger.
+              {t("alt.foot")}
             </div>
           </div>
         );

@@ -33,11 +33,26 @@ export interface BreedingPrefs {
   purpose: PurposeId | null;
   /** Bara meningsfull när `purpose === "work"`. */
   work: WorkType | null;
+  /**
+   * Ska planen räkna med att du opererar in de passiver du har implantat för?
+   *
+   * Påslaget lyfts de ur det planen **avlar** – de hamnar aldrig i arvspoolen, så
+   * oddsen blir de för en mindre pool. Målbilden visar dem fortfarande: målet är
+   * oförändrat, det är bara vägen dit som är kortare.
+   *
+   * Standard **på**: äger du implantatet är att avla in passiven strikt sämre –
+   * fler ägg för samma resultat. Men valet finns, för man kanske vill spara
+   * implantatet till en annan pal.
+   */
+  useImplants: boolean;
 }
 
 /** Ny tom uppsättning. Funktion, inte konstant, så ingen kan råka dela `wanted`. */
 export function emptyBreedingPrefs(): BreedingPrefs {
-  return { target: null, base: null, wanted: [], ivGoal: "fast", purpose: null, work: null };
+  return {
+    target: null, base: null, wanted: [], ivGoal: "fast",
+    purpose: null, work: null, useImplants: true,
+  };
 }
 
 /** Art-index bara om det pekar på en art som finns i den här bundlen. */
@@ -81,6 +96,10 @@ export function parseBreedingPrefs(raw: string | null, data: AppData): BreedingP
   }
 
   out.ivGoal = o.ivGoal === "perfect" ? "perfect" : "fast";
+  /* Bara ett uttryckligt `false` stänger av det. En sparad uppsättning från före
+     flaggan fanns saknar fältet, och då är standarden (på) rätt – annars hade
+     alla gamla sessioner tystat rådet utan att någon bett om det. */
+  out.useImplants = o.useImplants !== false;
   out.purpose = PURPOSES.some((p) => p.id === o.purpose) ? (o.purpose as PurposeId) : null;
   // Sysslan hänger på syftet: väljaren nollar den så fort man lämnar "Bas & arbete".
   out.work = out.purpose === "work" && WORK_TYPES.includes(o.work as WorkType)
@@ -97,5 +116,5 @@ export function serializeBreedingPrefs(prefs: BreedingPrefs): string {
 /** Finns det något att rensa? Styr om "Rensa allt" är klickbar. */
 export function hasBreedingPrefs(prefs: BreedingPrefs): boolean {
   return prefs.target !== null || prefs.base !== null || prefs.wanted.length > 0
-    || prefs.purpose !== null || prefs.ivGoal !== "fast";
+    || prefs.purpose !== null || prefs.ivGoal !== "fast" || !prefs.useImplants;
 }

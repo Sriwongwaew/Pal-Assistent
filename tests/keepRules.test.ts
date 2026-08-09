@@ -8,6 +8,7 @@
  * Tierna nedan är dataset-värden, inte påhitt. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { translate } from "../src/i18n";
 import { applyKeepRules, scorePal } from "../src/lib/scoring";
 import type { AppData, OwnedPal, PassiveDef, ScoredPal, Species } from "../src/lib/types";
 
@@ -75,7 +76,10 @@ function keepOf(list: OwnedPal[]): ScoredPal[] {
   return scored;
 }
 
-const reasons = (p: ScoredPal) => p.reasons.join(" · ");
+/* Skälen är `Msg` och inte text – logiken väljer nyckel, gränssnittet språk.
+   Testet läser dem på svenska, så facit går att jämföra med vad som står i
+   appen. */
+const reasons = (p: ScoredPal) => p.reasons.map((m) => translate("sv", m.key, m.vars)).join(" · ");
 
 describe("färdig passiv-uppsättning", () => {
   it("Remarkable + Work Slave + Artisan sparas, trots bara en guldpassiv", () => {
@@ -83,7 +87,7 @@ describe("färdig passiv-uppsättning", () => {
     assert.ok(p);
     assert.equal(p.tiers.filter((t) => t === 4).length, 1, "bara en guldpassiv – gamla regeln räckte inte");
     assert.equal(p.keep, true, `sparades inte: ${reasons(p)}`);
-    assert.deepEqual(p.synergy?.label, "Bas & arbete");
+    assert.deepEqual(p.synergy?.label, "purpose.work");
     assert.equal(p.synergy?.names.length, 3);
   });
 
@@ -103,7 +107,7 @@ describe("färdig passiv-uppsättning", () => {
 
   it("men tre riktiga försvarspassiver ÄR en tålig-uppsättning", () => {
     const [p] = keepOf([owned(["Deffence_up2", "Deffence_up2_2", "Legend"], { s: 1 })]);
-    assert.equal(p?.synergy?.label, "Tålig");
+    assert.equal(p?.synergy?.label, "purpose.tank");
   });
 });
 

@@ -764,6 +764,95 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 }
 .prow.opt { width: 100%; font-family: inherit; text-align: left; cursor: pointer; }
 .prow.opt .cnt { margin-left: auto; padding-right: 6px; }
+/* "Du äger ett implantat för den här" – appens märke inne i bannern, precis som
+   bärarsiffran. Egen färg och inte --acc: bannern har sin egen svarta botten och
+   byter aldrig med temat (se designregel 3), så en tema-token hade tappat
+   kontrast i ena läget. #68ffd8 är spelets egen teal, samma som tier 4-bannern.
+   margin-left: auto flyttas hit när märket finns, annars hamnar .cnt först och
+   märket blir högerställt bortom siffran. */
+.prow.opt .imp {
+  margin-left: auto; padding: 1px 6px; border-radius: 999px;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-size: 10px; font-weight: 900; line-height: 1.45; white-space: nowrap;
+  color: #68ffd8; background: rgba(104, 255, 216, .14);
+  border: 1px solid rgba(104, 255, 216, .45);
+}
+.prow.opt .imp + .cnt { margin-left: 6px; }
+
+/* Implantat-rådet: tre frågor man ställer sig vid kläckaren, en per rad.
+   Som ett enda stycke blev det en textvägg där alla tre fallen såg ut att vara
+   samma resonemang. `.fine` är förbehållet – sant, men inte det man läser först.
+   Namnen är scopade under .impcases så ingen `kind`-sträng kan matcha dem. */
+/* Kryssrutan ligger överst i rutan och är det enda där som ÄNDRAR något – därför
+   egen botten och ram, så den inte läses som en rubrikrad. */
+.impuse {
+  display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
+  margin-bottom: 9px; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: var(--r2); background: var(--panel2);
+  font-size: 12px; color: var(--ink2);
+}
+.impuse input { margin: 1px 0 0; flex: none; accent-color: var(--acc); }
+.impuse b { color: var(--ink); }
+
+.impcases > div + div { margin-top: 6px; }
+.impcases > .fine { opacity: .78; }
+
+/* Förrådet av implantat – egen panel med samma hopfällning som Avelsbas, så den
+   ärver `.bsetup > summary` (chevron, VISA/DÖLJ, klickbar list). */
+/* ---------- manuellt läge ----------
+   Två platser, en editor. Klassnamnen är prefixade "m"/"mpair" av samma skäl som
+   "bs": det här stilarket är ett enda, och en generisk `.slot` hade kunnat träffa
+   något helt annat. */
+.mpair .mslots {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 10px; margin: 10px 0 4px;
+}
+.mpair .mslot {
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: var(--r2); padding: 10px 12px;
+}
+.mpair .mslot.on { border-color: var(--acc); }
+.mpair .mshd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mpair .mshd .k {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted);
+}
+/* Knapparna längst ut, i den ordning de står i markupen. */
+.mpair .mshd .ghost:first-of-type { margin-left: auto; }
+.mpair .msident { display: flex; align-items: center; gap: 9px; margin: 8px 0 7px; }
+.mpair .msident .nm { display: flex; align-items: center; gap: 6px; font-weight: 800; min-width: 0; }
+
+.mpair .meditor {
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+}
+.mpair .meditor > input { width: 100%; margin-bottom: 8px; }
+/* Egen scroll: boxen kan ha femhundra pals, och listan får inte äga sidan. */
+.mpair .mboxlist {
+  max-height: 240px; overflow-y: auto; display: grid; gap: 5px;
+  border: 1px solid var(--line); border-radius: var(--r2); padding: 7px;
+  background: var(--panel);
+}
+.mpair .mboxrow {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r1);
+  padding: 5px 8px; font: inherit; color: inherit; cursor: pointer;
+}
+.mpair .mboxrow:hover { border-color: var(--acc); }
+.mpair .mboxrow .nm { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mpair .mboxrow .mini { margin-left: auto; flex: none; }
+.mpair .mboxrow .mini + .mini { margin-left: 0; }
+.mpair .mgender { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; flex-wrap: wrap; }
+.mpair .mgender .k {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.impstash .implist { margin-top: 9px; }
+.impstash .impn {
+  margin-left: auto; padding-right: 6px; flex: none;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-size: 10.5px; font-weight: 900; opacity: .8; white-space: nowrap;
+}
 .prow.opt .arr { margin-left: 0; }
 /* Nedtonad, men INTE `disabled`: en disabled knapp får inga pekarhändelser alls
    i Chrome/Edge, och då går den inte att hovra för att se vad passiven gör – och
@@ -819,13 +908,18 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 }
 .bsetup[open] > summary::before { transform: rotate(90deg); }
 /* Ordet efter taggen säger vad klicket gör. Utan det får man gissa att raden
-   går att klicka på alls. */
+   går att klicka på alls.
+
+   Texten kommer ur en custom property och inte ur `content: "Visa"`, eftersom
+   pseudo-element inte går att nå från React: `LocaleProvider` skriver
+   `--ui-show`/`--ui-hide` på <html> när språket byts. Reservvärdet är engelska,
+   samma som DEFAULT_LOCALE. */
 .bsetup > summary::after {
-  content: "Visa"; flex: none;
+  content: var(--ui-show, "Show"); flex: none;
   font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
   color: var(--acc);
 }
-.bsetup[open] > summary::after { content: "Dölj"; }
+.bsetup[open] > summary::after { content: var(--ui-hide, "Hide"); }
 .bsetup > summary .ttl { font-weight: 800; font-size: 14.5px; }
 .bsetup > summary .num {
   font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
@@ -1539,9 +1633,9 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .ranchgap b { color: var(--ink2); }
 
 /* ============================================================
-   REKOMMENDATIONER – varning, spara-lista och kondenseringskö
+   REKOMMENDATIONER – spara-lista och kondenseringskö
 
-   Klassnamnen är prefixade (rs = delat innehåll, rq = kön och varningen) just
+   Klassnamnen är prefixade (rs = delat innehåll, rq = kön) just
    för att inget `kind`- eller variantvärde ska kunna råka matcha en
    layoutklass – se varningen om .tag/.cond längre upp i filen.
    ============================================================ */
@@ -1607,25 +1701,7 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .rqkeep:hover .ivt { color: var(--acc); }
 .rquses { margin-top: 8px; }
 
-/* ---------- varningen ----------
-   Alltid utfälld, aldrig en `details`: en varning man måste klicka fram är
-   ingen varning. Färgen är däremot dämpad – rött över hela sidans bredd gör
-   att man slutar läsa den efter tredje besöket, och då är den värdelös ändå.
-   Bara rubriken bär färgen; brödtexten är vanlig text i --ink2. */
-.rqwarn {
-  border: 1px solid color-mix(in srgb, var(--red) 34%, transparent);
-  background: color-mix(in srgb, var(--red) 7%, transparent);
-  border-radius: var(--r2); padding: 12px 16px; margin-bottom: 14px; max-width: 940px;
-}
-.rqwarn .h {
-  display: block; margin-bottom: 5px; font-size: 13px; font-weight: 800; color: var(--red);
-}
-.rqwarn p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink2); }
-.rqwarn p b { color: var(--ink); font-weight: 800; }
-/* Ansvarsfriskrivningen är underordnad varningen – den ska finnas, inte ropa. */
-.rqwarn .dis { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
-
-/* Spara-listan ligger före kön, så dess hopfällda grupper är tätare än
+/* Spara-listan ligger först på sidan, så dess hopfällda grupper är tätare än
    `details.dgroup` är annars – tio rader i normalhöjd sköt ner kön en hel
    skärm, och kön är det man faktiskt kom för att göra. */
 .rqkeeps details.dgroup { margin: 6px 0; padding: 9px 15px; }
@@ -1707,6 +1783,45 @@ footer {
   padding: 14px 0 20px; border-top: 1px solid var(--line);
 }
 .plegend { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 230px)); gap: 6px; margin-top: 8px; }
+
+/* ---------- credits: licens, källkod, tack ----------
+   Egen linje över blocket: teckenförklaringen ovanför handlar om spelet,
+   det här om projektet. Utan avdelaren läses det som samma stycke. */
+.credits { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.credits p { margin: 0; }
+.credits a { color: var(--ink2); text-decoration: underline; text-underline-offset: 2px; }
+.credits a:hover { color: var(--acc); }
+.crlic { font-size: 11px; }
+
+.crthanks { margin-top: 10px; }
+.crk {
+  display: block; font-size: 8.5px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+/* Nivån och namnen på samma rad så länge det får plats: en lista med två
+   personer ska inte se ut som en prislista. */
+.crtier { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11.5px; line-height: 1.6; }
+.crtier b { color: var(--ink2); font-weight: 800; flex: none; }
+.crtier span { color: var(--ink); }
+
+.crsupport { margin-top: 11px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crkofi {
+  display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px;
+  font: 800 11.5px inherit; color: var(--ink2); text-decoration: none !important;
+  border: 1px solid var(--line2); background: var(--panel2);
+}
+.crkofi:hover { color: var(--acc); border-color: var(--acc); }
+.crhint { font-size: 10.5px; color: var(--muted); }
+
+/* Uppdateringsknappen i foten. Svaret står bredvid knappen och inte högst upp:
+   det är knappen man tittar på när man just tryckt på den. En <div>, inte en
+   <p> – `.credits p { margin: 0 }` har högre specificitet än en ensam klass och
+   hade ätit upp marginalen (det är därför .crsupport ovan inte får sin). */
+.crupd { margin-top: 11px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crupd button.ghost { flex: none; }
+/* Tom tills någon tryckt – aria-live vill ha ett element som redan finns, så
+   den får inte rendera bort sig när svaret saknas. */
+.crupdmsg { font-size: 11px; color: var(--ink2); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

@@ -1,3 +1,5 @@
+import { msg, translate, type Msg } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import type { AppData, BreedTree, ChainStep, ChildResult, ScoredPal } from "./types";
 
 /** Index i den platta triangulära par-tabellen för oordnat par (i, j). */
@@ -261,7 +263,7 @@ export function bestParentPair(
   a: number,
   b: number,
   prefs: ParentPrefs = DEFAULT_PARENT_PREFS,
-): { pa: ScoredPal; pb: ScoredPal; warn?: string } {
+): { pa: ScoredPal; pb: ScoredPal; warn?: Msg } {
   const best = (s: number, g: "M" | "F") => {
     let out: ScoredPal | null = null;
     for (const p of pals) {
@@ -282,7 +284,7 @@ export function bestParentPair(
   }
   if (ok1) return { pa: c1[0]!, pb: c1[1]! };
   if (ok2) return { pa: c2[0]!, pb: c2[1]! };
-  return { pa: bestOf.get(a)!, pb: bestOf.get(b)!, warn: "saknar ♂+♀ – avla/fånga en till av arten" };
+  return { pa: bestOf.get(a)!, pb: bestOf.get(b)!, warn: msg("pair.needBothGenders") };
 }
 
 /* ---------- Ärvnings-odds ---------- */
@@ -371,5 +373,5 @@ export const oddsText = (p: number): string => {
   return `${pct >= 10 ? Math.round(pct) : pct.toFixed(1)} %`;
 };
 
-export const eggsText = (p: number): string =>
-  p <= 0 ? "–" : `~${Math.ceil(1 / p)} ägg`;
+export const eggsText = (p: number, locale: Locale = DEFAULT_LOCALE): string =>
+  p <= 0 ? "–" : translate(locale, "eggs.approx", { n: Math.ceil(1 / p) });

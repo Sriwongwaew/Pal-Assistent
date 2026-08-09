@@ -8,8 +8,9 @@ and Musclehead?
 Everything runs locally on your machine. The save file is opened read-only and nothing is ever
 uploaded anywhere.
 
-> **Note:** the app's interface is currently in Swedish. An English translation is planned — see
-> [issues](../../issues) if you'd like to help.
+> **Note:** the translation is half done, and the screenshots show it honestly. Navigation, header
+> and controls speak eight languages — pick yours at the bottom of the left-hand column — while the
+> views themselves are still Swedish. Help with the rest is welcome; see [issues](../../issues).
 
 ![Overview](docs/img/overview.png)
 
@@ -44,6 +45,11 @@ pool and dilutes your chances. In a real box the difference is 60–450×. You c
 Switch the IV goal to **perfect 100/100/100** and it searches for the shortest path there across
 multiple generations, accounting for the fact that gender costs (a chick is a 50/50) and that
 siblings from the same clutch share eggs.
+
+Hold a Pal Surgery Table implant for one of the passives and the plan says so: an implant goes on
+the *finished* pal, so that passive never enters the inheritance pool and the last step gets
+several times cheaper. Your stash is read from the save — the app tells you what you own, never
+what is impossible.
 
 ### The box
 
@@ -130,15 +136,23 @@ npm run dev        # http://localhost:3000
 ```
 
 ```bash
-npm run build      # production build
-npm run typecheck  # tsc --noEmit, strict
-npm test           # node:test over src/lib
+npm run build       # production build
+npm run typecheck   # tsc --noEmit, strict
+npm test            # node:test over src/lib
 npm run lint
-npm run package    # -> dist/PalAssistent-Setup.exe
+npm run docs-images # every image the docs point at exists
+npm run docs-shots  # retake the six README screenshots
+npm run package     # -> dist/PalAssistent-Setup.exe
 ```
 
 Run `npm test` after every change in `src/lib`. A miscalculated probability looks exactly as
 plausible as a correct one, and neither the build, typecheck nor lint will catch it.
+
+The screenshots above are half of what this README is, so they have to follow the interface. Start a
+production build on port 3100 (`npm run build`, then `npm run start -- -p 3100`) and run
+`npm run docs-shots`: it drives your own Edge headless — no browser download — and rewrites all six
+files. `npm run docs-images` only proves the files exist; noticing that one is *old* is still a
+human's job, which is why retaking them has to cost one command.
 
 Your own box never ends up in git: `public/data/pal-data.json` is ignored and generated from
 `data/pal-data.base.json`, which holds only the static half (species, breeding table, passives).
@@ -157,13 +171,68 @@ the Actions tab, or by hand with `npm version minor && git push --follow-tags`.
 Architecture, design rules and every hard-won pitfall live in [CLAUDE.md](CLAUDE.md) (in Swedish).
 User guide: [docs/USAGE.md](docs/USAGE.md).
 
+## Supporting the project
+
+There is a Ko-fi link in the rail and in the footer, but only in an official build. Both read
+`PA_DONATE`, which GitHub Actions takes from the repository variable of the same name
+(*Settings → Secrets and variables → Actions → Variables*). A build from source has no address
+baked in and shows no link at all — nobody should end up asking for money in someone else's name.
+
+**Recurring tiers are configured on Ko-fi**, under Memberships. The app cannot read them: Ko-fi
+has webhooks but no API that lists your members. The thank-you in the footer is therefore driven
+by [data/supporters.json](data/supporters.json), which you edit by hand:
+
+```json
+{
+  "tiers": [
+    { "tier": "Alpha", "names": ["Someone", "Someone else"] },
+    { "tier": "Lucky", "names": ["A third"] }
+  ]
+}
+```
+
+`tier` is the membership name exactly as it reads on Ko-fi — it is a proper noun and is never
+translated. Order the list most expensive first; that is the order the app renders. An empty
+`tiers` array hides the whole section.
+
+**Ask before you add anyone.** Buying a coffee is not consent to appear by name inside a program,
+and someone who supports anonymously has to be able to keep doing so.
+
 ## License and bundled content
 
-The source code is [MIT](LICENSE). The package also contains icons, artwork and names from
-Palworld, which belong to **Pocketpair, Inc.** — they're included so the tool can show the game's
-own symbols for your own save data. This project is not affiliated with or endorsed by Pocketpair.
+Copyright © 2026 **Kensiwat Sriwongwaew**
 
-Save parsing builds on [palworld-save-tools](https://github.com/cheahjs/palworld-save-tools) and
-[zao/ooz](https://github.com/zao/ooz); species and breeding data derive from
-[palworld-save-pal](https://github.com/oMaN-Rod/palworld-save-pal). See [LICENSE](LICENSE) for the
-full list.
+PalAssistent is free software: you can redistribute it and/or modify it under the terms of the
+**GNU Affero General Public License, version 3** as published by the Free Software Foundation.
+The full text is in [LICENSE](LICENSE).
+
+It is distributed in the hope that it will be useful, but **without any warranty** — without even
+the implied warranty of merchantability or fitness for a particular purpose. See the licence for
+details.
+
+The AGPL is deliberate rather than incidental. Anyone may use, study and build on this — but if
+you distribute a modified version, **or run one as a network service**, you have to publish your
+source and keep the copyright notice. Two of the things this project depends on are GPL-3.0
+already, so this is also the licence it has to carry.
+
+### What the licence does *not* cover
+
+You can only license what you own, so the terms above apply to **the source code in this
+repository** and nothing else:
+
+- **Palworld icons, artwork, species names and stats belong to [Pocketpair, Inc.](https://www.pocketpair.jp/)**
+  They are bundled so the tool can show the game's own symbols next to your own save data. They
+  are not licensed under the AGPL and are not mine to license. This project is not affiliated
+  with, endorsed by, or sponsored by Pocketpair, and it is free — no money changes hands.
+- **Third-party components keep their own terms**, listed below.
+
+### Third-party components
+
+| Component | Used for | Terms |
+| --- | --- | --- |
+| [palworld-save-tools](https://github.com/cheahjs/palworld-save-tools) | Reading the GVAS save format | MIT |
+| [palworld-save-pal](https://github.com/oMaN-Rod/palworld-save-pal) | Species, breeding and passive metadata | GPL-3.0 |
+| [zao/ooz](https://github.com/zao/ooz) → [powzix/ooz](https://github.com/powzix/ooz) | Oodle (`PlM`) decompression, as `tools/libooz.dll` | **No licence stated.** The upstream README describes it as "open source", but no repository in the fork chain carries a licence file. It is bundled because Palworld 1.0 saves cannot be read without it and no licensed alternative exists. Credit goes to the original author, **Lars Viklund** and **powzix**. If you are one of them and would rather it were not distributed here, open an issue and it comes out. |
+
+If you own rights to anything bundled here and want it removed, say so and it will be — quickly
+and without argument.

@@ -8,9 +8,11 @@
    reader, which is far more jarring — that is why this one is worth a cookie
    rather than the inline-script trick used for the theme. */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
+} from "react";
 import { DEFAULT_LOCALE, htmlLang, LOCALE_KEY, type Locale } from "./config";
-import { makeTranslator, type Translator } from "./index";
+import { makeTranslator, translate, type Translator } from "./index";
 
 interface LocaleValue {
   locale: Locale;
@@ -37,6 +39,16 @@ export function LocaleProvider({ initial, children }: { initial: Locale; childre
     // reads it purely to avoid rendering the wrong language for one frame.
     document.cookie = `${LOCALE_KEY}=${next}; path=/; max-age=31536000; SameSite=Lax`;
   }, []);
+
+  /* Ett par ord ritas av CSS och inte av React: `.bsetup > summary::after` säger
+     VISA/DÖLJ på de hopfällbara panelerna, och ett pseudo-element går inte att
+     nå med en `t()`. De skickas därför in som custom properties på <html>, som
+     `content: var(--ui-show)` läser. */
+  useEffect(() => {
+    const style = document.documentElement.style;
+    style.setProperty("--ui-show", JSON.stringify(translate(locale, "ui.show")));
+    style.setProperty("--ui-hide", JSON.stringify(translate(locale, "ui.hide")));
+  }, [locale]);
 
   const value = useMemo<LocaleValue>(
     () => ({ locale, setLocale, t: makeTranslator(locale) }),

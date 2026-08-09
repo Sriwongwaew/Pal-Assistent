@@ -8,6 +8,8 @@
  * Konsekvensen är den viktiga: eftersom statarna rullas var för sig går det att
  * samla ihop 100:or från olika föräldrar över flera generationer.
  */
+import { translate } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 
 import type { ScoredPal } from "./types";
 
@@ -178,9 +180,11 @@ export const ivOddsText = (p: number): string => {
   return `≈${pct >= 10 ? Math.round(pct) : pct.toFixed(1)} %`;
 };
 
-export const ivEggsText = (p: number): string => {
+export const ivEggsText = (p: number, locale: Locale = DEFAULT_LOCALE): string => {
   if (p <= 0) return "–";
   const n = eggsFor(p);
   // Bortom några tusen ägg är den exakta siffran meningslös – säg som det är.
-  return n > 3000 ? "i praktiken omöjligt" : `~${n.toLocaleString("sv-SE")} ägg`;
+  return n > 3000
+    ? translate(locale, "iv.impossible")
+    : translate(locale, "eggs.approx", { n });
 };

@@ -25,6 +25,8 @@
  *   - Sökningen håller sig inom målarten. Att para två arter byter art på ungen,
  *     så all IV-möda måste göras med exemplar av arten man faktiskt vill ha.
  */
+import { translate } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 
 import { childrenOf, inheritOdds } from "./breeding";
 import { IV_FROM_PARENT, IV_RANDOM, type IvIndex } from "./ivPlan";
@@ -383,11 +385,14 @@ function combineOdds(a: Node, b: Node, ivMask: number, pvMask: number) {
 }
 
 /** Beskriver ett tillstånd i klartext: "HP + Attack · 2 passiver". */
-export function describeState(ivMask: number, pvMask: number, wanted: string[], names: (id: string) => string): string {
+export function describeState(
+  ivMask: number, pvMask: number, wanted: string[], names: (id: string) => string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   const ivs = IV_BITS.filter((i) => has(ivMask, i)).map((i) => ["HP", "Attack", "Defense"][i]);
   const pvs = wanted.filter((_, i) => has(pvMask, i)).map(names);
   const parts: string[] = [];
-  parts.push(ivs.length ? `${ivs.join(" + ")} 100` : "inga 100:or");
+  parts.push(ivs.length ? `${ivs.join(" + ")} 100` : translate(locale, "iv.noHundreds"));
   if (pvs.length) parts.push(pvs.join(" + "));
   return parts.join(" · ");
 }

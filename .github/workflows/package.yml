@@ -111,6 +111,23 @@ jobs:
           if ($data.pals.Count -ne 0 -or $data.player -ne '') {
             throw "Nyttolasten innehåller $($data.pals.Count) pals och spelaren '$($data.player)'."
           }
+          # implants kommer ur savens item-behållare och är alltså också personligt.
+          # Tre utfall, och de får inte slås ihop: fältet ska finnas som ett TOMT
+          # objekt. Saknas det helt har tömningen i build.ps1 inte kört, och då
+          # vet spärren ingenting om vad nästa bygge bär.
+          #
+          # Läs aldrig $data.implants innan nyckeln är kontrollerad: @($null).Count
+          # är 1 i PowerShell, så en saknad nyckel rapporterades tidigare som
+          # "bär 1 implantat" – rätt utgång (bygget stannar) av fel skäl, och det
+          # skickar felsökningen åt fel håll.
+          $prop = $data.PSObject.Properties['implants']
+          if (-not $prop -or $null -eq $prop.Value) {
+            throw "Nyttolasten saknar 'implants' - tömningen i build.ps1 kördes inte."
+          }
+          # Bara antalet, aldrig id:na: bygglogen är publik och passiv-id:na är
+          # precis det förråd spärren finns för att hålla inne.
+          $impl = @($prop.Value.PSObject.Properties).Count
+          if ($impl -ne 0) { throw "Nyttolasten bär $impl implantat ur någons förråd." }
           Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
 
       # Installern startas på riktigt.

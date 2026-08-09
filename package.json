@@ -3,6 +3,8 @@
   "version": "2.1.0",
   "private": true,
   "description": "Palworld assistant built from Level.sav - box, breeding planner and recommendations",
+  "author": "Kensiwat Sriwongwaew",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "predev": "node scripts/ensure-data.mjs",
     "dev": "next dev",
@@ -13,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "passive-text": "node scripts/passive-text.mjs",
     "docs-images": "node scripts/docs-images.mjs",
+    "docs-shots": "node scripts/docs-shots.mjs",
     "preversion": "node scripts/changelog.mjs check",
     "version": "node scripts/changelog.mjs stamp && git add CHANGELOG.md",
     "prepackage": "node scripts/ensure-data.mjs",

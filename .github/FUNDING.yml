@@ -5,5 +5,5 @@
 # PA_DONATE under Settings → Secrets and variables → Actions → Variables, så får
 # även appen sin länk vid nästa utgåva. Utan den variabeln visas ingen länk i
 # appen alls.
-ko_fi: DITT-KOFI-NAMN
+ko_fi: kenziwhat
 # github: [DITT-GITHUB-NAMN]   # avkommentera när GitHub Sponsors är godkänt

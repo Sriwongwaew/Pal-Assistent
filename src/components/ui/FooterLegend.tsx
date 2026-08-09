@@ -2,6 +2,7 @@
 
 import { useT } from "@/i18n/LocaleContext";
 import { useRichT } from "@/i18n/rich";
+import { Credits } from "./Credits";
 import { PassiveRow } from "./PassiveRow";
 
 export function FooterLegend() {
@@ -18,6 +19,7 @@ export function FooterLegend() {
         <PassiveRow name={t("footer.tier5")} tier={5} />
         <PassiveRow name={t("footer.tierNeg")} tier={-1} />
       </div>
+      <Credits />
     </footer>
   );
 }

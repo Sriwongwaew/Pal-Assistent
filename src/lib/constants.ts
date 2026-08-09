@@ -1,3 +1,4 @@
+import type { MessageKey } from "../i18n";
 import type { ElementType, WorkType } from "./types";
 
 /** Poängvikter per passiv-tier. */
@@ -96,14 +97,16 @@ export const RANCH_DROPS: [string, string][] = [
 ];
 
 /** Fiske-hjälpar enligt Palworld 1.0-guider: [speciesName, beskrivning]. */
-export const FISHING_PALS: [string, string][] = [
-  ["Gloopie", "Fångst-mätaren töms 12–35 % långsammare"],
-  ["Whalaska", "Högre startläge + extra progress vid överlapp"],
-  ["Whalaska Ignis", "Starkare Whalaska + ridbar på vatten"],
-  ["Solmora", "Lättare att fiska upp pals med hög talang (IV)"],
-  ["Solmora Lux", "Starkare Solmora + el-vattenmount"],
-  ["Jelliette", "Föremål från fiske +55–95 %"],
-  ["Jellroy", "Föremål från bärgning +55–95 %"],
+/* Effekten är en nyckel, inte text: `src/lib` har ingen översättare (se types.ts).
+   Artnamnen är spelets egna och slås upp mot datasetet, så de står kvar. */
+export const FISHING_PALS: [string, MessageKey][] = [
+  ["Gloopie", "fish.gloopie"],
+  ["Whalaska", "fish.whalaska"],
+  ["Whalaska Ignis", "fish.whalaskaIgnis"],
+  ["Solmora", "fish.solmora"],
+  ["Solmora Lux", "fish.solmoraLux"],
+  ["Jelliette", "fish.jelliette"],
+  ["Jellroy", "fish.jellroy"],
 ];
 
 export const rarityClass = (rarity: number): "leg" | "epic" | "rare" | "com" =>

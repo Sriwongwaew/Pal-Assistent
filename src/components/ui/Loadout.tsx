@@ -1,6 +1,9 @@
 /* Dumb: "så här ska den här palen se ut". Fyra bannerplatser för rollen –
    ifyllda när palen redan bär passiven, nedtonade när den saknas – plus det
    skräp den släpar med sig och en genväg till en avelsplan som fyller luckorna. */
+"use client";
+
+import { useT } from "@/i18n/LocaleContext";
 import type { Loadout } from "@/lib/loadout";
 import type { Species } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
@@ -18,6 +21,7 @@ export interface LoadoutCardProps {
 }
 
 export function LoadoutCard({ species, name, sub, loadout, onPlan }: LoadoutCardProps) {
+  const t = useT();
   const missing = loadout.slots.filter((s) => !s.owned);
   return (
     <div className={`loadout ${loadout.perfect ? "done" : ""}`}>
@@ -41,8 +45,8 @@ export function LoadoutCard({ species, name, sub, loadout, onPlan }: LoadoutCard
             <div key={s.id} className={`prow sm ${cls} ${s.owned ? "" : "gap"}`} data-passive={s.id}>
               <span className="nm">{s.name}</span>
               {s.owned
-                ? <span className="tick" aria-label="har redan">✓</span>
-                : <span className="cnt">{s.carriers} bärare</span>}
+                ? <span className="tick" aria-label={t("loadout.has")}>✓</span>
+                : <span className="cnt">{s.carriers}</span>}
               <span className="arr">
                 <MaskIcon name={`rank_${rank}`} color={color} width={20} height={18} />
               </span>
@@ -50,37 +54,34 @@ export function LoadoutCard({ species, name, sub, loadout, onPlan }: LoadoutCard
           );
         })}
         {!loadout.slots.length && (
-          <div className="prow sm empty"><span className="nm">Inga förslag för rollen</span><span className="arr" /></div>
+          <div className="prow sm empty"><span className="nm">{t("loadout.noneForRole")}</span><span className="arr" /></div>
         )}
       </div>
 
       {loadout.overSubscribed && (
-        <div className="lnote">
-          Alla {loadout.slots.length} är värda en plats, men spelet ger bara fyra – välj själv
-          vilken du hoppar över.
-        </div>
+        <div className="lnote">{t("loadout.overSubscribed", { n: loadout.slots.length })}</div>
       )}
 
       {loadout.alternates.length > 0 && (
         <div className="lalt">
-          Bär också <b><PassiveNames items={loadout.alternates} /></b> – bra för rollen,
-          men får inte plats bland fyra.
+          {t("loadout.alsoCarries")} <b><PassiveNames items={loadout.alternates} /></b>
+          {t("loadout.alsoCarriesTail")}
         </div>
       )}
 
       {loadout.junk.length > 0 && (
         <div className="ljunk">
-          Onödigt i rollen: <b><PassiveNames items={loadout.junk} /></b> – hamnar i
-          arvspoolen och sänker oddsen när du avlar vidare på den.
+          {t("loadout.junk")} <b><PassiveNames items={loadout.junk} /></b>
+          {t("loadout.junkTail")}
         </div>
       )}
 
       {onPlan && missing.length > 0 && (
         <button type="button" className="ghost lplan" onClick={onPlan}>
-          Planera avel för {missing.length === 1 ? "den som saknas" : `de ${missing.length} som saknas`}
+          {t.plural("loadout.planMissing", missing.length)}
         </button>
       )}
-      {loadout.perfect && <div className="ldone">Har hela uppsättningen.</div>}
+      {loadout.perfect && <div className="ldone">{t("loadout.perfect")}</div>}
     </div>
   );
 }

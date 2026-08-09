@@ -1,7 +1,9 @@
 # CLAUDE.md – PalAssistent
 
-Instructions for Claude agents working in this repo. **The user (Ken) communicates in Swedish
-and all UI copy is Swedish — keep it that way.** Code comments are Swedish too.
+Instructions for Claude agents working in this repo. **The user (Ken) communicates in Swedish,
+and code comments are Swedish — keep it that way.** UI copy, on the other hand, is **no longer
+hardcoded in any language**: it lives in message catalogues (see "Språk" below). Never put a
+user-visible string in a component or in `src/lib`.
 
 ## What this is
 
@@ -41,21 +43,23 @@ Features by route:
   – Braloha i basen, Philanthropist på föräldrarna, Broncherry i partyt – mätt mot din egen
   box (utplacerad? kondenserad? hur många bärare?). Den är därför också det som översätter
   planernas äggsiffror till tid. Se "Domain gotchas".
-- `/rekommendationer` – en **arbetsordning**, läst uppifrån och ner (formen valdes ur fem
+- `/recommendations` – en **arbetsordning**, läst uppifrån och ner (formen valdes ur fem
   förslag 2026-08; korten i rutnät var det som gjorde sidan bökig). Ordningen är innehåll,
   inte layout:
-  1. **Varningen** (`RecoWarning`) – kondensering går inte att ångra, och appen tar inte
-     ansvar för en matning du gör i spelet. Alltid utfälld, aldrig en `details`.
-  2. **Spara dessa** – vad du *inte* ska mata, grupperat efter anledning (grupperna speglar
+  1. **Spara dessa** – vad du *inte* ska mata, grupperat efter anledning (grupperna speglar
      `applyKeepRules`), hopfällt och tätare än vanliga `dgroup`. Står före kön med flit.
-  3. **Kondensera** – en rad per art: stjärnhopp, antal att mata, platser du får tillbaka och
+  2. **Kondensera** – en rad per art: stjärnhopp, antal att mata, platser du får tillbaka och
      varningsprickar. Utfälld visar raden vem du behåller (passiver, **bra för**) och vad
      stjärnorna är värda i HP/attack/försvar (`condenseGain`).
-  4. **Nästan där** – arter som saknar några dubbletter till nästa stjärna, plus en hopfälld
+  3. **Nästan där** – arter som saknar några dubbletter till nästa stjärna, plus en hopfälld
      lista med långt kvar/maxade.
+  Den röda varningsrutan överst (`RecoWarning`, "Kondensering går inte att ångra" + ansvars-
+  friskrivningen) **togs bort på Kens begäran 2026-08** – bygg inte tillbaka den. Att det matade
+  försvinner för alltid står kvar i "Varför kondensera?" (`WhyCondense`, `reco.why.body`), som
+  är det enda stället sidan säger det nu.
   Vyn är `RecoView` (state + modellen) och delarna ligger i `RecoBits` (`rs`/`rq`-prefixade
   klasser).
-- `/bast-for` **Bäst för…** – attack team, base dream-team, best workers per task (own + global,
+- `/best-for` **Bäst för…** – attack team, base dream-team, best workers per task (own + global,
   global rows are clickable → breeding plan), **Ranchen – vem lägger vad** (`ranchGuide`,
   grupperad på varan; se "Domain gotchas"), fishing pals (Palworld 1.0), fastest mounts.
   Basgänget visar också **var exemplaret står** (`p.c`): laget väljer artens bästa individ, och
@@ -72,6 +76,7 @@ npm run typecheck  # tsc --noEmit (strict, noUncheckedIndexedAccess)
 npm test           # node:test över src/lib – inga beroenden, kompilerar till tests-dist/
 npm run passive-text  # täckningskoll: har varje passiv i datasetet en svensk beskrivning?
 npm run docs-images   # finns varje bild dokumentationen pekar på? (CI kör den först)
+npm run docs-shots    # tar om README:s sex skärmdumpar (kräver en server, se nedan)
 ```
 
 `npm test` täcker sannolikhetsmatematiken (`perfectPlan`, `inheritOdds`, `condenseReach`) med
@@ -84,7 +89,33 @@ engelska som dokumentationen (`overview`, `box`, `recommendations`, `best-for`, 
 `overview-light`). Ändras en vy synbart ska bilden bytas ut i samma veva — README är för de
 flesta hela projektet. `npm run docs-images` fångar en referens som pekar på en fil som inte
 finns (det var så en omdöpning till engelska tog död på fem av sex bilder utan att någon
-märkte det), men den kan inte se om en bild är *gammal*. Det är fortfarande ett mänskligt jobb.
+märkte det), men den kan inte se om en bild är *gammal*. Att *märka* det är fortfarande ett
+mänskligt jobb — men att göra något åt det är ett kommando: `npm run docs-shots`
+(`scripts/docs-shots.mjs`) tar om alla sex mot en körande server och styr maskinens egen Edge
+över CDP, utan att projektet får ett beroende på en nedladdad webbläsare.
+
+Sex saker om dumparna som är valda, inte råkade så:
+
+1. **Alltid mot ett produktionsbygge**, aldrig `next dev` — dev-servern ritar sin egen
+   utvecklarknapp i hörnet. Kör `npm run build` + `npm run start -- -p 3100`. Håller en
+   dev-server `.next` (Ken har ofta en uppe) gäller varningen nedan: bygg då i stället med
+   `PA_PACKAGE=1 npx next build`, kopiera `static` + `public` in i
+   `.next-package/standalone/` och kör `node server.js` därifrån.
+2. **Tom Edge-profil, alltså inget språkval.** Språket ligger i en cookie och faller annars
+   tillbaka på `DEFAULT_LOCALE` = engelska. Bilderna visar därför det en ny användare får:
+   engelskt skal, svenska vyer. När katalogerna täcker vyerna ska de tas om.
+3. **Färgläget sätts som `prefers-color-scheme`**, inte via `pa-theme` — då står tema-väljaren
+   kvar på "Auto" i bilden, som för den som aldrig valt.
+4. **Väntan är på innehåll, inte på en klocka.** Datan hämtas klientsidan, så `load` säger
+   ingenting: varje dump har en text den ska hitta, och väntar dessutom in typsnitt och
+   avkodade bilder. En `sleep` ger antingen halvritade porträtt eller onödig väntan.
+5. **Avelsplanen är README:s exempel** (Anubis med Legend, Ferocious, Swift, Musclehead) och
+   art-/passiv-id slås upp i datan, aldrig som index i URL:en — index flyttar sig när den
+   statiska halvan regenereras, och en plan för fel art ser inte trasig ut, bara fel.
+6. **Två bilder är högre än en skärm med flit.** Avelsplanen behöver hela planen, och
+   rekommendationerna är en arbetsordning: med en skärm blev bilden nio hopfällda rubriker och
+   inget av det README:s text lovar. Därför öppnas första kondenseringsraden (`open` på dess
+   `<details>`) så stjärnhoppet och "bra för" syns.
 
 **Never run `npm run build` while `npm run dev` is running.** They share `.next/`, and the build
 overwrites the manifests and chunks the dev server holds in memory. The running page then dies with
@@ -112,6 +143,10 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   `passiveText.ts` (`PASSIVE_TEXT` — vad varje passiv **gör**, på svenska, plus `passiveText`
   och `tierLabel`; `describeEffects` är fx-raden som `recommendPassives` visar som motivering.
   Se "Domain gotchas"),
+  `implants.ts` (Pal Surgery Table — `ownedImplants`/`ownsImplant` ur saven, `KNOWN_MODULES` ur
+  wikin, `implantAdvice` som räknar vad det sparar. **Appen får säga att du äger ett implantat och
+  antyda att ett finns — men aldrig påstå att en passiv inte går att operera in.** Se "Domain
+  gotchas"),
   `condense.ts` (`planCondense` — verdict per art: `now`/`soon`/`hold`/`max`, plus `palUses`
   och `buildUseIndex` som svarar på "vad är den här palen bra för?", och `condenseGain` som
   svarar på "vad är stjärnorna värda?" i spelets egna stats; se "Domain gotchas"),
@@ -148,6 +183,41 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   Used by `/api/save/scan` (valfri `?root=`) and `/api/save/import` (`{ root?, path? }`).
   `/api/save/status?path=` är live-lägets billiga koll och gör bara en `fs.stat` – ingen Python.
   Alla tre är `force-dynamic`.
+
+## Språk (i18n)
+
+Gränssnittet talar åtta språk. **Engelska är både standard och reserv**
+(`DEFAULT_LOCALE` i `src/i18n/config.ts`); svenskan är komplett för hand. De sex övriga
+(zh-Hans, ja, de, fr, es, pt-BR) är tomma kataloger och faller därför tillbaka på engelska
+— det är avsiktligt, inte en lucka: en halvöversatt katalog blandar två språk på samma
+skärm, en tom gör det aldrig.
+
+- `src/i18n/messages/en.ts` är **sanningen**. Nycklarna är platta och punktade, och varje
+  annan katalog är typad mot den — en nyckel som inte finns i engelskan kompilerar inte,
+  och en som tas bort där faller ut överallt i stället för att ligga kvar som död text.
+- `useT()` i komponenter, `t.plural` för antal, `useRichT()` när meningen har **fetstil i
+  mitten**. Dela aldrig upp en mening i före/fet/efter — ordföljden är olika i olika språk.
+  Katalogen håller hela meningen med en namngiven platshållare, komponenten säger vad
+  platshållaren ritas som.
+- **`src/lib` har ingen översättare** och ska inte ha någon. Logiken väljer *vad* som ska
+  sägas och returnerar `Msg` (nyckel + variabler); komponenten avgör språket. En variabel
+  får själv vara en `Msg`, så "3 passiver för Bas & arbete" är två nycklar och inte en
+  hopklistrad sträng. Där en rad byggs ihop av flera delar (`describeEffects`,
+  `recommendPassives`, `spanText`) tar funktionen emot `locale` i stället.
+- **API-rutterna översätter också.** Deras fel ritas rakt i gränssnittet, så de läser samma
+  språk-cookie som `layout.tsx` via `serverT()` i `src/i18n/server.ts`.
+- **Spelets egna ord står kvar på engelska**: artnamn, passivnamn, element, arbetstyper,
+  ranch-varor och Base Info-panelens etiketter (LEVEL, NEXT, Attack, Current Task). De ska
+  gå att matcha mot spelets menyer utan att översättas tillbaka.
+- **Passivtexterna är per språk** (`passiveText.ts` = handöversatt svenska,
+  `passiveTextEn.ts` = **genererad** ur uppströms-l10n). Skriv aldrig i den engelska filen
+  för hand — den görs om ur källan när den statiska halvan förnyas.
+- Två ord ritas av CSS (`VISA`/`DÖLJ` på hopfällbara paneler) och kan därför inte nå
+  katalogen. `LocaleProvider` skriver dem som `--ui-show`/`--ui-hide` på `<html>`; nya
+  pseudo-element med text ska göra likadant.
+- `scripts/docs-shots.mjs` väntar på **engelsk** text för att veta när en vy är färdigritad
+  — bilderna tas utan språk-cookie, alltså på standardspråket. Byter en vy formulering ska
+  `ready` i skriptet med.
 
 ## Design rules (non-negotiable)
 
@@ -277,7 +347,18 @@ Hard-won details — don't undo these:
    `Believer_CrossBow`, which sit in the same table as pals) get filtered out.
 5. Containers are named from the player's `.sav`: `PalStorageContainerId` → Palbox,
    `OtomoCharacterContainerId` → Party, the rest → `Bas/övrigt N` sorted by GUID for stability.
-6. Pal fields come from the gvas character container (IVs = `Talent_HP/Shot/Defense`,
+6. **Implantaten i förrådet läses ur `ItemContainerSaveData`, och det är gratis.** Nyckeln ligger
+   som **nummer 8**, alltså före `CharacterContainerSaveData` (10) som ändå avslutar inläsningen —
+   och före `InLockerCharacterInstanceIDArray`, som biblioteket inte kan tolka alls. Den ordningen
+   är inte en detalj: hade den legat efter hade fältet kostat både tid och risk.
+   Slotarna går **inte** att läsa med bibliotekets avkodare — `paltypes` markerar själv
+   `ItemContainerSaveData.Value.Slots.Slots.RawData` som trasig sedan v0.3.7 ("UObject fields
+   encoded into raw data"). `_slot_item` är därför en tolerant egen läsare, precis som för pals:
+   `int32 slotIndex, int32 stackCount, int32 längd, char[] id`, och den läser **aldrig till EOF** —
+   svansen är UUID:n. Uppmätt: `00000000 d4020000 06000000 "Money\0"` = slot 0, 724 guld.
+   Bara implantat plockas ut, inte hela inventariet: resten används inte av någonting, och 526
+   item-id:n ur någons värld hör inte i en bundle som skickas vidare.
+7. Pal fields come from the gvas character container (IVs = `Talent_HP/Shot/Defense`,
    passives = `PassiveSkillList`, souls = `Rank_HP/Attack/Defence/CraftSpeed`, `Rank` = condense,
    `Level`, `Exp`, `FullStomach`, `SanityValue`, gender, `IsRarePal` = lucky, `Boss_` = alpha).
    Absent fields mean default (no `Rank` → 1, no `SanityValue` → 100).
@@ -309,7 +390,7 @@ Next i `output: "standalone"`, `palsave.exe` (PyInstaller `--onedir`), maskinens
 `node.exe` (MIT, fri att distribuera) och `packaging/palassistent.iss` (Inno Setup).
 Byggberoenden på **din** maskin: `pip install pyinstaller` + `winget install JRSoftware.InnoSetup`.
 
-Elva saker som är inlärda med möda – ändra inte tillbaka:
+Tretton saker som är inlärda med möda – ändra inte tillbaka:
 
 1. **`PA_PACKAGE=1` ger både standalone och egen `distDir`.** Paketbygget skriver till
    `.next-package/`, aldrig `.next/`. Det är därför du kan paketera medan dev-servern kör –
@@ -329,7 +410,10 @@ Elva saker som är inlärda med möda – ändra inte tillbaka:
 7. **Filspårningen drar in `tools/backup/`** – alltså din förra box, 2 MB. `build.ps1` slänger
    hela `tools/` ur nyttolasten och lägger dit `tools/palsave/` i stället. Ta inte bort det:
    det är skillnaden mellan att dela ett program och att dela sin egen save.
-8. **Boxen töms** ur `pal-data.json` (`pals`/`player`/`exported`), den statiska halvan följer med.
+8. **Boxen töms** ur `pal-data.json` (`pals`/`player`/`exported`/`implants`), den statiska halvan
+   följer med. `implants` kommer ur savens item-behållare och är alltså lika personligt som boxen —
+   **allt nytt fält i `AppData` som kommer ur saven ska nollas här i samma andetag**, och
+   `package.yml` har en spärr som vägrar publicera en nyttolast som bär det.
    `player` måste nollas explicit – `mergeIntoAppData` faller tillbaka på `base.player` när
    savens namn är tomt, så annars läcker ditt namn in i mottagarens första inläsning.
 9. **Installationen är per användare** (`{localappdata}\Programs`, `PrivilegesRequired=lowest`).
@@ -343,6 +427,20 @@ Elva saker som är inlärda med möda – ändra inte tillbaka:
 11. **`palsave.py` hittar `libooz.dll` via `sys._MEIPASS`** när den är fryst, och PyInstaller
     behöver `--collect-all palworld_save_tools` (rawdata-avkodarna laddas dynamiskt och statisk
     analys missar dem).
+12. **`Process.MainWindowTitle` ger fönstret som ligger ÖVERST, inte appens fönster.** Hela
+    Edge-profilen är *en* process med flera fönster, och .NET väljer det första `EnumWindows`
+    hittar – alltså det översta i z-ordningen. Lägger sig ett annat Edge-fönster ovanpå appen
+    ser launchern inget PalAssistent-fönster alls, `WaitForShutdown` tolkar det som att
+    användaren stängt programmet och dödar servern 1,2 s senare. Symptomet är en app som
+    stänger sig själv strax efter start, utan felmeddelande, "ibland". `AppWindowExists` går
+    därför igenom **alla** synliga toppnivåfönster och kräver att fönstret tillhör en
+    msedge-process (annars håller Utforskarens "PalAssistent"-fönster servern vid liv).
+13. **Egen profil är inte tom profil.** `--user-data-dir` isolerar inte från användarens
+    tillägg som man kunde tro: på en dator med jobbkonto loggar Edge in sig själv i den nya
+    profilen och **synkar ner alla tillägg** – Kens app-profil hade 20 stycken, däribland
+    Adblock Plus, som öppnar sitt "tack för att du använder …" i ett eget fönster och utlöser
+    punkt 12. Därför `--disable-extensions` (+ `--disable-sync`). Ett tillägg har ingenting
+    att göra på en lokal sida ändå; det kan lika gärna blockera appens egna resurser.
 
 Installern är **osignerad**, så SmartScreen säger "Windows skyddade din dator" första gången.
 Det står i `packaging/LÄS-MIG.txt`; ett certifikat kostar tusenlappar per år och en hårdvarutoken.
@@ -376,16 +474,26 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    gång någon vill titta på boxen.
 2. **"Senare" gäller den versionen**, inte för alltid. En notis som aldrig kommer tillbaka
    missas; en som kommer vid varje start lär man sig klicka bort.
-3. **Installationen** (`/api/update/install`) laddar ner och **kör** en binär, och har därför
+3. **Knappen i foten** (`UpdateCheck`, `?manual=1`) är samma koll men på begäran, och skiljer sig
+   på fyra punkter som alla följer av att någon *frågat*: dygnsspärren hoppas över, ett tidigare
+   "senare" nollas (annars vore knappen tyst för just den som tryckt bort versionen den skulle
+   hitta), sextimmarscachen byts mot `MANUAL_CACHE_MS` (60 s – knappen ska kännas levande men
+   inte bli en gratis linje till GitHub), och **misslyckandet syns**. `checkOutcome` håller
+   `failed` skilt från `latest` med flit: "du kör den senaste" är ett löfte, och det får inte
+   ges när vi inte kunde fråga. Kollen bor därför i `UpdateProvider` och inte i bandet — knappen
+   sitter i foten och bandet högst upp, och de får aldrig säga olika saker om samma version.
+   Bandet rullar fram sig när en manuell koll hittat något (`revealed`); utan det ser en lyckad
+   sökning längst ner ut som att ingenting hände.
+4. **Installationen** (`/api/update/install`) laddar ner och **kör** en binär, och har därför
    fyra spärrar som ingen av dem är valfri: `PA_PACKAGED` (sätts av launchern, så källkodsbygget
    inte kan installera över sig självt), utgåvan hämtas om på servern (klienten skickar aldrig en
    URL), URL:en måste ligga under `https://github.com/<PA_REPO>/releases/download/`, och SHA-256
    jämförs mot `SHA256SUMS.txt` i samma utgåva innan något startas. Tas någon av dem bort är det
    en fjärrkörningsbugg, inte en uppdateringsfunktion.
-4. **Bytet görs av ett skript i temp**, inte av oss: installern måste stänga appen för att skriva
+5. **Bytet görs av ett skript i temp**, inte av oss: installern måste stänga appen för att skriva
    över dess filer, och en process kan inte vänta in sin egen död. Rutten svarar, avslutar sig
    själv efter 1,5 s, och skriptet kör installern tyst och startar programmet igen.
-5. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
+6. **Launchern vaktar därför servern också**, inte bara fönstret (`WaitForShutdown`). Utan det
    blir Edge-fönstret kvar och visar en död sida mitt under uppdateringen, och mutexen släpps
    aldrig så den nya versionen bara öppnar ett fönster mot en gammal port.
 
@@ -628,7 +736,7 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   Palworld 1.0. **1.0 sänkte full kondensering till 48 pals totalt**, men Pocketpair har inte
   publicerat fördelningen per stjärna, och uppdateringen gjorde om arbetslämpligheten i grunden
   i stället för att skala ner den gamla kurvan — att halvera de gamla talen vore en gissning.
-  Rätt siffror står i spelets Condenser-ruta. Allt på `/rekommendationer` räknas ur den enda
+  Rätt siffror står i spelets Condenser-ruta. Allt på `/recommendations` räknas ur den enda
   arrayen i `constants.ts`, så det är en rad att ändra plus facit i `tests/condense.test.ts`.
   Sidan säger tills vidare uttryckligen att siffrorna är pre-1.0.
 - **Kondensering höjer arbetslämpligheten, inte bara stats.** Varje rang lyfter *en* av palens
@@ -663,7 +771,7 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   boxens "bästa" gruvarbetare kan vara en Cattiva på nivå 1. Det är `only` — **enda i boxen** —
   och inte samma sak som bäst. Förbehållet renderas som egen rad under brickorna, inte inuti
   dem: `.couse` bryter inte rad och en hel mening därinne spränger kortet i sidled.
-  Samma regel styr `/bast-for`: ranchen är **inte** en av sysslorna basgänget ska täcka
+  Samma regel styr `/best-for`: ranchen är **inte** en av sysslorna basgänget ska täcka
   (`BASE_WORK_TYPES`), annars tog den med högst Farming-siffra en lagplats. I stället finns
   `ranchGuide`, som grupperar arterna på **varan** — och varorna står i `RANCH_DROPS`
   (`constants.ts`), handkurerad precis som `FISHING_PALS` eftersom datasetet inte har någon
@@ -698,6 +806,26 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   index eller namn — samma fälla som `breedingPrefs.ts` är byggd runt. Partnerskills finns
   inte i datasetet, så procenten är handkurerade som `FISHING_PALS`; ändras de i spelet är det
   tabellen högst upp i filen som ska uppdateras, inget annat.
+- **En passiv du opererar in kostar noll ägg — och wikins lista över vad som går är fel**
+  (`implants.ts`). Pal Surgery Table sätter in en passiv på en **färdig** pal, alltså efter
+  avlingen, så den hamnar aldrig i arvspoolen. Eftersom `inheritOdds` är konvex i poolens storlek
+  är det den billigaste optimeringen i hela planeraren: 4 önskade är 10 % per ägg, 3 är 30 %, så
+  **ett** implantat gör sista steget 3× billigare och två gör det 6×.
+  Två källor, och bara en är sanning:
+  1. **Saven vet.** Implantaten ligger som items med id
+     `PalPassiveSkillChange_Consumable_<passiv-id>` — suffixet *är* passivens id, så inget uppslag
+     behövs. Läses av `palsave.py` till `AppData.implants`.
+  2. **Wikin gissar.** [Implant](https://palworld.wiki.gg/wiki/Implant) listar 26 moduler, alla på
+     rank ≤ 3, och guiderna drar slutsatsen att "rainbow-nivån är utesluten". **Slutsatsen är
+     motbevisad** av Kens egen save, som innehåller implantat för Swift och Mastery of Fasting —
+     båda rank 4. Wikins lista är *en* familj av items, inte hela mängden.
+  Därför: `ownsImplant` är ett påstående appen får göra, `isKnownModule` är ett "finns som" den får
+  antyda, och **"kan inte opereras in" får den aldrig säga**. Det var första försöket här, och det
+  hade sagt "Swift måste avlas" till någon med implantatet i förrådet. Ett negativt påstående om en
+  ofullständig lista är alltid fel.
+  `undefined` i `AppData.implants` betyder "läsaren kan inte fältet", `{}` betyder "du äger inga" —
+  slå aldrig ihop dem, och ärv aldrig förrådet från den förra bundlen (då blir det monotont växande
+  och rådet fel utan att något ser trasigt ut).
 - **Passiv-banners renderas som `<span>`, inte `<div>`** (`PassiveRow.tsx`). CSS ger dem
   `display: flex/grid` ändå, och rader som ska gå att klicka på är `<button>` — en `<div>` inuti
   en knapp är ogiltig HTML. Byt inte tillbaka.

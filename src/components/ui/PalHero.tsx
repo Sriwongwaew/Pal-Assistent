@@ -1,3 +1,5 @@
+"use client";
+
 /* Dumb: Habitats hero-band. Används både på Översikt (boxens stjärna) och
    i Boxen (vald pal). Elementets färg tonar porträttet, brickorna och
    IV-staplarna – det är hela poängen med riktningen. */
@@ -5,6 +7,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ELEMENT_ICON, ELEMENT_META, WORK_META, WORK_TYPES } from "@/lib/constants";
 import type { AppData, ScoredPal, Species } from "@/lib/types";
+import { useT } from "@/i18n/LocaleContext";
 import { GameIcon } from "./GameIcon";
 import { PassiveList } from "./PassiveRow";
 import { WorkIcon } from "./WorkIcon";
@@ -26,7 +29,8 @@ export interface PalHeroProps {
 }
 
 export function PalHero({ pal, species, data, kicker, sub, onOpen }: PalHeroProps) {
-  const work = WORK_TYPES.map((t) => [t, species.ws[t] ?? 0] as const).filter(([, lv]) => lv > 0);
+  const t = useT();
+  const work = WORK_TYPES.map((w) => [w, species.ws[w] ?? 0] as const).filter(([, lv]) => lv > 0);
   const els = species.elements.length ? species.elements : (["Normal"] as const);
   const ivs: [string, number][] = [["HP", pal.iv[0]], ["ATK", pal.iv[1]], ["DEF", pal.iv[2]]];
 
@@ -45,10 +49,10 @@ export function PalHero({ pal, species, data, kicker, sub, onOpen }: PalHeroProp
               <GameIcon name={ELEMENT_ICON[e] ?? "neutral"} size={14} />{e}
             </span>
           ))}
-          {pal.boss && <span className="chip alpha"><GameIcon name="alpha" size={13} />Alfa</span>}
-          {pal.lucky && <span className="chip"><GameIcon name="lucky" size={13} />Lucky</span>}
-          <span className="chip">Lv {pal.lv}</span>
-          <span className="chip">No.{species.deck}</span>
+          {pal.boss && <span className="chip alpha"><GameIcon name="alpha" size={13} />{t("pal.alpha")}</span>}
+          {pal.lucky && <span className="chip"><GameIcon name="lucky" size={13} />{t("pal.lucky")}</span>}
+          <span className="chip">{t("pal.lv", { n: pal.lv })}</span>
+          <span className="chip">{t("pal.deck", { n: species.deck })}</span>
           <span className="chip">
             <span className="st">
               {[0, 1, 2, 3].map((i) => (
@@ -65,15 +69,15 @@ export function PalHero({ pal, species, data, kicker, sub, onOpen }: PalHeroProp
               <div className="v">{v}</div>
             </div>
           ))}
-          <div className="hstat"><div className="k">Poäng</div><div className="v">{pal.score}</div></div>
+          <div className="hstat"><div className="k">{t("pal.score")}</div><div className="v">{pal.score}</div></div>
         </div>
         {onOpen && (
-          <button type="button" className="ghost" onClick={onOpen}>Base Info</button>
+          <button type="button" className="ghost" onClick={onOpen}>{t("pal.baseInfo")}</button>
         )}
       </div>
 
       <div className="hpassives">
-        <span className="kick" style={{ display: "block", marginBottom: 6 }}>Passiva färdigheter</span>
+        <span className="kick" style={{ display: "block", marginBottom: 6 }}>{t("pal.passives")}</span>
         <PassiveList
           items={pal.pv.map((id) => ({
             id, name: data.passives[id]?.n ?? id, tier: data.passives[id]?.r ?? 0,
@@ -82,16 +86,16 @@ export function PalHero({ pal, species, data, kicker, sub, onOpen }: PalHeroProp
       </div>
 
       <div className="hside">
-        <span className="k">Arbetslämplighet</span>
+        <span className="k">{t("pal.work")}</span>
         <div className="hwork">
-          {work.length ? work.map(([t, lv]) => (
-            <span key={t} className="wi" title={`${WORK_META[t]!.label} Lv ${lv}`}>
-              <WorkIcon type={t} size={18} />
+          {work.length ? work.map(([w, lv]) => (
+            <span key={w} className="wi" title={t("pal.workLv", { name: WORK_META[w]!.label, n: lv })}>
+              <WorkIcon type={w} size={18} />
               <b>{lv}</b>
             </span>
-          )) : <span className="meta">Inget arbete</span>}
+          )) : <span className="meta">{t("pal.noWork")}</span>}
         </div>
-        <span className="k" style={{ marginTop: 16 }}>Talang (IV)</span>
+        <span className="k" style={{ marginTop: 16 }}>{t("pal.talent")}</span>
         <div className="ivbars">
           {ivs.map(([k, v]) => (
             <div key={k} className={`ivbar ${v >= 100 ? "max" : ""}`}>

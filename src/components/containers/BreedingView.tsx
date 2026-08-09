@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
+import { useT } from "@/i18n/LocaleContext";
+import { useRichT } from "@/i18n/rich";
 import {
   bestParentPair, buildTree, childrenOf, eggsText, exactOdds, isReachable,
   oddsText, pairQuality, RANDOM_EXTRA_ODDS, solveChain,
@@ -24,12 +26,15 @@ import {
   parseBreedingPrefs, serializeBreedingPrefs, type BreedingPrefs,
 } from "@/lib/breedingPrefs";
 import { planBreedSetup, spanText, CAP_FREE, eggSeconds } from "@/lib/breedRate";
-import { implantAdvice } from "@/lib/implants";
+import { implantAdvice, ownedImplants, ownsImplant } from "@/lib/implants";
 import type { AppData, BreedTree, ScoredPal, WorkType } from "@/lib/types";
 import { AltRouteBlock } from "@/components/ui/AltRouteBlock";
 import { OddsBadge, OkBox, SpeciesMini, StepCard, WarnBox } from "@/components/ui/BreedBits";
 import { BreedSetupPanel } from "@/components/ui/BreedSetup";
 import { GoalCard } from "@/components/ui/GoalCard";
+import { ImplantStash } from "@/components/ui/ImplantStash";
+import { ManualPairPanel } from "@/components/ui/ManualPairPanel";
+import { planManualPair, type ManualParent } from "@/lib/manualPair";
 import { PalPicker } from "@/components/ui/PalPicker";
 import { PassivePicker } from "@/components/ui/PassivePicker";
 import { PurposePicker } from "@/components/ui/PurposePicker";
@@ -70,6 +75,8 @@ function writePrefs(prefs: BreedingPrefs): void {
  * Utan den här noten ser skillnaden ut som otur i stället för som en regel.
  */
 function ExactNote({ plan }: { plan: PassivePlan }) {
+  const t = useT();
+  const rich = useRichT();
   const steps = plan.speciesPhase;
   const last = steps && steps.length > 0 ? steps[steps.length - 1]! : null;
   if (!last) return null;
@@ -82,32 +89,30 @@ function ExactNote({ plan }: { plan: PassivePlan }) {
 
   return (
     <div className="hint">
-      Oddsen ovan är chansen att ungen får <b>minst</b> de önskade passiverna.{" "}
-      {noRoom ? (
-        <>
-          Med fyra önskade finns ingen ledig plats kvar, så där är <b>exakt</b> samma
-          sak som <b>minst</b> – blir det fyra rätt kan inget skräp följa med.
-        </>
-      ) : (
-        <>
-          Vill du ha <b>exakt</b> dem och inget mer är sista steget{" "}
-          <b>{oddsText(exact)} per ägg</b> ({eggsText(exact)}), eftersom spelet slumpar in
-          minst en extra passiv i {Math.round(RANDOM_EXTRA_ODDS * 100)} % av alla ägg –
-          oberoende av hur ren poolen är. Det går alltså inte att avla bort, bara att
-          kläcka förbi.
-        </>
-      )}
+      {rich("exact.lead", { least: <b>{t("exact.least")}</b> })}{" "}
+      {noRoom
+        ? rich("exact.noRoom", {
+          exact: <b>{t("exact.exact")}</b>, least: <b>{t("exact.least")}</b>,
+        })
+        : rich("exact.tradeoff", {
+          exact: <b>{t("exact.exact")}</b>,
+          odds: <b>{t("breed.perEgg", { odds: oddsText(exact) })}</b>,
+          eggs: eggsText(exact, t.locale),
+          pct: Math.round(RANDOM_EXTRA_ODDS * 100),
+        })}
     </div>
   );
 }
 
 export function BreedingView() {
   const { data, pals, ownedSpecies, bestOf, freeSolve } = usePalData();
+  const t = useT();
+  const rich = useRichT();
   const params = useSearchParams();
   const router = useRouter();
   const initialTarget = useMemo(() => {
-    const t = params.get("target");
-    const idx = t ? Number.parseInt(t, 10) : Number.NaN;
+    const raw = params.get("target");
+    const idx = raw ? Number.parseInt(raw, 10) : Number.NaN;
     return Number.isInteger(idx) && idx >= 0 && idx < data.species.length ? idx : null;
   }, [params, data]);
 
@@ -138,9 +143,36 @@ export function BreedingView() {
   const [work, setWork] = useState<WorkType | null>(saved.work);
 
   /** …och skrivs tillbaka så fort något ändras. */
+  const [useImplants, setUseImplants] = useState<boolean>(saved.useImplants);
+  /* Manuellt läge sparas INTE i `pa-breeding`. Det är en fråga man ställer
+     ("vad kostar just de här två?"), inte ett mål man arbetar mot över flera
+     sessioner – och en sparad förälder skulle dessutom peka på ett pal-id som kan
+     ha matats bort, alltså samma valideringsproblem som art-index. */
+  const [manualA, setManualA] = useState<ManualParent | null>(null);
+  const [manualB, setManualB] = useState<ManualParent | null>(null);
+
   const current = useMemo<BreedingPrefs>(
-    () => ({ target, base, wanted, ivGoal, purpose, work }),
-    [target, base, wanted, ivGoal, purpose, work],
+    () => ({ target, base, wanted, ivGoal, purpose, work, useImplants }),
+    [target, base, wanted, ivGoal, purpose, work, useImplants],
+  );
+
+  /**
+   * Vad planen ska **avla** – inte vad du vill ha.
+   *
+   * En passiv du opererar in hamnar aldrig i arvspoolen, så den ska inte ligga
+   * där när oddsen räknas. Målbilden och väljaren visar fortfarande hela `wanted`:
+   * målet är oförändrat, det är bara vägen dit som är kortare. Utan den här
+   * skillnaden sa rutan "planen krymper från 4 till 3" medan planen under
+   * fortsatte räkna fyra – rådet var sant men verkningslöst.
+   */
+  const planWanted = useMemo(
+    () => (useImplants ? wanted.filter((id) => !ownsImplant(data, id)) : wanted),
+    [useImplants, wanted, data],
+  );
+  /** Lyfta ur planen, alltså de som ska opereras in i stället. */
+  const skipped = useMemo(
+    () => wanted.filter((id) => !planWanted.includes(id)),
+    [wanted, planWanted],
   );
   useEffect(() => { writePrefs(current); }, [current]);
 
@@ -156,10 +188,12 @@ export function BreedingView() {
     if (params.toString()) router.replace("/breeding", { scroll: false });
   };
 
-  /** Föräldrar väljs alltid renast först; IV-målet avgör bara vid lika renhet. */
+  /* Föräldrar väljs alltid renast först; IV-målet avgör bara vid lika renhet.
+     `planWanted`, inte `wanted`: en passiv som ska opereras in är skräp i poolen
+     som alla andra, så en förälder som bär den ska inte belönas för det. */
   const prefs = useMemo<ParentPrefs>(
-    () => ({ ivGoal, wanted: new Set(wanted) }),
-    [ivGoal, wanted],
+    () => ({ ivGoal, wanted: new Set(planWanted) }),
+    [ivGoal, planWanted],
   );
 
   const uniqueChildren = useMemo(() => new Set(data.uniques.map((u) => u[2])), [data]);
@@ -171,8 +205,10 @@ export function BreedingView() {
   }, [pals]);
 
   const plan = useMemo(
-    () => (wanted.length ? buildPassivePlan(data, pals, ownedSpecies, wanted, target, prefs) : null),
-    [data, pals, ownedSpecies, wanted, target, prefs],
+    () => (planWanted.length
+      ? buildPassivePlan(data, pals, ownedSpecies, planWanted, target, prefs)
+      : null),
+    [data, pals, ownedSpecies, planWanted, target, prefs],
   );
 
   /** Förslagen räknas ur passivernas effekter och anpassas efter målets element. */
@@ -183,8 +219,9 @@ export function BreedingView() {
       purpose: def,
       target: target !== null ? data.species[target]! : null,
       work,
+      locale: t.locale,
     });
-  }, [data, passiveCounts, purpose, target, work]);
+  }, [data, passiveCounts, purpose, target, work, t.locale]);
 
   /** Vilken art ska man avla fram för den valda sysslan? */
   const speciesRecs = useMemo(
@@ -238,41 +275,191 @@ export function BreedingView() {
    * beskedet är antagandet "det ordnar jag med bordet sen" gratis att göra, och
    * fel: allt med rank 4 måste avlas.
    */
-  const ImplantBox = () => {
-    if (wanted.length < 2) return null;
-    const a = implantAdvice(wanted);
+  /**
+   * Vad det manuella paret ger. Räknas på `planWanted`, inte `wanted`: en passiv
+   * du opererar in efteråt ska inte behöva finnas i paret.
+   */
+  const ManualResult = () => {
+    if (!manualA || !manualB || manualA.s < 0 || manualB.s < 0) return null;
+    /* `rich` och `t` kommer ur closuren – delvyerna definieras om vid varje
+       render, så en egen hook här hade brutit hook-ordningen. */
+    const p = planManualPair(data, manualA, manualB, planWanted);
+    const spName = (i: number) => sp(i).name;
 
-    if (!a.implantable.length) {
+    if (p.blocks.length > 0) {
       return (
-        <div className="okbox">
-          <b>Inget av det här kan opereras in.</b> Pal Surgery Table har inga implantat för
-          de {wanted.length} du valt – allt på legendarisk nivå måste avlas eller fångas.
-          Planen nedan är alltså hela vägen.
-        </div>
+        <WarnBox>
+          {p.blocks.map((b, i) => (
+            <div key={i}>
+              {b.kind === "noChild" && (
+                <>
+                  <b>{t("manres.noChild")}</b>{" "}
+                  {t("manres.noChildBody", { a: spName(manualA.s), b: spName(manualB.s) })}
+                </>
+              )}
+              {b.kind === "sameGender" && (
+                <>
+                  <b>{t(b.g === "M" ? "manres.bothMale" : "manres.bothFemale")}</b>{" "}
+                  {rich("manres.sameGenderBody", { unknown: <i>{t("manual.unknownGender")}</i> })}
+                </>
+              )}
+              {b.kind === "missing" && (
+                <>
+                  <b>{t("manres.missing")}</b>{" "}
+                  <Chips ids={b.ids} label={t("manres.neitherCarries")} />
+                  {rich("manres.missingBody", { inherit: <b>{t("manres.inherit")}</b> })}
+                </>
+              )}
+            </div>
+          ))}
+        </WarnBox>
       );
     }
 
-    const left = a.bred.length;
+    return (
+      <>
+        <OkBox>
+          <b>
+            {spName(manualA.s)} × {spName(manualB.s)}
+            {p.child !== null && <> → {spName(p.child)}</>}
+          </b>{" "}
+          {" "}{rich("manres.gives", {
+            n: planWanted.length,
+            eggs: <b>≈{Math.round(p.eggs)} {t("manres.eggsWord")}</b>,
+          })} · {eggTime(p.eggs)}
+          <div className="hint">
+            {rich("manres.pool", { n: <b>{p.pool.length}</b> })}
+            {p.junk.length > 0 && rich("manres.poolJunk", { n: <b>{p.junk.length}</b> })}.
+            {p.direct && p.steps.length > 1 && (
+              <>
+                {" "}{rich("manres.direct", {
+                  pct: <b>{Math.round(1 / p.direct.odds * 100) / 100} %</b>,
+                  eggs: Math.round(p.direct.eggs),
+                })}
+              </>
+            )}
+            {p.steps.length === 1 && <> {t("manres.oneStep")}</>}
+          </div>
+        </OkBox>
+        {p.steps.map((s, i) => (
+          <StepCard
+            key={i}
+            num={i + 1}
+            hint={
+              <>
+                {rich("manres.stepHint", {
+                  pool: <b>{s.pool.length}</b>, eggs: Math.round(s.stepEggs),
+                })}
+                {s.genderEggs > 0 && t("manres.stepGender", { n: Math.round(s.genderEggs) })}
+                {i < p.steps.length - 1
+                  ? <> · {rich("manres.stepClean", { clean: <b>{t("manres.cleanWord")}</b> })}</>
+                  : <> · {t("manres.stepLast")}</>}
+              </>
+            }
+          >
+            <Chips
+              ids={s.gives}
+              label={s.fromA === null
+                ? t("manres.fromPair")
+                : t("manres.fromSteps", { a: s.fromA + 1, b: (s.fromB ?? 0) + 1 })}
+            />
+            <OddsBadge odds={oddsText(s.odds)} eggs={eggsText(s.odds, t.locale)} />
+          </StepCard>
+        ))}
+      </>
+    );
+  };
+
+  const ImplantBox = () => {
+    /* En enda vald passiv räknas också, och är det starkaste fallet av alla:
+       äger du implantatet behöver du inte avla någonting. Gränsen låg först på
+       två, vilket tystade just det. */
+    if (!wanted.length) return null;
+    const a = implantAdvice(wanted, ownedImplants(data));
+    if (!a.owned.length && !a.available.length) return null;
+
+    const times = (n: number) => `${n.toFixed(1).replace(".", ",")}×`;
+    const left = wanted.length - a.owned.length;
+    /* Ett konkret namn slår "en av dem": rådet ska gå att följa utan att man
+       räknar om det till sin egen situation. Ägt går före modul – det är det man
+       kan göra i dag. */
+    const example = a.owned[0] ?? a.available[0];
+    const exampleName = example ? pName(example) : "";
+
     return (
       <div className="okbox">
+        {/* Kryssrutan styr PLANEN, inte texten. Utan den var rådet sant men
+            verkningslöst: rutan sa "planen krymper till 3" medan stegen under
+            fortsatte räkna fyra passiver i poolen. Av-läget finns för att man
+            kanske vill spara implantatet till en annan pal. */}
+        {a.owned.length > 0 && (
+          <label className="impuse">
+            <input
+              type="checkbox"
+              checked={useImplants}
+              onChange={(e) => setUseImplants(e.target.checked)}
+            />
+            <span>
+              <b>{t("imp.use")}</b>{" "}
+              {t.plural("imp.useBody", a.owned.length)}
+              {skipped.length > 0
+                && t("imp.useCount", { n: planWanted.length, total: wanted.length })}
+            </span>
+          </label>
+        )}
         <b>
-          {left === 0
-            ? "Du behöver inte avla någon av dem."
-            : `Avla ${left}, operera in ${a.implantable.length === 1 ? "den sista" : "resten"}.`}
+          {t("imp.notPerfect")}
+          {a.owned.length > 0 && t.plural("imp.youHaveFor", a.owned.length)}.
         </b>{" "}
-        <Chips ids={a.implantable} label="finns som implantat:" />{" "}
-        {left > 0 && <Chips ids={a.bred} label="måste avlas:" />}
-        <div className="hint">
-          Sätt {a.implantable.length === 1 ? "den" : "dem"} med <b>Pal Surgery Table</b> på den{" "}
-          <b>färdiga</b> palen, efter avlingen – då hamnar {a.implantable.length === 1 ? "den" : "de"}{" "}
-          aldrig i arvspoolen. Planen krymper från {wanted.length} till {left} önskade:
-          sista steget går <b>{Math.round(a.oddsAll * 100)} %</b> →{" "}
-          <b>{Math.round(a.oddsBred * 100)} %</b> per ägg, alltså{" "}
-          <b>~{a.saving.toFixed(1).replace(".", ",")}× färre ägg</b>.{" "}
-          {left > 0 && <>Och platsen du opererar i är oftast redan upptagen av en slumpad
-            passiv – 35 % av alla ägg får en – så du ersätter skräp, inte något du vill ha.{" "}</>}
-          Bordet kräver teknologinivå 38 och varje ingrepp kostar guld, så rutan svarar på
-          om det <i>går</i> – inte på om guldet är värt det.
+        {a.owned.length > 0 && <Chips ids={a.owned} label={t("imp.inStash")} />}
+        {a.available.length > 0 && (
+          <Chips
+            ids={a.available}
+            label={a.owned.length > 0 ? t("imp.moduleNotOwned") : t("imp.moduleExists")}
+          />
+        )}
+        {a.unknown.length > 0 && <Chips ids={a.unknown} label={t("imp.mustBreed")} />}
+        {/* De tre fallen man faktiskt står i när ungen kläckts, på var sin rad.
+            Rådet löd tidigare bara "avla färre", och stod som ett stycke – men
+            det man behöver veta står vid kläckaren och är en fråga i taget: är
+            den här ungen färdig, eller ska jag avla vidare? */}
+        <div className="hint impcases">
+          <div>
+            <b>{t("imp.caseMissing", { name: exampleName })}</b>{" "}
+            {rich("imp.caseMissingBody", {
+              ok: <b>{t("imp.doneAnyway")}</b>, finished: <b>{t("imp.finished")}</b>,
+            })}
+          </div>
+          <div>
+            <b>{t("imp.caseJunk")}</b>{" "}
+            {rich("imp.caseJunkBody", { pct: <b>35 %</b> })}
+          </div>
+          <div>
+            <b>{t("imp.casePartial")}</b>{" "}
+            <b>{t("imp.casePartialKeep")}</b>{t("imp.casePartialBody")}
+          </div>
+          {a.owned.length > 0 && (
+            <div>
+              <b>{t("imp.counted")}</b>{" "}
+              {t(useImplants ? "imp.countedOn" : "imp.countedOff")}{" "}
+              {rich("imp.countedBody", {
+                left, total: wanted.length,
+                from: <b>{Math.round(a.oddsAll * 100)} %</b>,
+                to: <b>{Math.round(a.oddsOwned * 100)} %</b>,
+                saving: <b>{t("imp.fewerEggs", { factor: times(a.saving) })}</b>,
+              })}
+              {a.savingBest > a.saving + 0.05 && (
+                <>
+                  {" "}{t.plural("imp.alsoModules", a.available.length)}{" "}
+                  <b>{t("imp.fewerEggs", { factor: times(a.savingBest) })}</b>{" "}
+                  ({t("breed.perEgg", { odds: `${Math.round(a.oddsBest * 100)} %` })}).
+                </>
+              )}
+            </div>
+          )}
+          <div className="fine">
+            {rich("imp.fine", { possible: <i>{t("imp.possible")}</i> })}
+          </div>
         </div>
       </div>
     );
@@ -363,7 +550,7 @@ export function BreedingView() {
     <>
       <div className="planhd">
         <span className="meta">
-          Valen sparas – du kan gå till Boxen och tillbaka utan att tappa planen.
+          {t("breed.savedHint")}
         </span>
         <button
           type="button"
@@ -371,9 +558,40 @@ export function BreedingView() {
           onClick={clearAll}
           disabled={!hasBreedingPrefs(current)}
         >
-          Rensa allt
+          {t("breed.clearAll")}
         </button>
       </div>
+
+      {/* Förrådet ligger HÖGST UPP, inte inne i väljaren. Rutan under
+          passiv-väljaren visas bara när en av de önskade passiverna råkar vara
+          operabel – har man inte valt just den finns informationen ingenstans,
+          och frågan "vad har jag för implantat?" gick inte att besvara i appen.
+          Den här panelen är den platsen, och den syns oavsett vad man valt. */}
+      <ImplantStash
+        implants={data.implants ?? null}
+        passives={data.passives}
+        chosen={wanted}
+        full={wanted.length >= MAX_WANTED}
+        onPick={togglePassive}
+      />
+
+      <ManualPairPanel
+        species={data.species}
+        owned={ownedSpecies}
+        passives={data.passives}
+        pals={pals}
+        counts={passiveCounts}
+        implants={data.implants ?? null}
+        a={manualA}
+        b={manualB}
+        onChange={(slot, parent) => (slot === 0 ? setManualA(parent) : setManualB(parent))}
+      >
+        {planWanted.length === 0 ? (
+          <div className="hint">{t("breed.pickWantedFirst")}</div>
+        ) : (
+          <ManualResult />
+        )}
+      </ManualPairPanel>
 
       <BreedSetupPanel
         setup={setup}
@@ -387,8 +605,8 @@ export function BreedingView() {
       <div className="pickrow">
         <div className="pickcol">
           <Section
-            title={<>Mål-pal {target !== null && <span className="picked">{sp(target).name}</span>}</>}
-            sub="Vilken art vill du få fram? Arter du redan äger ligger först."
+            title={<>{t("breed.targetTitle")} {target !== null && <span className="picked">{sp(target).name}</span>}</>}
+            sub={t("breed.targetSub")}
           >
             <PalPicker
               species={data.species}
@@ -398,11 +616,10 @@ export function BreedingView() {
             />
             <details className="baseblock">
               <summary>
-                Bas att utgå från: <b>{base === null ? "fritt läge" : sp(base).name}</b>
+                {t("breed.baseFrom")} <b>{base === null ? t("breed.freeMode") : sp(base).name}</b>
               </summary>
               <div className="sub" style={{ margin: "8px 0 6px" }}>
-                Välj en art du äger om kedjan ska starta där. I fritt läge letar appen
-                den kortaste vägen från hela boxen.
+                {t("breed.baseHint")}
               </div>
               <PalPicker
                 species={data.species}
@@ -410,32 +627,30 @@ export function BreedingView() {
                 value={base}
                 onChange={setBase}
                 ownedOnly
-                noneLabel="Fritt läge"
+                noneLabel={t("breed.freeModeCap")}
               />
             </details>
 
             <div className="ivgoal">
-              <span className="meta">IV-mål:</span>
+              <span className="meta">{t("breed.ivGoalLabel")}</span>
               <button
                 type="button"
                 className={`fchip ${ivGoal === "fast" ? "on" : ""}`}
                 onClick={() => setIvGoal("fast")}
               >
-                Snabb optimal
+                {t("breed.ivFast")}
               </button>
               <button
                 type="button"
                 className={`fchip ${ivGoal === "perfect" ? "on" : ""}`}
                 onClick={() => setIvGoal("perfect")}
               >
-                Perfekt 100/100/100
+                {t("breed.ivPerfect")}
               </button>
             </div>
             <div className="hint">
-              {ivGoal === "fast"
-                ? "Väljer föräldrarna med bäst IV-snitt bland dem du äger – bra resultat direkt."
-                : "Väljer föräldrar efter sin svagaste stat, så alla tre kan nå 100. Räkna med fler kläckningar."}
-              {wanted.length > 0 && " Passiverna går alltid först: renast möjliga förälder vinner före IV."}
+              {t(ivGoal === "fast" ? "breed.ivFastHint" : "breed.ivPerfectHint")}
+              {wanted.length > 0 && t("breed.passivesFirst")}
             </div>
           </Section>
 
@@ -443,8 +658,8 @@ export function BreedingView() {
               ut. Målbilden gör det, och fyller samtidigt tomrummet som uppstår
               när passiv-väljaren till höger är dubbelt så hög. */}
           <Section
-            title="Målbild"
-            sub="Så ser palen ut när planen är klar – arten du valt med precis de här passiverna."
+            title={t("breed.goalTitle")}
+            sub={t("breed.goalSub")}
           >
             <GoalCard
               species={target !== null ? sp(target) : null}
@@ -459,8 +674,8 @@ export function BreedingView() {
         </div>
 
         <Section
-          title={<>Önskade passiver <span className="picked">{wanted.length}/{MAX_WANTED}</span></>}
-          sub="Välj vad palen ska användas till så föreslår appen passiver – eller klicka fram dem själv. Siffran är antal bärare i boxen."
+          title={<>{t("breed.wantedTitle")} <span className="picked">{wanted.length}/{MAX_WANTED}</span></>}
+          sub={t("breed.wantedSub")}
         >
           <PurposePicker
             value={purpose}
@@ -493,7 +708,7 @@ export function BreedingView() {
                       className="rm"
                       /* aria-label, inte title: bannern har redan hover-rutan med
                          vad passiven gör, och två tooltips krockar. */
-                      aria-label="Ta bort"
+                      aria-label={t("breed.remove")}
                       onClick={() => setWanted((w) => w.filter((x) => x !== id))}
                     >
                       ✕
@@ -503,14 +718,24 @@ export function BreedingView() {
               ))
             ) : (
               <div className="prow sm empty">
-                <span className="nm">Inga valda – t.ex. Legend, Musclehead, Swift</span>
+                <span className="nm">{t("breed.noneChosen")}</span>
                 <span className="arr" />
               </div>
             )}
           </div>
+          {/* Rådet sitter direkt under de VALDA passiverna och ovanför rutnätet.
+              Det har flyttats två gånger, och båda gångerna av samma skäl: det
+              gick inte att se. Först låg det i plan-sektionen, nedanför
+              bärarkorten – alltså efter att man bestämt sig. Sedan under
+              `PassivePicker`, vilket ser rätt ut i koden men lägger det under ett
+              1 500 px högt rutnät med egen scroll, alltså utanför skärmen.
+              Ovanför rutnätet är det enda stället som är både vid valet och i
+              synfältet. Flytta det inte ner igen. */}
+          <ImplantBox />
           <PassivePicker
             passives={data.passives}
             counts={passiveCounts}
+            implants={data.implants ?? null}
             value={wanted}
             onChange={setWanted}
           />
@@ -527,8 +752,10 @@ export function BreedingView() {
       )}
       {target === null && !wanted.length && (
         <div className="panel meta">
-          Välj en mål-pal och/eller önskade passiver ovan. Exempel: mål <b>Anubis</b> + passiver{" "}
-          <b>Legend, Musclehead, Vanguard</b> → komplett plan med odds per steg.
+          {rich("breed.emptyState", {
+            target: <b>Anubis</b>,
+            passives: <b>Legend, Musclehead, Vanguard</b>,
+          })}
         </div>
       )}
     </>
@@ -561,7 +788,7 @@ export function BreedingView() {
           <DeckNo sp={sp(p.pal.s)} />
           <span className="q">{p.pal.g === "M" ? "♂" : "♀"}</span>
           <span className="o">{p.pal.iv.join("/")}</span>
-          {p.junk > 0 && <span className="jk">+{p.junk} skräp</span>}
+          {p.junk > 0 && <span className="jk">{t("iv.junk", { n: p.junk })}</span>}
         </span>
       ) : (
         <span className="mini step">resultat ur steg {p.fromStep}</span>
@@ -571,8 +798,7 @@ export function BreedingView() {
       return (
         <Section title={`Perfekt IV · ${name}`}>
           <WarnBox>
-            Du äger ingen {name} än, så det finns inget att avla med. Följ art-vägen nedan
-            först – sikta redan där på föräldrar med höga IV, för barnet ärver deras statar.
+            {t("iv.ownNone", { name })}
           </WarnBox>
         </Section>
       );
@@ -581,12 +807,11 @@ export function BreedingView() {
     return (
       <Section
         title={`Perfekt IV · ${name}`}
-        sub="Varje stat ärvs för sig: 30 % från pappan, 30 % från mamman, 40 % helt omslumpat. Därför går 100:orna att samla ihop – siffrorna är uppskattningar."
+        sub={t("iv.sub")}
       >
         {iv.missingGender && (
           <WarnBox>
-            Du har bara ett kön av {name}. Skaffa en till av motsatt kön – utan ♂+♀ går
-            det inte att avla vidare på arten.
+            {t("iv.oneGender", { name })}
           </WarnBox>
         )}
 
@@ -601,13 +826,17 @@ export function BreedingView() {
                   <>
                     <div className="v">{list.length} med 100</div>
                     <div className="hint">
-                      bäst: {sp(top.s).name} {top.g === "M" ? "♂" : "♀"} · IV {top.iv.join("/")}
+                      {t("iv.best", {
+                        name: sp(top.s).name,
+                        g: top.g === "M" ? "♂" : "♀",
+                        iv: top.iv.join("/"),
+                      })}
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="v">ingen med 100</div>
-                    <div className="hint bad">måste slumpas fram (≈1 % per ägg)</div>
+                    <div className="hint bad">{t("iv.mustReroll")}</div>
                   </>
                 )}
               </div>
@@ -617,14 +846,13 @@ export function BreedingView() {
 
         {iv.gaps.length > 0 && (
           <WarnBox>
-            Ingen av dina {name} har 100 i{" "}
-            <b>{iv.gaps.map((i) => IV_LABELS[i]).join(" och ")}</b>. Den staten kan bara komma
-            ur 40 %-omslumpningen – ungefär ett ägg på hundra – vilket är det som gör planen
-            nedan dyr.
+            {rich("iv.gapLead", {
+              name,
+              stats: <b>{iv.gaps.map((i) => IV_LABELS[i]).join(", ")}</b>,
+            })}
             {donors.some((d) => d.pals.length > 0) && (
               <>
-                {" "}Genväg: para in en 100:a utifrån. De här arterna bär den <b>och</b> parar
-                tillbaka till {name}, så linjen behåller sin art:
+                {" "}{rich("iv.donorLead", { and: <b>{t("iv.and")}</b>, name })}
                 <div className="donors">
                   {donors.filter((d) => d.pals.length).map((d) => (
                     <div key={d.stat} className="donor">
@@ -650,32 +878,28 @@ export function BreedingView() {
         {perfect.alreadyDone && (
           <OkBox>
             Du har redan en {name} med 100/100/100
-            {wanted.length > 0 && " och alla önskade passiver"} –{" "}
-            {palShort(perfect.alreadyDone, name)}. Inget mer avlande behövs.
+            {wanted.length > 0 && t("iv.andWanted")} –{" "}
+            {palShort(perfect.alreadyDone, name)}. {t("iv.noMoreBreeding")}
           </OkBox>
         )}
 
         {perfect.missingPassives.length > 0 && (
           <WarnBox>
-            Ingen av dina {name} bär{" "}
+            {t("iv.noneCarries", { name })}{" "}
             <b>
               <PassiveNames
                 items={perfect.missingPassives.map((id) => ({ id, name: pname(id) }))}
               />
             </b>.
-            Den måste hämtas in från en annan art först – se passiv-planen nedan. Planen här
-            räknar bara på det som faktiskt går att ärva inom arten.
+            {t("iv.mustImport")}
           </WarnBox>
         )}
 
         {!perfect.alreadyDone && perfect.possible && (
           <>
-            <h3 className="phase">Kortaste vägen · {perfect.steps.length} steg</h3>
+            <h3 className="phase">{t("iv.shortestPath", { n: perfect.steps.length })}</h3>
             <div className="sub">
-              Varje steg parar ihop två individer och du behåller ungen som fick allt i
-              rutan. Ordningen är uträknad: att slå ihop två rena bärare först och väva in
-              passiverna sent är nästan alltid billigare än att utgå från en pal som redan
-              har mycket – varje extra passiv en förälder bär hamnar i arvspoolen.
+              {t("iv.pathHint")}
             </div>
             {perfect.steps.map((st) => (
               <StepCard
@@ -683,17 +907,17 @@ export function BreedingView() {
                 num={st.n}
                 hint={
                   <>
-                    Behåll ungen med <b>{stateText(st.ivMask, st.pvMask)}</b>. Odds:{" "}
+                    {rich("iv.keepChild", { state: <b>{stateText(st.ivMask, st.pvMask)}</b> })}{" "}
                     IV {ivOddsText(st.ivOdds)}
                     {st.pvOdds < 1 && <> × passiver {ivOddsText(st.pvOdds)} (pool {st.pool})</>}
                     {" = "}{ivOddsText(st.odds)}.
                     {st.genderEggs > 0 && (
-                      <> Varav ~{Math.ceil(st.genderEggs)} ägg för att träffa rätt kön.</>
+                      <> {t("iv.ofWhichGender", { n: Math.ceil(st.genderEggs) })}</>
                     )}
                     {st.sharesClutchWith.length > 0 && (
-                      <> Samma föräldrapar som steg{" "}
-                        <b>{st.sharesClutchWith.join(" och ")}</b> – en kull ger båda ungarna,
-                        så kostnaden är delad.</>
+                      <> {rich("iv.sharedClutch", {
+                        steps: <b>{st.sharesClutchWith.join(", ")}</b>,
+                      })}</>
                     )}
                   </>
                 }
@@ -701,7 +925,7 @@ export function BreedingView() {
                 <PlanParentChip p={st.a} />＋<PlanParentChip p={st.b} />→
                 <span className="meta">{stateText(st.ivMask, st.pvMask)}</span>
                 <span className="oddbadge">
-                  🥚 {ivOddsText(st.odds)} / ägg · {ivEggsText(st.odds)}
+                  🥚 {t("breed.perEgg", { odds: ivOddsText(st.odds) })} · {ivEggsText(st.odds, t.locale)}
                 </span>
               </StepCard>
             ))}
@@ -711,16 +935,16 @@ export function BreedingView() {
                 <span className="k">Etappvis</span>
                 <b>{ivEggsText(1 / perfect.totalEggs)}</b>
                 <span className="hint">
-                  totalt över {perfect.steps.length} steg · {eggTime(perfect.totalEggs)}
+                  {t("iv.totalOver", { n: perfect.steps.length })} · {eggTime(perfect.totalEggs)}
                 </span>
               </div>
               {perfect.direct && (
                 <>
                   <div className="col dim">
-                    <span className="k">Direkt i ett steg</span>
-                    <b>{ivEggsText(perfect.direct.odds)}</b>
+                    <span className="k">{t("iv.directOneStep")}</span>
+                    <b>{ivEggsText(perfect.direct.odds, t.locale)}</b>
                     <span className="hint">
-                      bästa paret du kan sätta ihop just nu
+                      {t("iv.bestPairNow")}
                     </span>
                   </div>
                   <div className="col win">
@@ -730,32 +954,29 @@ export function BreedingView() {
                         ? `${Math.round(perfect.direct.eggs / perfect.totalEggs)}× billigare`
                         : "ingen"}
                     </b>
-                    <span className="hint">att gå etappvis</span>
+                    <span className="hint">{t("iv.stagewise")}</span>
                   </div>
                 </>
               )}
             </div>
             <div className="hint">
-              Uppskattningar. <b>Kön räknas in</b>: en unge ur ett tidigare steg
-              som måste ha ett bestämt kön kostar i snitt dubbelt, eftersom könet är slumpat.
-              Steg som delar föräldrapar hämtar dessutom sina ungar ur <b>samma kull</b> och
-              räknas därför bara en gång.
+              {rich("iv.foot", {
+                gender: <b>{t("iv.footGender")}</b>, clutch: <b>{t("iv.footClutch")}</b>,
+              })}
             </div>
           </>
         )}
 
         {!perfect.alreadyDone && !perfect.possible && !perfect.missingGender && (
           <WarnBox>
-            Ingen väg hittades inom arten. Det beror nästan alltid på att du bara äger en
+            {t("iv.noPath")}
             {" "}{name} – skaffa fler och kolla deras IV.
           </WarnBox>
         )}
 
         {wanted.length > 0 && perfect.possible && !perfect.alreadyDone && (
           <div className="hint">
-            IV och passiver rullas <b>var för sig</b> – en unge med rätt passiver kan ha uselt
-            IV och tvärtom. Planen ovan tar hänsyn till båda samtidigt och lägger in passiverna
-            i det steg där de kostar minst, i stället för att alltid ta dem först.
+            {rich("iv.separate", { apart: <b>{t("iv.separateEmph")}</b> })}
           </div>
         )}
       </Section>
@@ -765,8 +986,8 @@ export function BreedingView() {
   function PassivePlanSection({ plan, target }: { plan: NonNullable<ReturnType<typeof buildPassivePlan>>; target: number | null }) {
     return (
       <Section
-        title="Passiv-plan"
-        sub="Så samlar du ihop passiverna innan (eller medan) du byter art. Odds = chansen att barnet ärver alla önskade i steget – extra passiver kan följa med, se noten under planen."
+        title={t("pp.title")}
+        sub={t("pp.sub")}
       >
         {/* Ett kort per BÄRARE, inte per passiv. Täcker en och samma pal alla
             önskade – vilket är det bästa utfallet – blev det tidigare tre
@@ -777,15 +998,15 @@ export function BreedingView() {
             return (
               <div key={pal.id} className="stepcard" style={{ margin: 0 }}>
                 <Ident pal={pal} label={gives.length === wanted.length
-                  ? `Ger alla ${wanted.length} önskade`
-                  : `Ger ${gives.length} av ${wanted.length} önskade`} />
+                  ? t("pp.givesAll", { n: wanted.length })
+                  : t("pp.givesSome", { n: gives.length, total: wanted.length })} />
                 <div className="hint">
                   {/* Bannerna ovan visar redan vilka som är önskade (bock) och
                       vilka som är skräp – att räkna upp dem igen vore samma sak
                       en tredje gång. Här står bara det bannerna inte kan säga. */}
-                  {gives.length > 1 && <>Sparar {gives.length - 1} bärarsteg. </>}
-                  {junk.length > 0 && <>Det omarkerade följer med in i arvspoolen och sänker oddsen. </>}
-                  Alternativ i boxen: {gives.map((id) => {
+                  {gives.length > 1 && <>{t("pp.savesSteps", { n: gives.length - 1 })} </>}
+                  {junk.length > 0 && <>{t("pp.unmarkedJunk")} </>}
+                  {t("pp.alternatives")} {gives.map((id) => {
                     const info = plan.carrierInfo.find((c) => c.passiveId === id);
                     return `${pName(id)} ${info?.carriers.length ?? 0}`;
                   }).join(" · ")}.
@@ -797,7 +1018,7 @@ export function BreedingView() {
             <div key={c.passiveId} className="stepcard" style={{ margin: 0 }}>
               <PassiveRow id={c.passiveId} name={pName(c.passiveId)} tier={pTier(c.passiveId)} />
               <div className="hint bad" style={{ marginTop: 7 }}>
-                Ingen i boxen har denna – kan inte planeras (endast slumpmutation vid kläckning).
+                {t("pp.nobodyHasIt")}
               </div>
             </div>
           ))}
@@ -806,68 +1027,64 @@ export function BreedingView() {
         <Shortcuts items={suggestShortcuts(data, plan, ownedSpecies, target)} />
 
         <div className="okbox">
-          <b>Håll linjen ren.</b> Barnet ärver ur föräldrarnas <i>samlade</i> passiv-pool, så
-          varje extra passiv en förälder bär konkurrerar med dem du vill ha. Vill du ha en pal
-          med <i>enbart</i> {plan.usable.length || wanted.length} passiver, välj alltid en
-          förälder som bär så få andra som möjligt – helst en som bara har den önskade.
+          <b>{t("pp.keepClean")}</b>{" "}
+          {rich("pp.keepCleanBody", {
+            combined: <i>{t("pp.combined")}</i>,
+            only: <i>{t("pp.only")}</i>,
+            n: plan.usable.length || wanted.length,
+          })}
           {plan.usable.length >= 3 && (
-            <>
-              {" "}Med {plan.usable.length} önskade räcker en enda skräp-passiv för att mångdubbla
-              antalet ägg, så en „sämre” pal utan skräp slår nästan alltid en stark med extra passiver.
-            </>
+            <> {t("pp.threePlus", { n: plan.usable.length })}</>
           )}
         </div>
 
-        <ImplantBox />
-
         {!plan.usable.length ? (
-          <WarnBox>Ingen av de önskade passiverna finns i boxen ännu.</WarnBox>
+          <WarnBox>{t("pp.noneInBox")}</WarnBox>
         ) : (
           <>
             {plan.start && !plan.mergeSteps.length && (
               <OkBox>
-                Alla valda passiver finns redan på <b>{palShort(plan.start, sp(plan.start.s).name)}</b> – gå direkt till art-fasen nedan.
+                {rich("pp.allOnOne", {
+                  pal: <b>{palShort(plan.start, sp(plan.start.s).name)}</b>,
+                })}
               </OkBox>
             )}
             {plan.mergeSteps.length > 0 && (
               <>
-                <h3 className="phase">Fas 1 · Samla passiverna ({plan.carriersUsed.length} bärare)</h3>
+                <h3 className="phase">{t("pp.phase1", { n: plan.carriersUsed.length })}</h3>
                 {/* Varför ordningen ser ut som den gör. Utan förklaringen ser den
                     godtycklig ut, och det är precis den som gör planen billig.
                     Två fall, och rutan får bara påstå det som stämmer för just
                     den här planen. */}
                 {plan.mergeSteps.some((st) => !st.a.pal && !st.b.pal) && (
                   <OkBox>
-                    <b>Para ihop två och två.</b> Sista steget kostar lika mycket hur du än
-                    kommer dit – poolen är ändå dina {plan.usable.length} önskade. Skillnaden
-                    ligger i vägen fram: bygger du en förälder med tre passiver först
-                    (~3 ägg) blir det dyrare än att bygga <i>två</i> föräldrar med två
-                    passiver var (~2 ägg styck). Därför slår planen ihop bärarna parvis och
-                    möts på mitten.
+                    <b>{t("pp.pairwise")}</b>{" "}
+                    {rich("pp.pairwiseBody", {
+                      n: plan.usable.length, two: <i>{t("pp.twoWord")}</i>,
+                    })}
                   </OkBox>
                 )}
                 {plan.mergeDetour && (
                   <OkBox>
-                    <b>Ordningen är vald på hela planen, inte på fas 1.</b>{" "}
+                    <b>{t("pp.orderWhole")}</b>{" "}
                     {/* Två fall: den andra ordningen är billigare i fas 1, eller
                         kostar lika mycket men landar i en annan art. Att skriva
                         "~15 ägg i stället för ~15" i det andra fallet är brus. */}
                     {plan.mergeDetour.cheapestEggs < plan.mergeEggs - 0.5 ? (
                       <>
                         En annan ihopslagning hade kostat{" "}
-                        <b>~{Math.ceil(plan.mergeDetour.cheapestEggs)} ägg</b> här i stället för{" "}
+                        {t("pp.detourA", { cheap: Math.ceil(plan.mergeDetour.cheapestEggs) })}{" "}
                         <b>~{Math.ceil(plan.mergeEggs)}</b>, men den landar i en art som ligger
-                        längre från {target !== null ? sp(target).name : "målet"}.
+                        {t("pp.detourAEnd", { target: target !== null ? sp(target).name : t("pp.theTarget") })}
                       </>
                     ) : (
                       <>
-                        Bärarna går att para ihop på flera sätt som kostar lika mycket här, men
-                        de landar i olika arter – den här hamnar närmast{" "}
-                        {target !== null ? sp(target).name : "målet"}.
+                        {t("pp.detourB", { target: target !== null ? sp(target).name : t("pp.theTarget") })}
                       </>
                     )}{" "}
-                    Vägen nedan sparar <b>~{Math.round(plan.mergeDetour.saves)} ägg</b> totalt,
-                    eftersom artkedjan efteråt blir kortare.
+                    {rich("pp.detourSaves", {
+                      eggs: <b>{t("eggs.approx", { n: Math.round(plan.mergeDetour.saves) })}</b>,
+                    })}
                   </OkBox>
                 )}
                 {plan.mergeSteps.map((st) => {
@@ -882,32 +1099,30 @@ export function BreedingView() {
                           ? <>
                               {clash && (
                                 <span className="warn-inline">
-                                  ⚠ Båda är {st.a.pal!.g === "M" ? "hanar" : "honor"} – paret kan inte avla.
-                                  Skaffa en av motsatt kön, eller använd en annan bärare.{" "}
+                                  ⚠ {t(st.a.pal!.g === "M" ? "pp.bothMale" : "pp.bothFemale")}{" "}
                                 </span>
                               )}
-                              Kläck tills du får en unge med precis det här – helst utan skräp.
+                              {t("pp.hatchUntil")}
                               {st.genderEggs > 0 && (
-                                <> Ungen behöver dessutom ett bestämt kön här, vilket i snitt
-                                  kostar ~{Math.ceil(st.genderEggs)} ägg extra.</>
+                                <> {t("pp.needsGender", { n: Math.ceil(st.genderEggs) })}</>
                               )}
-                              <Chips ids={st.haveAfter} label="Mål i steget: barn med" />
+                              <Chips ids={st.haveAfter} label={t("pp.stepGoal")} />
                               {owned.map((p) => (
-                                <Ident key={p.pal!.id} pal={p.pal!} label="Bärare i steget" />
+                                <Ident key={p.pal!.id} pal={p.pal!} label={t("pp.carrierInStep")} />
                               ))}
                             </>
                           : <span className="warn-inline">⚠ Detta par kan inte avla (legendarer avlar bara med sin egen art). Flytta passiven via en mellanpal:
-                              para {sp(st.a.species).name} med sin egen art och använd avkomman, eller välj en annan bärare av passiven.</span>
+                              {t("pp.impossiblePair", { name: sp(st.a.species).name })}</span>
                       }
                     >
                       <SpeciesMini
                         sp={sp(st.a.species)}
-                        badge={st.a.pal ? "BÄRARE" : `STEG ${st.a.fromStep}`}
+                        badge={st.a.pal ? t("pp.carrier") : t("breed.stepN", { n: st.a.fromStep ?? 0 })}
                         badgeClass={st.a.pal ? "o" : "q"}
                       />＋
                       <SpeciesMini
                         sp={sp(st.b.species)}
-                        badge={st.b.pal ? "BÄRARE" : `STEG ${st.b.fromStep}`}
+                        badge={st.b.pal ? t("pp.carrier") : t("breed.stepN", { n: st.b.fromStep ?? 0 })}
                         badgeClass={st.b.pal ? "o" : "q"}
                       />→
                       {st.possible ? <SpeciesMini sp={sp(st.childSpecies)} /> : <span className="warn-inline">✕ inget barn</span>}
@@ -922,7 +1137,10 @@ export function BreedingView() {
             )}
             {plan.speciesPhaseFailed && target !== null && (
               <WarnBox>
-                Hittade ingen kedja från {plan.lineSpecies !== null ? sp(plan.lineSpecies).name : "?"} till {sp(target).name} med dina ägda pals som partners – prova fritt läge nedan.
+                {t("pp.noChain", {
+                  from: plan.lineSpecies !== null ? sp(plan.lineSpecies).name : "?",
+                  to: sp(target).name,
+                })}
               </WarnBox>
             )}
             {/* Tillägg, inte ersättning: planen står kvar precis som den är.
@@ -947,12 +1165,15 @@ export function BreedingView() {
                 <h3 className="phase">Fas 2 · Byt art till {sp(target).name} – med passiverna kvar</h3>
                 {plan.speciesPhaseShortcut && (
                   <OkBox>
-                    <b>Längre väg med flit.</b> Det finns en kedja på bara{" "}
-                    {plan.speciesPhaseShortcut.steps} steg, men den går via en partner som släpar
-                    med skräp-passiver och kostar <b>~{Math.ceil(plan.speciesPhaseShortcut.eggs)} ägg</b>.
-                    Vägen nedan tar {plan.speciesPhase.length} steg och{" "}
-                    <b>~{Math.ceil(plan.speciesPhase.reduce((n, st) => n + (st.odds > 0 ? 1 / st.odds : 0), 0))} ägg</b> –
-                    ett steg till med rena partners är nästan alltid billigare än ett kort med en smutsig.
+                    <b>{t("pp.longerOnPurpose")}</b>{" "}
+                    {rich("pp.longerBody", {
+                      short: plan.speciesPhaseShortcut.steps,
+                      shortEggs: <b>{t("eggs.approx", { n: Math.ceil(plan.speciesPhaseShortcut.eggs) })}</b>,
+                      long: plan.speciesPhase.length,
+                      longEggs: <b>{t("eggs.approx", {
+                        n: Math.ceil(plan.speciesPhase.reduce((n, st) => n + (st.odds > 0 ? 1 / st.odds : 0), 0)),
+                      })}</b>,
+                    })}
                   </OkBox>
                 )}
                 {plan.speciesPhase.map((st, i) => (
@@ -962,20 +1183,20 @@ export function BreedingView() {
                       <>
                         {!st.genderOk && st.partner && (
                           <div className="warn-inline">
-                            ⚠ Partnern har samma kön som linjen – paret kan inte avla. Byt till
+                            ⚠ {t("pp.partnerSameGender")}
                             en {st.partner.g === "M" ? "hona" : "hane"} av samma art.
                           </div>
                         )}
                         {st.partner
                           ? <Ident pal={st.partner} label="Partner i steget" />
-                          : <>Partner: ?</>}
+                          : <>{t("sp.partner")} ?</>}
                         {st.note ? `${st.note} · ` : ""}
-                        <Chips ids={plan.usable} label="Barnet ska behålla" />
+                        <Chips ids={plan.usable} label={t("pp.childKeeps")} />
                       </>
                     }
                   >
                     <SpeciesMini sp={sp(st.from)} badge={i === 0 ? "DIN LINJE" : `STEG ${i}`} badgeClass="q" />＋
-                    <SpeciesMini sp={sp(st.with)} badge="ÄGD" />→
+                    <SpeciesMini sp={sp(st.with)} badge={t("best.own.owned")} />→
                     <SpeciesMini sp={sp(st.to)} />
                     {uniqueChildren.has(st.to) && <Tag kind="lucky">UNIK KOMBO</Tag>}
                     <OddsBadge odds={oddsText(st.odds)} eggs={eggsText(st.odds)} />
@@ -985,9 +1206,9 @@ export function BreedingView() {
             )}
             {plan.expectedEggs > 0 && (
               <OkBox>
-                <b>Totalt: ~{Math.ceil(plan.expectedEggs)} ägg</b> förväntat för hela planen,{" "}
-                {eggTime(plan.expectedEggs)}. Tips: håll skräp-passiver borta ur linjen –
-                varje extra passiv i poolen sänker oddsen.
+                <b>{t("pp.total", { n: Math.ceil(plan.expectedEggs) })}</b>{" "}
+                {t("pp.totalExpected")}{" "}
+                {eggTime(plan.expectedEggs)}. {t("pp.totalTip")}
               </OkBox>
             )}
             <ExactNote plan={plan} />
@@ -1005,10 +1226,10 @@ export function BreedingView() {
   }) {
 
     return (
-      <Section title={`Art-väg till ${sp(target).name}`}>
+      <Section title={t("sp.title", { name: sp(target).name })}>
         {ownedSpecies.has(target) && bestOf.get(target) && (
           <OkBox>
-            Du äger redan {sp(target).name} – bästa exemplar:{" "}
+            {t("sp.alreadyOwn", { name: sp(target).name })}{" "}
             {palShort(bestOf.get(target)!, sp(target).name)} ({bestOf.get(target)!.c})
           </OkBox>
         )}
@@ -1016,16 +1237,17 @@ export function BreedingView() {
         {directCombos.length > 0 && (
           <>
             <div className="sub" style={{ marginTop: 6 }}>
-              {directCombos.length} direkta kombos med pals du äger{directCombos.length > 8 ? " – visar 8 bästa" : ""}:
+              {t("sp.directCombos", { n: directCombos.length })}
+              {directCombos.length > 8 ? t("sp.showingEight") : ""}:
             </div>
             {directCombos.slice(0, 8).map(([a, b, note], i) => {
               const q = bestParentPair(pals, bestOf, a, b, prefs);
               return (
                 <StepCard key={i}
-                  hint={<>Föräldrar: {palShort(q.pa, sp(q.pa.s).name)} + {palShort(q.pb, sp(q.pb.s).name)}{q.warn && <span className="warn-inline"> · {q.warn}</span>}</>}
+                  hint={<>{t("sp.parents")} {palShort(q.pa, sp(q.pa.s).name)} + {palShort(q.pb, sp(q.pb.s).name)}{q.warn && <span className="warn-inline"> · {t.msg(q.warn)}</span>}</>}
                 >
-                  <SpeciesMini sp={sp(a)} badge="ÄGD" />＋
-                  <SpeciesMini sp={sp(b)} badge="ÄGD" />→
+                  <SpeciesMini sp={sp(a)} badge={t("best.own.owned")} />＋
+                  <SpeciesMini sp={sp(b)} badge={t("best.own.owned")} />→
                   <SpeciesMini sp={sp(target)} />
                   {uniqueChildren.has(target) && <Tag kind="lucky">UNIK KOMBO</Tag>}
                   {note && <span className="meta">({note})</span>}
@@ -1038,16 +1260,16 @@ export function BreedingView() {
         {base !== null ? (
           <>
             <h3 className="phase">Kedja med {sp(base).name} som bas</h3>
-            {base === target && <OkBox>Basen är redan målet.</OkBox>}
-            {base !== target && !chain && <WarnBox>Ingen kedja hittad inom 10 steg – prova fritt läge.</WarnBox>}
+            {base === target && <OkBox>{t("sp.baseIsTarget")}</OkBox>}
+            {base !== target && !chain && <WarnBox>{t("sp.noChainIn10")}</WarnBox>}
             {chain?.map((st, k) => (
               <StepCard key={k} num={k + 1}
                 hint={k === 0
-                  ? (() => { const q = bestParentPair(pals, bestOf, st.from, st.with, prefs); return <>Föräldrar: {palShort(q.pa, sp(q.pa.s).name)} + {palShort(q.pb, sp(q.pb.s).name)}{q.warn ? ` · ${q.warn}` : ""}</>; })()
-                  : <>Partner: {bestOf.get(st.with) ? palShort(bestOf.get(st.with)!, sp(st.with).name) : "?"} (barnets kön är slumpat – kläck tills du får motsatt kön mot partnern)</>}
+                  ? (() => { const q = bestParentPair(pals, bestOf, st.from, st.with, prefs); return <>{t("sp.parents")} {palShort(q.pa, sp(q.pa.s).name)} + {palShort(q.pb, sp(q.pb.s).name)}{q.warn ? ` · ${t.msg(q.warn)}` : ""}</>; })()
+                  : <>{t("sp.partner")} {bestOf.get(st.with) ? palShort(bestOf.get(st.with)!, sp(st.with).name) : "?"} {t("sp.genderRandom")}</>}
               >
                 <SpeciesMini sp={sp(st.from)} badge={k === 0 ? "BAS" : `STEG ${k}`} badgeClass="q" />＋
-                <SpeciesMini sp={sp(st.with)} badge="ÄGD" />→
+                <SpeciesMini sp={sp(st.with)} badge={t("best.own.owned")} />→
                 <SpeciesMini sp={sp(st.to)} />
                 {uniqueChildren.has(st.to) && <Tag kind="lucky">UNIK KOMBO</Tag>}
               </StepCard>
@@ -1055,14 +1277,13 @@ export function BreedingView() {
           </>
         ) : (
           <>
-            <h3 className="phase">Kortaste väg (fritt läge)</h3>
+            <h3 className="phase">{t("sp.shortestFree")}</h3>
             {!isReachable(freeSolve.cost, target) && (
               <WarnBox>
-                {sp(target).name} kan inte nås via breeding från din box – vissa pals (legendarer m.fl.)
-                kan bara fås av två av samma art. Fånga en först.
+                {t("sp.unreachable", { name: sp(target).name })}
               </WarnBox>
             )}
-            {freeSolve.cost[target] === 0 && <OkBox>Ägs redan – ingen breeding behövs för själva arten.</OkBox>}
+            {freeSolve.cost[target] === 0 && <OkBox>{t("sp.ownedNoBreeding")}</OkBox>}
             {tree && (
               <>
                 <OkBox>Minsta antal parningar: <b>{freeSolve.cost[target]}</b></OkBox>
@@ -1080,7 +1301,7 @@ export function BreedingView() {
       const b = bestOf.get(node.s);
       return (
         <StepCard>
-          <SpeciesMini sp={sp(node.s)} badge="ÄGD" />
+          <SpeciesMini sp={sp(node.s)} badge={t("best.own.owned")} />
           <span className="meta">{b ? palShort(b, sp(node.s).name) : ""}</span>
         </StepCard>
       );

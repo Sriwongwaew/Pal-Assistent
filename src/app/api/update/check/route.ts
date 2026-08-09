@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { latestRelease, releaseIsNewer, REPO, VERSION } from "@/server/release";
+import { latestRelease, MANUAL_CACHE_MS, releaseIsNewer, REPO, VERSION } from "@/server/release";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,14 @@ export interface UpdateCheck {
   error?: string;
 }
 
-export async function GET() {
+/**
+ * `?manual=1` är kollen någon bett om genom att trycka på knappen i foten.
+ * Den skiljer sig på en enda punkt: sextimmarscachen vore fel svar på en
+ * knapptryckning, så den korta gäller i stället. Den är inte borta – knappen
+ * ska inte kunna bli en gratis linje till GitHub, vars kvot delas av alla bakom
+ * samma IP.
+ */
+export async function GET(request: Request) {
   if (!REPO) {
     return NextResponse.json<UpdateCheck>({
       enabled: false,
@@ -33,7 +40,8 @@ export async function GET() {
   }
 
   try {
-    const release = await latestRelease();
+    const manual = new URL(request.url).searchParams.get("manual") === "1";
+    const release = await latestRelease(manual ? MANUAL_CACHE_MS : undefined);
     const newer = releaseIsNewer(release);
     return NextResponse.json<UpdateCheck>({
       enabled: true,

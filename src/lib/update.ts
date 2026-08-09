@@ -81,6 +81,26 @@ export function shouldShow(check: UpdateCheck | null, prefs: UpdatePrefs): boole
   return check.latest !== prefs.skipped;
 }
 
+/** Vad en koll landade i, sett från någon som just tryckt på knappen. */
+export type CheckOutcome = "off" | "failed" | "newer" | "latest";
+
+/**
+ * Den automatiska kollen tiger om allt utom en ny version – att appen är
+ * offline är ett normaltillstånd, inte ett fel att visa. En knapptryckning är
+ * motsatsen: då har någon ställt en fråga och ska få ett svar även när svaret
+ * är dåligt.
+ *
+ * Därför är `failed` ett eget läge och inte hopslaget med `latest`. "Du kör den
+ * senaste versionen" är ett **löfte**, och det får vi inte ge när vi inte kunde
+ * fråga GitHub – då hade knappen intygat att allt var i sin ordning i precis
+ * det läge där den inte visste något alls.
+ */
+export function checkOutcome(check: UpdateCheck | null): CheckOutcome {
+  if (!check || !check.enabled) return "off";
+  if (check.error || !check.latest) return "failed";
+  return check.newer ? "newer" : "latest";
+}
+
 /** En rad ur utgåvans noteringar, redo att renderas. */
 export interface NoteBlock {
   kind: "rubrik" | "punkt" | "text";

@@ -3,6 +3,8 @@
    hand, så nya passiver i datasetet kommer med automatiskt. Negativa
    sidoeffekter (Musclehead −50 % arbete) straffar av sig själva eftersom
    fx-värdena redan är negativa. */
+import { translate, type MessageKey, type Vars } from "../i18n";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import type { FreeSolveResult } from "./breeding";
 import { isReachable } from "./breeding";
 import { FISHING_PALS } from "./constants";
@@ -14,9 +16,10 @@ export type PurposeId = "attack" | "tank" | "work" | "mount" | "fishing";
 
 export interface Purpose {
   id: PurposeId;
-  label: string;
+  /** Nyckel, inte text: `src/lib` har ingen översättare (se types.ts). */
+  label: MessageKey;
   /** Kort förklaring under chippet. */
-  hint: string;
+  hint: MessageKey;
   /** Vikt per fx-nyckel. Tomt objekt = styrs av `fixed` i stället. */
   weights: Partial<Record<FxKey, number>>;
   /** Passiver som inte syns i fx alls (fiskestorlek), listade för hand. */
@@ -27,32 +30,32 @@ export interface Purpose {
 export const PURPOSES: Purpose[] = [
   {
     id: "attack",
-    label: "Strid",
-    hint: "Bossar och raider – attack och elementskada",
+    label: "purpose.attack",
+    hint: "purpose.attack.hint",
     weights: { atk: 1, ele: 0.7, def: 0.15, hp: 0.1 },
   },
   {
     id: "tank",
-    label: "Tålig",
-    hint: "Överlever länge – HP och försvar",
+    label: "purpose.tank",
+    hint: "purpose.tank.hint",
     weights: { hp: 1, def: 1, atk: 0.1 },
   },
   {
     id: "work",
-    label: "Bas & arbete",
-    hint: "Jobbar snabbt i basen – välj syssla för artförslag",
+    label: "purpose.work",
+    hint: "purpose.work.hint",
     weights: { craft: 1, move: 0.1 },
   },
   {
     id: "mount",
-    label: "Riddjur",
-    hint: "Tar dig fram fort – rörelsehastighet",
+    label: "purpose.mount",
+    hint: "purpose.mount.hint",
     weights: { move: 1, hp: 0.1 },
   },
   {
     id: "fishing",
-    label: "Fiske",
-    hint: "Större fångster (Palworld 1.0)",
+    label: "purpose.fishing",
+    hint: "purpose.fishing.hint",
     weights: {},
     // Lunker och Whopper påverkar fiskestorlek och har ingen fx i datasetet.
     fixed: ["Nushi", "MiniNushi"],
@@ -167,8 +170,8 @@ export function elementTokens(species: Species | null): Set<string> {
  *    siffra jag kunde belägga. Hellre utanför än gissad.
  */
 interface Unmodelled {
-  /** Spelets effekttext, kort. Visas som `why` i förslagen. */
-  why: string;
+  /** Spelets effekttext, kort. Visas som `why` i förslagen. Nyckel, inte text. */
+  why: MessageKey;
   /** Vår vikt per syfte, i samma skala som `purposeScore`. */
   score: Partial<Record<PurposeId, number>>;
   /** Bara meningsfull för arter med något av de här elementen (simfart). */
@@ -177,26 +180,26 @@ interface Unmodelled {
 
 const UNMODELLED: Record<string, Unmodelled> = {
   // Uthållighet – gäller bara ridbara pals, enligt spelets egen effekttext.
-  Stamina_Up_3: { why: "Uthållighet +75 % (bara ridbara)", score: { mount: 15 } },
-  Stamina_Up_1: { why: "Uthållighet +50 % (bara ridbara)", score: { mount: 10 } },
-  Stamina_Up_2: { why: "Uthållighet +25 % (bara ridbara)", score: { mount: 5 } },
+  Stamina_Up_3: { why: "fx.stamina75", score: { mount: 15 } },
+  Stamina_Up_1: { why: "fx.stamina50", score: { mount: 10 } },
+  Stamina_Up_2: { why: "fx.stamina25", score: { mount: 5 } },
   // Simfart – värdelös på en flygare, så den kräver rätt element.
-  SwimSpeed_up_3: { why: "Simfart +50 %", score: { mount: 25 }, requires: ["Water"] },
-  SwimSpeed_up_2: { why: "Simfart +40 %", score: { mount: 20 }, requires: ["Water"] },
-  SwimSpeed_up_1: { why: "Simfart +30 %", score: { mount: 15 }, requires: ["Water"] },
+  SwimSpeed_up_3: { why: "fx.swim50", score: { mount: 25 }, requires: ["Water"] },
+  SwimSpeed_up_2: { why: "fx.swim40", score: { mount: 20 }, requires: ["Water"] },
+  SwimSpeed_up_1: { why: "fx.swim30", score: { mount: 15 }, requires: ["Water"] },
   // Hopp i sadeln – rörlighet, inte fart.
-  RideJumpCount_Increase2: { why: "+2 hopp när du rider", score: { mount: 8 } },
-  RideJumpCount_Increase1: { why: "+1 hopp när du rider", score: { mount: 4 } },
+  RideJumpCount_Increase2: { why: "fx.jump2", score: { mount: 8 } },
+  RideJumpCount_Increase1: { why: "fx.jump1", score: { mount: 4 } },
   // SAN och hunger: en arbetare som slipper pauser producerar mer än en snabb
   // som står stilla. Under Serious (+20 % arbete) med flit – guidernas
   // endgame-uppsättning är ren arbetshastighet.
-  PAL_Sanity_Down_3: { why: "SAN sjunker 20 % långsammare – längre pass", score: { work: 18 } },
-  PAL_Sanity_Down_2: { why: "SAN sjunker 15 % långsammare", score: { work: 13 } },
-  PAL_FullStomach_Down_3: { why: "Hunger sjunker 20 % långsammare", score: { work: 11 } },
-  PAL_FullStomach_Down_2: { why: "Hunger sjunker 15 % långsammare", score: { work: 8 } },
+  PAL_Sanity_Down_3: { why: "fx.san20", score: { work: 18 } },
+  PAL_Sanity_Down_2: { why: "fx.san15", score: { work: 13 } },
+  PAL_FullStomach_Down_3: { why: "fx.hunger20", score: { work: 11 } },
+  PAL_FullStomach_Down_2: { why: "fx.hunger15", score: { work: 8 } },
   // Nedkylning läggs OVANPÅ fx: Serenity har redan +10 % attack i datan.
-  CoolTimeReduction_Up_1: { why: "Nedkylning −30 % på färdigheter", score: { attack: 20 } },
-  CoolTimeReduction_Up_2: { why: "Nedkylning −15 % på färdigheter", score: { attack: 10 } },
+  CoolTimeReduction_Up_1: { why: "fx.cooldown30", score: { attack: 20 } },
+  CoolTimeReduction_Up_2: { why: "fx.cooldown15", score: { attack: 10 } },
 };
 
 /**
@@ -236,7 +239,7 @@ function unmodelledScore(
 }
 
 /** Effekttexten för en passiv datasetet inte beskriver, om vi känner till den. */
-export const unmodelledWhy = (id: string): string | undefined => UNMODELLED[id]?.why;
+export const unmodelledWhy = (id: string): MessageKey | undefined => UNMODELLED[id]?.why;
 
 /** Har passiven någon känd effekt alls – i datan eller i vår egen tabell? */
 export const hasKnownEffect = (def: PassiveDef, id: string): boolean =>
@@ -388,6 +391,8 @@ export interface RecommendOptions {
   /** Vald syssla när syftet är "Bas & arbete". Ger arbetsrang-passiver extra vikt. */
   work?: WorkType | null;
   limit?: number;
+  /** Språket motiveringstexten skrivs på. Utelämnat = engelska. */
+  locale?: Locale;
 }
 
 /**
@@ -398,9 +403,13 @@ export interface RecommendOptions {
 export function recommendPassives(
   data: AppData,
   counts: ReadonlyMap<string, number>,
-  { purpose, target = null, work = null, limit = 4 }: RecommendOptions,
+  { purpose, target = null, work = null, limit = 4, locale = DEFAULT_LOCALE }: RecommendOptions,
 ): Recommendation {
   const targetElements = elementTokens(target);
+  /* Motiveringen sätts ihop av flera delar – effekttext, element, arbetsrang –
+     så den kan inte lämnas som en `Msg` åt komponenten. Språket följer därför
+     med in, precis som i `describeEffects`. */
+  const say = (key: MessageKey, vars?: Vars) => translate(locale, key, vars);
 
   const scored: PassiveRec[] = [];
   for (const [id, def] of Object.entries(data.passives)) {
@@ -409,7 +418,8 @@ export function recommendPassives(
     let score: number;
     // Datasetets fx först; saknas den helt får vår egen effekttext ta över,
     // annars står en tom rad där effekten borde stå.
-    let why = describeEffects(def.fx) || unmodelledWhy(id) || "";
+    const unmodelled = unmodelledWhy(id);
+    let why = describeEffects(def.fx, locale) || (unmodelled ? say(unmodelled) : "");
     // "Elementskada +60 %" säger inte VILKET element – och det är hela skälet
     // till att passiven föreslås just den här arten.
     const boostEls = boostElements(id);
@@ -417,13 +427,13 @@ export function recommendPassives(
     if (purpose.fixed) {
       if (!purpose.fixed.includes(id)) continue;
       score = 100;
-      why = "Större fångst vid fiske";
+      why = say("fx.biggerCatch");
     } else {
       score = purposeScore(def, id, purpose, targetElements, target !== null);
       // En höjd arbetsrang är värd mer än någon procentsats – men bara för rätt syssla.
       if (work && workRankFor(id) === work) {
         score += 60;
-        why = "Höjer arbetsrangen ett steg";
+        why = say("fx.workRank");
       }
       if (score <= 0) continue;
       // Liten knuff så en högre tier vinner vid lika effekt.

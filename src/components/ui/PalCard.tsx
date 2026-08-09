@@ -1,8 +1,11 @@
+"use client";
+
 /* Dumb: collector-kort för en ägd pal – raritetsram, stor artwork, IV och passiver. */
 /* eslint-disable @next/next/no-img-element */
 import type { CSSProperties, ReactNode } from "react";
 import { ELEMENT_META, rarityClass } from "@/lib/constants";
 import type { PassiveDef, ScoredPal, Species } from "@/lib/types";
+import { useT } from "@/i18n/LocaleContext";
 import { PassiveList } from "./PassiveRow";
 import { GenderSymbol, IvRow, Tag } from "./PalBits";
 
@@ -15,6 +18,7 @@ export interface PalCardProps {
 }
 
 export function PalCard({ pal, species, passives, extraTag, onClick }: PalCardProps) {
+  const t = useT();
   const elColor = ELEMENT_META[species.elements[0] ?? "Normal"]?.color ?? "#3a4a5e";
   return (
     <div
@@ -28,7 +32,7 @@ export function PalCard({ pal, species, passives, extraTag, onClick }: PalCardPr
     >
       <div className="pcin">
         <div className="phd">
-          <span className="plv">Lv {pal.lv}</span>
+          <span className="plv">{t("pal.lv", { n: pal.lv })}</span>
           <span className="pname">{pal.nick || species.name}</span>
         </div>
         <div className="pstars">
@@ -49,7 +53,7 @@ export function PalCard({ pal, species, passives, extraTag, onClick }: PalCardPr
         <div className="pmeta">
           {pal.boss && <Tag kind="alpha">ALPHA</Tag>}
           {pal.lucky && <Tag kind="lucky">LUCKY</Tag>}
-          {pal.keep ? <Tag kind="keep">SPARA</Tag> : <Tag kind="cond">KONDENSERA</Tag>}
+          {pal.keep ? <Tag kind="keep">{t("pal.keep")}</Tag> : <Tag kind="cond">{t("pal.condense")}</Tag>}
           {extraTag}
           <span className="loc">{pal.c}</span>
         </div>

@@ -9,6 +9,7 @@ import "@fontsource/zen-kaku-gothic-new/700.css";
 import "@fontsource/zen-kaku-gothic-new/900.css";
 import { PalDataProvider } from "@/context/PalDataContext";
 import { SelectedPalProvider } from "@/context/SelectedPalContext";
+import { UpdateProvider } from "@/context/UpdateContext";
 import { PalDetailHost } from "@/components/containers/PalDetailHost";
 import { SaveImport } from "@/components/containers/SaveImport";
 import { UpdateBanner } from "@/components/containers/UpdateBanner";
@@ -59,21 +60,25 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <BgTexture />
           <PalDataProvider>
             <SelectedPalProvider>
-              <div className="shell">
-                <Rail />
-                <div className="content">
-                  <div className="wrap">
-                    <UpdateBanner />
-                    <div className="headrow">
-                      <PageTitle />
-                      <HeaderMeta />
-                      <SaveImport />
+              {/* Bandet högst upp och knappen i foten läser samma koll, så de
+                  aldrig kan säga olika saker om samma version. */}
+              <UpdateProvider>
+                <div className="shell">
+                  <Rail />
+                  <div className="content">
+                    <div className="wrap">
+                      <UpdateBanner />
+                      <div className="headrow">
+                        <PageTitle />
+                        <HeaderMeta />
+                        <SaveImport />
+                      </div>
+                      <main>{children}</main>
+                      <FooterLegend />
                     </div>
-                    <main>{children}</main>
-                    <FooterLegend />
                   </div>
                 </div>
-              </div>
+              </UpdateProvider>
               <PalDetailHost />
               {/* One host for the whole page: every banner with data-passive
                   gets a hover card. Sits outside .shell so the card is not

@@ -1,0 +1,17 @@
+{
+  "_readme": [
+    "Namn som tackas i appens credits. Redigeras för hand – det finns inget API",
+    "hos Ko-fi som listar ens medlemmar, så den här filen är sanningen.",
+    "",
+    "Nivåerna är dina egna Ko-fi Memberships. `tier` är namnet precis som det",
+    "står på ko-fi.com/kenziwhat – det översätts INTE, för det är ett egennamn.",
+    "Ordningen i listan är ordningen i appen: lägg den dyraste nivån först.",
+    "",
+    "Fråga alltid innan du skriver in någon. Ett Ko-fi-köp är inte ett samtycke",
+    "till att synas med namn i ett program, och den som stöttar anonymt ska",
+    "kunna fortsätta göra det.",
+    "",
+    "Tom lista = hela credits-avsnittet visas inte alls."
+  ],
+  "tiers": []
+}

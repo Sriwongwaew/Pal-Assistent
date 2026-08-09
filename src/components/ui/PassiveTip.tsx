@@ -25,7 +25,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePalData } from "@/context/PalDataContext";
-import { canImplant } from "@/lib/implants";
+import { useT } from "@/i18n/LocaleContext";
+import { isKnownModule } from "@/lib/implants";
 import { passiveText, tierLabel } from "@/lib/passiveText";
 import { isEquipmentOnly } from "@/lib/purpose";
 
@@ -60,6 +61,7 @@ interface Anchor {
 
 export function PassiveTipHost() {
   const { data, pals } = usePalData();
+  const t = useT();
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
@@ -155,8 +157,10 @@ export function PassiveTipHost() {
 
   const def = data.passives[anchor.id];
   const tier = def?.r ?? 0;
-  const { text, fromGame } = passiveText(anchor.id, def);
+  const { text, fromGame } = passiveText(anchor.id, def, t.locale);
   const owned = carriers.get(anchor.id) ?? 0;
+  /** Implantat i förrådet – 0 betyder också "vi vet inte", och båda ska tiga. */
+  const mine = data.implants?.[anchor.id] ?? 0;
 
   return createPortal(
     <div
@@ -168,24 +172,27 @@ export function PassiveTipHost() {
       <div className="pthd">
         <b>{def?.n ?? anchor.id}</b>
         <span className="pttier" style={{ color: tierToken(tier) }}>
-          {tierLabel(tier)}
+          {t.msg(tierLabel(tier))}
         </span>
       </div>
       <div className="ptbody">
-        {text ?? "Datasetet beskriver ingen effekt för den här passiven."}
+        {text ?? t("ptip.noEffect")}
       </div>
       {anchor.note && <div className="ptnote">{anchor.note}</div>}
       <div className="ptmeta">
-        {owned > 0 ? `${owned} i boxen bär den` : "Ingen i boxen bär den"}
+        {owned > 0 ? t.plural("ptip.carriers", owned) : t("ptip.noCarriers")}
         {/* Står direkt efter bärarräkningen med flit: "ingen i boxen bär den ·
-            går att operera in" är hela beslutet i en rad. Utan den måste man
-            gissa, och gissningen "det ordnar bordet sen" är fel för allt på
-            legendarisk nivå – inget av det finns som implantat. */}
-        {canImplant(anchor.id) && " · går att operera in (Pal Surgery Table)"}
-        {isEquipmentOnly(anchor.id) && " · sitter på utrustning, kan inte ärvas"}
+            du har 1 implantat" är hela beslutet i en rad.
+            Ägandet kommer ur saven och är exakt; modul-listan är wikins och
+            bevisat ofullständig, så den formuleras som "finns som" och aldrig som
+            ett nej. Se implants.ts. */}
+        {mine > 0
+          ? t.plural("ptip.implants", mine)
+          : isKnownModule(anchor.id) && t("ptip.module")}
+        {isEquipmentOnly(anchor.id) && t("ptip.equipment")}
         {/* Härledd text är ofullständig (se passiveText.ts) – säg det hellre än
             att låta den se ut som spelets egen. */}
-        {!fromGame && text && " · härlett ur poängdatan"}
+        {!fromGame && text && t("ptip.derived")}
       </div>
     </div>,
     document.body,

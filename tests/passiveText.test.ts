@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { translate } from "../src/i18n";
 import { describeEffects, PASSIVE_TEXT, passiveText, tierLabel } from "../src/lib/passiveText";
 import type { AppData, PassiveDef } from "../src/lib/types";
 
@@ -35,18 +36,33 @@ describe("passiveText", () => {
     // Serenity är hela poängen med tabellen: fx säger bara atk +10, men
     // passiven sänker dessutom laddningstiden 30 % – det står inte i fx alls.
     const def = data.passives.CoolTimeReduction_Up_1!;
-    assert.equal(describeEffects(def.fx), "Attack +10 %");
-    const got = passiveText("CoolTimeReduction_Up_1", def);
+    assert.equal(describeEffects(def.fx, "sv"), "Attack +10 %");
+    const got = passiveText("CoolTimeReduction_Up_1", def, "sv");
     assert.equal(got.fromGame, true);
     assert.match(got.text!, /−30 %/);
+  });
+
+  it("ger spelets egen text på läsarens språk", () => {
+    const def = data.passives.Legend!;
+    assert.match(passiveText("Legend", def, "sv").text!, /rörelsehastighet/);
+    assert.match(passiveText("Legend", def, "en").text!, /Movement Speed/);
+  });
+
+  /* Katalogen faller tillbaka på engelska (se messages/en.ts) och passivtexten
+     måste göra samma sak – annars vore japanskan den enda vyn i appen som
+     plötsligt stod på svenska. */
+  it("faller tillbaka på engelska för ett språk utan egen tabell", () => {
+    const def = data.passives.Legend!;
+    assert.equal(passiveText("Legend", def, "ja").text, passiveText("Legend", def, "en").text);
   });
 
   it("faller tillbaka på fx-raden för en passiv som saknar text", () => {
     const def: PassiveDef = { n: "Nykomling", r: 3, pal: true,
       fx: { atk: 20, craft: -50, move: 0, hp: 0, ele: 0, def: 0 } };
-    const got = passiveText("Framtida_Passiv", def);
+    const got = passiveText("Framtida_Passiv", def, "sv");
     assert.equal(got.fromGame, false);
     assert.equal(got.text, "Attack +20 % · Arbetshastighet −50 %");
+    assert.equal(passiveText("Framtida_Passiv", def, "en").text, "Attack +20 % · Work speed −50 %");
   });
 
   it("ger null när varken text eller fx säger något", () => {
@@ -58,11 +74,19 @@ describe("passiveText", () => {
 
 describe("tierLabel", () => {
   it("följer bannerns egen indelning", () => {
-    assert.equal(tierLabel(5), "World Tree");
-    assert.equal(tierLabel(4), "Legendarisk");
-    assert.equal(tierLabel(3), "Tier 3");
-    assert.equal(tierLabel(1), "Tier 1");
-    assert.equal(tierLabel(-3), "Negativ");
-    assert.equal(tierLabel(0), "Okänd nivå");
+    const sv = (tier: number) => translate("sv", tierLabel(tier).key, tierLabel(tier).vars);
+    assert.equal(sv(5), "World Tree");
+    assert.equal(sv(4), "Legendarisk");
+    assert.equal(sv(3), "Tier 3");
+    assert.equal(sv(1), "Tier 1");
+    assert.equal(sv(-3), "Negativ");
+    assert.equal(sv(0), "Okänd nivå");
+  });
+
+  it("säger samma sak på engelska", () => {
+    const en = (tier: number) => translate("en", tierLabel(tier).key, tierLabel(tier).vars);
+    assert.equal(en(4), "Legendary");
+    assert.equal(en(3), "Tier 3");
+    assert.equal(en(-3), "Negative");
   });
 });

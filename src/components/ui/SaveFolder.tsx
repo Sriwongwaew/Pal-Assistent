@@ -1,11 +1,13 @@
 "use client";
 
+import { useT } from "@/i18n/LocaleContext";
+import { useRichT } from "@/i18n/rich";
 import { LIVE_INTERVALS, type LiveInterval } from "@/lib/savePrefs";
 import { hasAmbiguousLabels, saveLabel, type SaveCandidate } from "@/lib/saveImport";
 
 /** Klockslag ur en unix-tidsstämpel – "sparad 14:07". */
-function clock(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleString("sv-SE", {
+function clock(seconds: number, locale: string): string {
+  return new Date(seconds * 1000).toLocaleString(locale, {
     dateStyle: "short",
     timeStyle: "short",
   });
@@ -44,6 +46,8 @@ export function SaveFolder({
   root, onRoot, defaultRoot, onScan, scanning, saves, scanned, scanError,
   selected, onSelect, live, onLive, every, onEvery, watching, onClose,
 }: SaveFolderProps) {
+  const t = useT();
+  const rich = useRichT();
   const ambiguous = hasAmbiguousLabels(saves);
   /* Antal spelare i den värld man faktiskt läser. Utan ett val är det den
      senast sparade, alltså listans första – samma val som live gör. */
@@ -52,14 +56,11 @@ export function SaveFolder({
   return (
     <div className="savefolder">
       <div className="sfhead">
-        <b>Var ligger saven?</b>
-        <button className="sfclose" onClick={onClose} aria-label="Stäng">×</button>
+        <b>{t("save.whereTitle")}</b>
+        <button className="sfclose" onClick={onClose} aria-label={t("pal.close")}>×</button>
       </div>
 
-      <p className="meta">
-        Lämna tomt för spelets egen mapp. Peka annars ut mappen – en dedikerad
-        server, en molnmapp eller en kopia. Både mappen och en Level.sav funkar.
-      </p>
+      <p className="meta">{t("save.folderHint")}</p>
 
       <div className="sfrow">
         <input
@@ -71,14 +72,14 @@ export function SaveFolder({
           onKeyDown={(e) => { if (e.key === "Enter") onScan(); }}
         />
         <button className="ghost" onClick={onScan} disabled={scanning}>
-          {scanning ? "Söker…" : "Sök"}
+          {scanning ? t("save.searching") : t("save.search")}
         </button>
       </div>
 
       {scanError && <div className="warnbox">{scanError}</div>}
 
       {scanned && saves.length === 0 && !scanError && (
-        <div className="warnbox">Hittade ingen Level.sav i den mappen.</div>
+        <div className="warnbox">{t("save.noneFound")}</div>
       )}
 
       {saves.length > 0 && (
@@ -87,8 +88,8 @@ export function SaveFolder({
             className={`sfsave${selected === "" ? " on" : ""}`}
             onClick={() => onSelect("")}
           >
-            <b>Senast sparade världen</b>
-            <span className="meta">Följer med automatiskt om du byter värld</span>
+            <b>{t("save.latestWorld")}</b>
+            <span className="meta">{t("save.latestWorldHint")}</span>
           </button>
           {saves.map((s) => (
             <button
@@ -105,14 +106,14 @@ export function SaveFolder({
                 {s.host ? (
                   <>
                     {s.host}
-                    {s.hostLevel ? ` · Lv ${s.hostLevel}` : ""}
-                    {s.day ? ` · dag ${s.day}` : ""}
+                    {s.hostLevel ? ` · ${t("pal.lv", { n: s.hostLevel })}` : ""}
+                    {s.day ? ` · ${t("save.day", { n: s.day })}` : ""}
                   </>
                 ) : (
-                  <>konto {s.account}</>
+                  <>{t("save.account", { id: s.account })}</>
                 )}
-                {s.players > 1 && ` · ${s.players} spelare`}
-                {" · "}{megabytes(s.size)} · sparad {clock(s.modified)}
+                {s.players > 1 && ` · ${t("save.players", { n: s.players })}`}
+                {" · "}{megabytes(s.size)} · {t("save.savedAt", { time: clock(s.modified, t.locale) })}
               </span>
               {/* Bara när namnen inte räcker: två världar får heta likadant, och
                   en kopierad save har alltid samma namn som originalet. */}
@@ -127,9 +128,10 @@ export function SaveFolder({
           allt eftersom de spelar – och då läses fel box in. */}
       {saves.length > 1 && selected === "" && (
         <div className="warnbox">
-          Hittade {saves.length} världar. <b>Senast sparade världen</b> byter till den
-          som sparats sist – spelar någon annan på datorn läses deras box in i stället.
-          Välj en värld i listan så ligger valet fast.
+          {rich("save.found", {
+            n: saves.length,
+            latest: <b>{t("save.latestWorld")}</b>,
+          })}
         </div>
       )}
 
@@ -141,16 +143,17 @@ export function SaveFolder({
           från false. Utan jämförelsen stod det en lös "0" i panelen. */}
       {multiPlayer > 0 && (
         <div className="warnbox">
-          Den valda världen har {multiPlayer} spelare. Appen läser <b>en</b> av dem –
-          den vars spelarfil ligger först – så dennes Palbox blir &quot;Palbox&quot; och
-          övrigas boxar hamnar under &quot;Bas/övrigt&quot;. Att välja spelare går inte än.
+          {rich("save.multiPlayer", {
+            n: multiPlayer,
+            one: <b>{t("save.multiPlayerOne")}</b>,
+          })}
         </div>
       )}
 
       <div className="sflive">
         <label className="sftoggle">
           <input type="checkbox" checked={live} onChange={(e) => onLive(e.target.checked)} />
-          <span><b>Live</b> – läs om av sig själv när spelet sparat</span>
+          <span><b>{t("save.live")}</b>{t("save.liveHint")}</span>
         </label>
         <div className="seg">
           {LIVE_INTERVALS.map((n) => (
@@ -169,8 +172,8 @@ export function SaveFolder({
       {live && (
         <p className="meta">
           {watching
-            ? <>Bevakar <code>{watching}</code></>
-            : "Letar upp saven…"}
+            ? rich("save.watching", { path: <code>{watching}</code> })
+            : t("save.locating")}
         </p>
       )}
     </div>

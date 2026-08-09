@@ -12,6 +12,7 @@
  * som kör källkoden, inte någon som installerat programmet.
  */
 
+import { serverT } from "@/i18n/server";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -68,6 +69,7 @@ function parseJson<T>(text: string): T | null {
  * exit-värde skilt från noll är fortfarande ett användbart svar.
  */
 export async function runPalsave<T>(args: string[]): Promise<T> {
+  const t = await serverT();
   const failures: string[] = [];
 
   for (const runner of runners()) {
@@ -93,6 +95,6 @@ export async function runPalsave<T>(args: string[]): Promise<T> {
   throw new Error(
     failures.length > 0
       ? failures.join(" | ")
-      : "Hittar ingen Python. Installera Python 3 och kör: pip install palworld-save-tools",
+      : t("api.noPython"),
   );
 }

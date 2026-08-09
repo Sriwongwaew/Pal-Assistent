@@ -1,8 +1,11 @@
+"use client";
+
 /* Dumb småkomponenter: avatarer, element-ikoner, taggar, IV-plattor, stat-tiles. */
 /* eslint-disable @next/next/no-img-element */
 import type { CSSProperties, ReactNode } from "react";
 import { ELEMENT_ICON, ELEMENT_META } from "@/lib/constants";
 import type { ElementType, Gender, Species } from "@/lib/types";
+import { useT } from "@/i18n/LocaleContext";
 import { GameIcon } from "./GameIcon";
 
 export function elementBg(sp: Species): string {
@@ -49,8 +52,13 @@ export function ElementIcons({ sp, size = 17 }: { sp: Species; size?: number }) 
  *    som ett riktigt nummer.
  */
 export function DeckNo({ sp }: { sp: Species }) {
+  const t = useT();
   if (sp.deck <= 0) return null;
-  return <span className="deckno" title={`Paldeck No.${sp.deck}`}>No.{sp.deck}</span>;
+  return (
+    <span className="deckno" title={t("pal.deckTitle", { n: sp.deck })}>
+      {t("pal.deck", { n: sp.deck })}
+    </span>
+  );
 }
 
 export type TagKind = "alpha" | "lucky" | "keep" | "cond" | "info";

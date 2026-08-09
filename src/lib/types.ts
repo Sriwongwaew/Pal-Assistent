@@ -1,5 +1,10 @@
 /** Rådata som exporterats från Level.sav (public/data/pal-data.json). */
 
+/* `Msg` i stället för färdig text: logiken här är ren och har ingen översättare
+   att fråga. Den bestämmer *vad* som ska sägas – nyckel plus variabler – och
+   komponenten som ritar den bestämmer på vilket språk. Se src/i18n/index.ts. */
+import type { MessageKey, Msg } from "../i18n";
+
 export type WorkType =
   | "Handcraft" | "Transport" | "Mining" | "Deforest" | "Watering"
   | "Seeding" | "EmitFlame" | "GenerateElectricity" | "Cool"
@@ -103,6 +108,17 @@ export interface AppData {
   passives: Record<string, PassiveDef>;
   pals: OwnedPal[];
   player: string;
+  /**
+   * Passiv-id → antal implantat i världens item-behållare (Pal Surgery Table).
+   *
+   * `undefined` = saven är inläst av en läsare som inte kan fältet, alltså "vi
+   * vet inte". Tomt objekt = "vi läste, du äger inga". Slå aldrig ihop de två:
+   * det första ska inte visa något, det andra ska.
+   *
+   * Läses ur savens `ItemContainerSaveData` – se `_implants` i tools/palsave.py.
+   * Nollas i paketeringen tillsammans med `pals`/`player`/`exported`.
+   */
+  implants?: Record<string, number>;
   exported: string;
   /** Kumulativ pal-EXP per level (index = level). */
   palExp: number[];
@@ -134,7 +150,7 @@ export interface ScoredPal extends OwnedPal {
    * Work Slave + Remarkable Craftsmanship är en komplett arbetsuppsättning,
    * men bara en av dem är guldtier.
    */
-  synergy: { label: string; names: string[] } | null;
+  synergy: { label: MessageKey; names: string[] } | null;
   /**
    * Toppassiver (tier ≥ 4) som palen bär **utan skräp runt sig** och som
    * dessutom **gör nytta på arten** – den bästa sortens avelsförälder, eftersom
@@ -152,7 +168,7 @@ export interface ScoredPal extends OwnedPal {
    */
   soleCarrier: { id: string; name: string }[];
   keep: boolean;
-  reasons: string[];
+  reasons: Msg[];
 }
 
 export interface ChildResult {

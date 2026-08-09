@@ -4,6 +4,9 @@
 import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
+import { useT } from "@/i18n/LocaleContext";
+import { useRichT } from "@/i18n/rich";
+import type { MessageKey } from "@/i18n";
 import {
   BASE_WORK_TYPES, pickAttackTeam, pickBaseCrew, ranchGuide,
   topGlobalAttackers, topGlobalWorkers, workScore,
@@ -21,6 +24,8 @@ import { LoadoutCard } from "@/components/ui/Loadout";
 
 export function BestView() {
   const { data, pals, ownedSpecies, bestOf, freeSolve } = usePalData();
+  const t = useT();
+  const rich = useRichT();
   const router = useRouter();
   const gotoBreeding = (s: number, wanted: string[] = []) =>
     router.push(`/breeding?target=${s}${wanted.length ? `&wanted=${wanted.join(",")}` : ""}`);
@@ -40,7 +45,7 @@ export function BestView() {
       {team.map((p) => {
         const species = sp(p.s);
         const work = purpose === "work" ? topWork(species, WORK_TYPES) : null;
-        const lo = idealLoadout(data, passiveCounts, p, species, purpose, work);
+        const lo = idealLoadout(data, passiveCounts, p, species, purpose, work, t.locale);
         const missing = lo.slots.filter((s) => !s.owned).map((s) => s.id);
         return (
           <LoadoutCard
@@ -73,20 +78,20 @@ export function BestView() {
     const byName = new Map(data.species.map((s, i) => [s.name, i] as const));
     return FISHING_PALS
       .map(([name, desc]) => ({ name, desc, idx: byName.get(name) }))
-      .filter((f): f is { name: string; desc: string; idx: number } => f.idx !== undefined);
+      .filter((f): f is { name: string; desc: MessageKey; idx: number } => f.idx !== undefined);
   }, [data]);
 
   const sp = (i: number) => data.species[i]!;
   /** `compact` används i de smala arbetskorten, där namnet annars trunkeras bort. */
   const ownStatus = (s: number, compact = false) => {
-    if (ownedSpecies.has(s)) return <Tag kind="keep">ÄGD</Tag>;
+    if (ownedSpecies.has(s)) return <Tag kind="keep">{t("best.own.owned")}</Tag>;
     const c = freeSolve.cost[s] ?? Infinity;
     if (!isReachable(freeSolve.cost, s)) {
-      return <Tag kind="cond">{compact ? "FÅNGA" : "MÅSTE FÅNGAS"}</Tag>;
+      return <Tag kind="cond">{compact ? t("best.own.catch") : t("best.own.mustCatch")}</Tag>;
     }
     return (
       <Tag kind="lucky">
-        {compact ? `AVLAS ×${c}` : <>KAN AVLAS · {c} parning{c > 1 ? "ar" : ""}</>}
+        {compact ? t("best.own.breedShort", { n: c }) : t.plural("best.own.breed", c)}
       </Tag>
     );
   };
@@ -123,7 +128,7 @@ export function BestView() {
         {/* Var exemplaret faktiskt står just nu: laget väljer artens bästa
             individ, och den ligger oftast i boxen även när en sämre redan är
             utplacerad. Utan raden ser förslaget ut som "det är redan klart". */}
-        <span className="tpwhere">{p.c === "Palbox" ? "i boxen – placera ut" : p.c}</span>
+        <span className="tpwhere">{p.c === "Palbox" ? t("best.crew.inBox") : p.c}</span>
       </>
     );
   };
@@ -133,47 +138,49 @@ export function BestView() {
 
   return (
     <>
-      <Section title={<><MaskIcon name="attack" color="#e6edf4" width={16} height={16} /> Attack-team (boss/raid)</>}
-        sub="Topp 5 ur din box efter stridsstyrka (art-scaling × ATK-IV × attack-passiver), med elementspridning.">
+      <Section title={<><MaskIcon name="attack" color="#e6edf4" width={16} height={16} /> {t("best.attack.title")}</>}
+        sub={t("best.attack.sub")}>
         <div className="teamcard"><div className="trow">
           {team.map((p) => (
-            <TeamPortrait key={p.id} p={p} why={`${sp(p.s).elements[0] ?? "Normal"} · styrka ${p.combat}`} />
+            <TeamPortrait key={p.id} p={p}
+              why={t("best.attack.why", { element: sp(p.s).elements[0] ?? "Normal", n: p.combat })} />
           ))}
         </div></div>
-        <h3 className="phase">Så här ska de se ut</h3>
-        <div className="sub">
-          Fyra passiver per pal, anpassade efter artens element. Ifylld banner = den har den
-          redan. Klicka för en avelsplan som fyller luckorna.
-        </div>
-        <LoadoutGrid team={team} purpose="attack" label={(p) => `Strid · styrka ${p.combat}`} />
+        <h3 className="phase">{t("best.lookLike")}</h3>
+        <div className="sub">{t("best.attack.loadoutSub")}</div>
+        <LoadoutGrid team={team} purpose="attack"
+          label={(p) => t("best.attack.label", { n: p.combat })} />
         <details className="dgroup">
-          <summary>Topp 15 attackers du äger <span className="n">(alla element)</span></summary>
+          <summary>{t("best.attack.top15")} <span className="n">{t("best.attack.allElements")}</span></summary>
           {attackers.slice(0, 15).map((p) => (
             <div key={p.id} className="rrow">
               <SpeciesIcon sp={sp(p.s)} size={38} radius={10} />
               <span className="nm">{sp(p.s).name} <GenderSymbol g={p.g} /></span>
               <ElementIcons sp={sp(p.s)} />
-              <span className="ivt">Styrka {p.combat} · ATK-IV {p.iv[1]} · Lv {p.lv}{p.stars > 0 ? ` · ${"★".repeat(p.stars)}` : ""}</span>
+              <span className="ivt">
+                {t("best.attack.row", { power: p.combat, iv: p.iv[1], lv: p.lv })}
+                {p.stars > 0 ? ` · ${"★".repeat(p.stars)}` : ""}
+              </span>
               <div className="grow"><PassiveList items={passiveItems(p)} /></div>
             </div>
           ))}
         </details>
         <details className="dgroup" open>
-          <summary>Bästa attackers i spelet – även de du inte äger <span className="n">(klicka för breeding-plan)</span></summary>
+          <summary>{t("best.attack.global")} <span className="n">{t("best.attack.clickHint")}</span></summary>
           {globalAttackers.map((s, i) => {
             const top = sp(globalAttackers[0] ?? s).sc[1] || 1;
             return (
-              <button key={s} className="rrow rowbtn" onClick={() => gotoBreeding(s)} title="Klicka för breeding-plan">
+              <button key={s} className="rrow rowbtn" onClick={() => gotoBreeding(s)} title={t("best.planTitle")}>
                 <span className={`rank r${Math.min(i + 1, 4)}`}>{i + 1}</span>
                 <span className="ava" style={{ background: elementBg(sp(s)) }}>
                   <SpeciesIcon sp={sp(s)} size={38} radius={19} />
                 </span>
                 <span className="nm">{sp(s).name}</span>
                 <span className="els"><ElementIcons sp={sp(s)} /></span>
-                <span className="statbar" title={`ATK-scaling ${sp(s).sc[1]}`}>
+                <span className="statbar" title={t("best.attack.scaling", { n: sp(s).sc[1] })}>
                   <i style={{ width: `${Math.round((sp(s).sc[1] / top) * 100)}%` }} />
                 </span>
-                <span className="ivt">{sp(s).sc[1]} ATK · {sp(s).sc[0]} HP</span>
+                <span className="ivt">{t("best.attack.stats", { atk: sp(s).sc[1], hp: sp(s).sc[0] })}</span>
                 {ownStatus(s)}
                 <span className="meta arrow-end">→</span>
               </button>
@@ -181,27 +188,25 @@ export function BestView() {
           })}
         </details>
         <div className="hint">
-          Vill du bygga den ultimata attackern? Klicka på en pal ovan och välj passiver som{" "}
-          <b>Legend + Musclehead + Vanguard + elementboost</b>.
+          {rich("best.attack.ultimate", { passives: <b>{t("best.attack.ultimateList")}</b> })}
         </div>
       </Section>
 
-      <Section title={<><MaskIcon name="work_speed" color="#e6edf4" width={16} height={16} /> Bas-dreamteam</>}
-        sub="Minsta gäng ur din box som täcker alla arbetstyper med högsta nivåer (🌙 = jobbar även natt).">
+      <Section title={<><MaskIcon name="work_speed" color="#e6edf4" width={16} height={16} /> {t("best.crew.title")}</>}
+        sub={t("best.crew.sub")}>
         <div className="teamcard"><div className="trow">
           {crew.map((p) => <TeamPortrait key={p.id} p={p} why={crewWhy(p)} />)}
         </div></div>
-        <h3 className="phase">Så här ska de se ut</h3>
-        <div className="sub">
-          Arbetshastighet är allt som räknas i basen – utom på Farming, där Farmhand och
-          Ranch Master höjer själva arbetsrangen.
-        </div>
+        <h3 className="phase">{t("best.lookLike")}</h3>
+        <div className="sub">{t("best.crew.loadoutSub")}</div>
         <LoadoutGrid team={crew} purpose="work" label={(p) => {
-          const t = topWork(sp(p.s), WORK_TYPES);
-          return t ? `${WORK_META[t]!.label} nivå ${sp(p.s).ws[t]}` : "Bas & arbete";
+          const w = topWork(sp(p.s), WORK_TYPES);
+          return w
+            ? t("best.crew.label", { work: WORK_META[w]!.label, n: sp(p.s).ws[w] ?? 0 })
+            : t("purpose.work");
         }} />
         <details className="dgroup">
-          <summary>Bästa arbetare per syssla – ur din box</summary>
+          <summary>{t("best.crew.own")}</summary>
           <div className="wgrid">
             {BASE_WORK_TYPES.map((t) => {
               const best = [...pals]
@@ -229,7 +234,7 @@ export function BestView() {
           </div>
         </details>
         <details className="dgroup">
-          <summary>Bästa arbetare i spelet – även de du inte äger <span className="n">(klicka för breeding-plan)</span></summary>
+          <summary>{t("best.crew.global")} <span className="n">{t("best.attack.clickHint")}</span></summary>
           <div className="wgrid">
             {globalWorkers.map(([t, list]) => (
               <div key={t} className="wcard">
@@ -252,12 +257,8 @@ export function BestView() {
       </Section>
 
       <Section
-        title={<><WorkIcon type="MonsterFarm" size={17} /> Ranchen – vem lägger vad</>}
-        sub={<>
-          Ranchen är den enda sysslan där <b>arten avgör värdet</b>: varje art lägger sin egen
-          vara, och Farming-nivån säger bara hur snabbt den kommer. Leta efter varan du behöver –
-          inte efter högsta siffran.
-        </>}
+        title={<><WorkIcon type="MonsterFarm" size={17} /> {t("best.ranch.title")}</>}
+        sub={rich("best.ranch.sub", { species: <b>{t("best.ranch.subEmph")}</b> })}
       >
         <div className="wgrid">
           {ranch.filter((e) => e.item !== null).map((entry) => (
@@ -265,13 +266,13 @@ export function BestView() {
               <div className="wt"><span className="em"><WorkIcon type="MonsterFarm" size={17} /></span>{entry.item}</div>
               {entry.producers.slice(0, 4).map((prod, i) => (
                 <button key={prod.s} className="wrow rowbtn" onClick={() => gotoBreeding(prod.s)}
-                  title={prod.owned ? "Ställ den i ranchen – klicka för avelsplan" : "Klicka för avelsplan"}>
+                  title={prod.owned ? t("best.ranch.place") : t("best.planTitle")}>
                   <span className={`rank sm r${Math.min(i + 1, 4)}`}>{i + 1}</span>
                   <span className="ava sm" style={{ background: elementBg(sp(prod.s)) }}>
                     <SpeciesIcon sp={sp(prod.s)} size={28} radius={14} />
                   </span>
                   <span className="nm">{sp(prod.s).name}</span>
-                  <span className="lvl" title="Farming-nivå = takten, inte varan">{prod.level}</span>
+                  <span className="lvl" title={t("best.ranch.levelTitle")}>{prod.level}</span>
                   {ownStatus(prod.s, true)}
                 </button>
               ))}
@@ -283,15 +284,15 @@ export function BestView() {
             ranchen med fel pal, och det syns först timmar senare. */}
         {ranch.filter((e) => e.item === null).map((entry) => (
           <div key="okand" className="hint ranchgap">
-            <b>Vara okänd för {entry.producers.length} arter</b> – vår tabell är handkurerad och
-            spelets data innehåller ingen ranch-vara att läsa av:{" "}
-            {entry.producers.map((p) => sp(p.s).name).join(", ")}. Säg vad de lägger så fylls
-            listan på; tills dess gissar vi hellre inte.
+            <b>{t("best.ranch.unknown", { n: entry.producers.length })}</b>
+            {t("best.ranch.unknownBody", {
+              names: entry.producers.map((prod) => sp(prod.s).name).join(", "),
+            })}
           </div>
         ))}
       </Section>
 
-      <Section title="🎣 Fiske-hjälpar" sub="Pals med partner-skills som förbättrar fisket (Palworld 1.0).">
+      <Section title={t("best.fishing.title")} sub={t("best.fishing.sub")}>
         {fishing.map(({ name, desc, idx }) => {
           const owned = ownedSpecies.has(idx);
           const b = bestOf.get(idx);
@@ -299,16 +300,16 @@ export function BestView() {
             <button key={idx} className="rrow rowbtn" onClick={() => gotoBreeding(idx)}>
               <SpeciesIcon sp={sp(idx)} size={38} radius={10} />
               <span className="nm">{name}</span>
-              <span className="ivt grow">{desc}</span>
+              <span className="ivt grow">{t(desc)}</span>
               {owned && b
-                ? <><Tag kind="keep">ÄGD</Tag><span className="meta">Lv {b.lv} · IV {b.iv.join("/")}</span></>
+                ? <><Tag kind="keep">{t("best.own.owned")}</Tag><span className="meta">{t("pal.lv", { n: b.lv })} · IV {b.iv.join("/")}</span></>
                 : ownStatus(idx)}
             </button>
           );
         })}
       </Section>
 
-      <Section title="🐎 Snabbaste riddjuren" sub="Sprint-fart × Swift/Runner-passiver, bästa exemplar per art.">
+      <Section title={t("best.mount.title")} sub={t("best.mount.sub")}>
         <div className="teamcard"><div className="trow">
           {mounts.map((p, i) => (
             <TeamPortrait
@@ -320,15 +321,16 @@ export function BestView() {
                   <span className="statbar tiny">
                     <i style={{ width: `${Math.round((p.mount / (mounts[0]?.mount || 1)) * 100)}%` }} />
                   </span>
-                  sprint {p.mount}
+                  {t("best.mount.why", { n: p.mount })}
                 </>
               }
             />
           ))}
         </div></div>
-        <h3 className="phase">Så här ska de se ut</h3>
-        <div className="sub">Rörelsepassiver – de enda som faktiskt påverkar sprintfarten.</div>
-        <LoadoutGrid team={mounts} purpose="mount" label={(p) => `Riddjur · sprint ${p.mount}`} />
+        <h3 className="phase">{t("best.lookLike")}</h3>
+        <div className="sub">{t("best.mount.loadoutSub")}</div>
+        <LoadoutGrid team={mounts} purpose="mount"
+          label={(p) => t("best.mount.label", { n: p.mount })} />
       </Section>
     </>
   );

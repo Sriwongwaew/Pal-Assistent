@@ -22,13 +22,21 @@ const CATALOGUES: Record<Locale, Catalogue> = {
   "pt-BR": {},
 };
 
-export type Vars = Record<string, string | number>;
+/* A variable may itself be a message. `src/lib` composes sentences out of parts
+   it has no translator for — "3 passives for Combat" is one key for the count
+   and another for the purpose — and a nested `Msg` is how the inner part gets
+   translated in the same pass as the outer one. */
+export type Vars = Record<string, string | number | Msg>;
 
 /** A message chosen in `src/lib`, where there is no translator to call.
     Pure logic decides *what* to say; the component decides how to say it. */
 export interface Msg {
   key: MessageKey;
   vars?: Vars;
+}
+
+function isMsg(value: string | number | Msg): value is Msg {
+  return typeof value === "object" && value !== null && "key" in value;
 }
 
 export function msg(key: MessageKey, vars?: Vars): Msg {
@@ -52,7 +60,8 @@ function interpolate(template: string, vars: Vars | undefined, locale: Locale): 
   return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
     const value = vars[name];
     if (value === undefined) return whole; // visible, but never a crash
-    return typeof value === "number" ? formatNumber(value, locale) : value;
+    if (typeof value === "number") return formatNumber(value, locale);
+    return isMsg(value) ? translate(locale, value.key, value.vars) : value;
   });
 }
 

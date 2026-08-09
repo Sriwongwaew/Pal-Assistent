@@ -138,14 +138,14 @@ describe("planCondense – varningar", () => {
     const keeper = pal(0, { keep: true });
     const pals = [keeper, pal(0, { pv: ["Legend"], tiers: [4] }), pal(0), pal(0), pal(0)];
     const [p] = planCondense(data, pals, bestOf(keeper));
-    assert.ok(p?.notes.some((n) => n.kind === "passive" && n.text.startsWith("1 ")));
+    assert.ok(p?.notes.some((n) => n.kind === "passive" && n.text.vars?.n === 1));
   });
 
   it("flaggar dubbletter med en 100:a – de är IV-byggstenar, inte mat", () => {
     const keeper = pal(0, { keep: true });
     const pals = [keeper, pal(0, { iv: [100, 20, 20] }), pal(0, { iv: [20, 100, 20] }), pal(0), pal(0)];
     const [p] = planCondense(data, pals, bestOf(keeper));
-    assert.ok(p?.notes.some((n) => n.kind === "iv" && n.text.startsWith("2 ")));
+    assert.ok(p?.notes.some((n) => n.kind === "iv" && n.text.vars?.n === 2));
   });
 
   it("pekar ut att bästa IV sitter någon annanstans", () => {

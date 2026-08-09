@@ -11,6 +11,7 @@
  * aldrig få en ruta som vill installera över hans arbetskopia.
  */
 
+import { serverT } from "@/i18n/server";
 import { isNewer } from "@/lib/version";
 
 /** `owner/namn`, tomt när appen inte är byggd av utgåve-workflowen. */
@@ -25,6 +26,15 @@ export const SUMS_NAME = "SHA256SUMS.txt";
 const TIMEOUT_MS = 10_000;
 /** Hur länge ett svar återanvänds. Utan cache är 60 anrop/timme lätt att bränna. */
 const CACHE_MS = 6 * 60 * 60 * 1000;
+/**
+ * Golvet för en koll användaren själv bett om.
+ *
+ * Knappen ska kännas som att den gör något – därför inte sex timmar – men den
+ * får inte heller bli en gratis linje till GitHub. Kvoten är 60 anrop i timmen
+ * per IP, och den delas av alla som råkar sitta bakom samma. En minut är
+ * omärkligt för den som klickar en gång och ett tak för den som klickar tjugo.
+ */
+export const MANUAL_CACHE_MS = 60_000;
 
 export interface ReleaseAsset {
   name: string;
@@ -75,12 +85,18 @@ function asset(raw: unknown): ReleaseAsset | null {
 /**
  * Hämtar senaste utgåvan. Kastar med ett meddelande som går att visa för en
  * användare – "kunde inte nå GitHub" är information, en stacktrace är det inte.
+ *
+ * `maxAge` är hur gammalt ett cachat svar får vara. Tre anropare, tre behov:
+ * den automatiska kollen tar standardvärdet, knappen i foten `MANUAL_CACHE_MS`
+ * och installationen `0` – den senare måste ha färska URL:er och en färsk
+ * kontrollsumma, för det är dem den laddar ner och kör.
  */
-export async function latestRelease(force = false): Promise<ReleaseInfo> {
-  if (!REPO) throw new Error("Uppdateringar är inte påslagna i det här bygget.");
+export async function latestRelease(maxAge = CACHE_MS): Promise<ReleaseInfo> {
+  const t = await serverT();
+  if (!REPO) throw new Error(t("api.noRelease"));
 
   const now = Date.now();
-  if (!force && cache && now - cache.at < CACHE_MS) return cache.value;
+  if (maxAge > 0 && cache && now - cache.at < maxAge) return cache.value;
 
   let response: Response;
   try {
@@ -94,14 +110,14 @@ export async function latestRelease(force = false): Promise<ReleaseInfo> {
       cache: "no-store",
     });
   } catch {
-    throw new Error("Kunde inte nå GitHub. Är du uppkopplad?");
+    throw new Error(t("api.githubUnreachable"));
   }
 
   if (response.status === 404) {
-    throw new Error("Hittade inga utgåvor att uppdatera till.");
+    throw new Error(t("api.noReleases"));
   }
   if (response.status === 403 || response.status === 429) {
-    throw new Error("GitHub bad oss vänta lite. Försök igen om en stund.");
+    throw new Error(t("api.githubRateLimit"));
   }
   if (!response.ok) {
     throw new Error(`GitHub svarade ${response.status}.`);
@@ -109,7 +125,7 @@ export async function latestRelease(force = false): Promise<ReleaseInfo> {
 
   const raw = (await response.json()) as GithubRelease;
   const tag = typeof raw.tag_name === "string" ? raw.tag_name : "";
-  if (!tag) throw new Error("Utgåvan på GitHub saknar versionsnummer.");
+  if (!tag) throw new Error(t("api.releaseNoVersion"));
 
   const assets = Array.isArray(raw.assets) ? raw.assets.map(asset) : [];
   const value: ReleaseInfo = {

@@ -10,6 +10,7 @@
  * kostar 32. Två arter med "20 dubbletter" är alltså helt olika lägen, och det
  * gick inte att se på den gamla mätaren.
  */
+import { msg, type Msg } from "../i18n";
 import { workScore } from "./best";
 import { FISHING_PALS, WORK_META, WORK_TYPES } from "./constants";
 import { condenseReach, displayStats, type DisplayStats } from "./scoring";
@@ -27,7 +28,7 @@ export interface PalUse {
   work?: WorkType;
   /** Arbetsnivå (1–8) för work, annars placeringen i boxens topplista. */
   level?: number;
-  label: string;
+  label: Msg;
   /** Bäst i boxen **och** nivån är hög nog att siffran betyder något. */
   best: boolean;
   /**
@@ -37,7 +38,7 @@ export interface PalUse {
    */
   only: boolean;
   /** Varför siffran inte är hela sanningen (ranchen). */
-  caveat?: string;
+  caveat?: Msg;
 }
 
 export interface UseIndex {
@@ -65,7 +66,7 @@ const WORK_FLOOR = 3;
  * behålla *ett* exemplar av arten är hela poängen med en ranchpal – men aldrig
  * som en topplacering.
  */
-const RANCH_CAVEAT = "Ranchen ger artens egen vara – nivån styr bara takten, inte vad som kommer ut.";
+const RANCH_CAVEAT = msg("use.ranchCaveat");
 
 /**
  * Räknar en gång per box vad varje pal är bäst på. Att göra det per kort vore
@@ -122,7 +123,7 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
         kind: "work" as const,
         work: w.t,
         level: w.level,
-        label: WORK_META[w.t]?.label ?? w.t,
+        label: msg("use.raw", { text: WORK_META[w.t]?.label ?? w.t }),
         best: top && w.level >= WORK_FLOOR,
         only: top && w.level < WORK_FLOOR,
       };
@@ -130,22 +131,22 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
 
   const combat = idx.combatRank.get(p.id);
   if (combat !== undefined) {
-    uses.push({ kind: "combat", level: combat, label: `Strid #${combat}`, best: combat === 1, only: false });
+    uses.push({ kind: "combat", level: combat, label: msg("use.combat", { n: combat }), best: combat === 1, only: false });
   }
   const mount = idx.mountRank.get(p.id);
   if (mount !== undefined) {
-    uses.push({ kind: "mount", level: mount, label: `Riddjur #${mount}`, best: mount === 1, only: false });
+    uses.push({ kind: "mount", level: mount, label: msg("use.mount", { n: mount }), best: mount === 1, only: false });
   }
   const ranch = sp.ws.MonsterFarm ?? 0;
   if (ranch > 0) {
     uses.push({
       kind: "work", work: "MonsterFarm", level: ranch,
-      label: WORK_META.MonsterFarm?.label ?? "Farming",
+      label: msg("use.raw", { text: WORK_META.MonsterFarm?.label ?? "Farming" }),
       best: false, only: false, caveat: RANCH_CAVEAT,
     });
   }
   if (idx.fishing.has(p.s)) {
-    uses.push({ kind: "fishing", label: "Fiskehjälpare", best: false, only: false });
+    uses.push({ kind: "fishing", label: msg("use.fishing"), best: false, only: false });
   }
 
   // Utan något att visa ser kortet ut som ett fel. Artens bästa syssla oavsett
@@ -153,7 +154,7 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
   if (!uses.length && work[0]) {
     uses.push({
       kind: "work", work: work[0].t, level: work[0].level,
-      label: WORK_META[work[0].t]?.label ?? work[0].t, best: false, only: false,
+      label: msg("use.raw", { text: WORK_META[work[0].t]?.label ?? work[0].t }), best: false, only: false,
     });
   }
 
@@ -174,7 +175,7 @@ export type CondenseNoteKind = "passive" | "iv" | "better" | "last";
 
 export interface CondenseNote {
   kind: CondenseNoteKind;
-  text: string;
+  text: Msg;
 }
 
 export interface CondensePlan {
@@ -273,7 +274,7 @@ function notesFor(
   if (gold > 0) {
     notes.push({
       kind: "passive",
-      text: `${gold} bär en guld- eller rainbow-passiv – passiver går bara att ärva, aldrig slumpa fram.`,
+      text: msg("condense.noteGold", { n: gold }),
     });
   }
 
@@ -281,7 +282,7 @@ function notesFor(
   if (donors > 0) {
     notes.push({
       kind: "iv",
-      text: `${donors} har en 100:a i en stat – byggstenar i en 100/100/100-linje, inte bara mat.`,
+      text: msg("condense.noteIv", { n: donors }),
     });
   }
 
@@ -289,14 +290,14 @@ function notesFor(
   if (bestIv !== keeper && bestIv.ivSum - keeper.ivSum >= IV_GAP) {
     notes.push({
       kind: "better",
-      text: `Bästa IV i arten är ${bestIv.iv.join("/")}, inte ${keeper.iv.join("/")} – kondensera på den du tänker använda.`,
+      text: msg("condense.noteBetter", { best: bestIv.iv.join("/"), keeper: keeper.iv.join("/") }),
     });
   }
 
   if (feed > 0 && leftover === 0 && all.filter((p) => p.keep).length <= 1) {
     notes.push({
       kind: "last",
-      text: "Sista exemplaret blir ensamt kvar – arten går då inte att para med sig själv.",
+      text: msg("condense.noteLast"),
     });
   }
 

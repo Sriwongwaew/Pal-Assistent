@@ -5,6 +5,10 @@
    inte vill ha. Det är hela poängen: i spelet ser du fyra rutor, och kan du inte
    matcha dem rakt av vet du inte om du håller på med rätt pal. De önskade får en
    bock, resten står som de är – de döljs eller tonas aldrig ned. */
+"use client";
+
+import { useT } from "@/i18n/LocaleContext";
+import { msg, type Msg } from "@/i18n";
 import type { ScoredPal, Species } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
 import { DeckNo, ElementIcons, GenderSymbol, SpeciesIcon } from "./PalBits";
@@ -14,13 +18,13 @@ import { passiveVisual } from "./PassiveRow";
  *  det den här siffran som ska ändras – allt annat räknas ut ur den. */
 const BOX_SIZE = 30;
 
-export function palLocation(pal: ScoredPal): string {
-  if (pal.c !== "Palbox") return `${pal.c} · plats ${pal.slot + 1}`;
+export function palLocation(pal: ScoredPal): Msg {
+  if (pal.c !== "Palbox") return msg("ident.container", { name: pal.c, slot: pal.slot + 1 });
   const box = Math.floor(pal.slot / BOX_SIZE) + 1;
   const within = pal.slot % BOX_SIZE;
   const row = Math.floor(within / 6) + 1;
   const col = (within % 6) + 1;
-  return `Palbox · låda ${box}, rad ${row} ruta ${col}`;
+  return msg("ident.palbox", { box, row, col });
 }
 
 export interface PalIdentProps {
@@ -36,6 +40,7 @@ export interface PalIdentProps {
 }
 
 export function PalIdent({ pal, species, wanted = [], nameOf, tierOf, label }: PalIdentProps) {
+  const t = useT();
   return (
     <div className="palident">
       {label && <span className="pil">{label}</span>}
@@ -53,11 +58,11 @@ export function PalIdent({ pal, species, wanted = [], nameOf, tierOf, label }: P
             <ElementIcons sp={species} size={14} />
             <DeckNo sp={species} />
           </b>
-          <span>Lv {pal.lv} · IV {pal.iv.join("/")}{pal.stars > 0 && ` · ${"★".repeat(pal.stars)}`}</span>
+          <span>{t("pal.lv", { n: pal.lv })} · IV {pal.iv.join("/")}{pal.stars > 0 && ` · ${"★".repeat(pal.stars)}`}</span>
         </div>
       </div>
-      <div className="piloc" title="Räknat ur platsen i sparfilen (30 pals per låda)">
-        {palLocation(pal)}
+      <div className="piloc" title={t("ident.slotTitle")}>
+        {t.msg(palLocation(pal))}
       </div>
       </div>
       <div className="pipv">
@@ -67,14 +72,14 @@ export function PalIdent({ pal, species, wanted = [], nameOf, tierOf, label }: P
           return (
             <div key={id} className={`prow sm ${cls}`} data-passive={id}>
               <span className="nm">{nameOf(id)}</span>
-              {want && <span className="tick" aria-label="en av dem du vill ha">✓</span>}
+              {want && <span className="tick" aria-label={t("ident.wanted")}>✓</span>}
               <span className="arr">
                 <MaskIcon name={`rank_${rank}`} color={color} width={20} height={18} />
               </span>
             </div>
           );
         }) : (
-          <div className="prow sm empty"><span className="nm">Inga passiver</span><span className="arr" /></div>
+          <div className="prow sm empty"><span className="nm">{t("pal.noPassives")}</span><span className="arr" /></div>
         )}
       </div>
       </div>

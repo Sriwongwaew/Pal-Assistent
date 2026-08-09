@@ -3,6 +3,7 @@
 /* Dumb: art-väljare som ett ikonrutnät i spelets boxstil i stället för en dropdown.
    Sökfältet är rent presentationsstate – valet självt äger föräldern. */
 
+import { useT } from "@/i18n/LocaleContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Species } from "@/lib/types";
 import { DeckNo, ElementIcons, elementBg, SpeciesIcon } from "./PalBits";
@@ -21,6 +22,7 @@ export interface PalPickerProps {
 export function PalPicker({
   species, owned, value, onChange, ownedOnly = false, noneLabel,
 }: PalPickerProps) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [mineOnly, setMineOnly] = useState(ownedOnly);
 
@@ -87,7 +89,7 @@ export function PalPicker({
         <input
           type="text"
           className="grow"
-          placeholder="Sök art, element eller No.…"
+          placeholder={t("picker.searchSpecies")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -97,7 +99,7 @@ export function PalPicker({
             className={`fchip ${mineOnly ? "on" : ""}`}
             onClick={() => setMineOnly((v) => !v)}
           >
-            Bara mina
+            {t("picker.onlyMine")}
           </button>
         )}
         {selected ? (
@@ -141,14 +143,14 @@ export function PalPicker({
           >
             <span className="circ" style={{ background: elementBg(sp) }}>
               <SpeciesIcon sp={sp} size={52} radius={26} />
-              {owned.has(i) && <span className="mk owned" title="Du äger arten" />}
+              {owned.has(i) && <span className="mk owned" title={t("picker.youOwn")} />}
               <span className="els"><ElementIcons sp={sp} size={14} /></span>
             </span>
             <span className="nm">{sp.name}</span>
             <DeckNo sp={sp} />
           </button>
         ))}
-        {rows.length === 0 && <div className="meta pad">Ingen art matchar sökningen.</div>}
+        {rows.length === 0 && <div className="meta pad">{t("picker.noSpecies")}</div>}
       </div>
     </div>
   );

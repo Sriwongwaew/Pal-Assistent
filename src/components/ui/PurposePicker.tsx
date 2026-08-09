@@ -3,6 +3,7 @@
 /* Dumb: "vad ska den användas till?" – syftet väljs som brickor, aldrig ur en
    dropdown, och de rekommenderade passiverna visas som spelets riktiga banners
    så man ser tier och pilar direkt. */
+import { useT } from "@/i18n/LocaleContext";
 import { WORK_META, WORK_TYPES } from "@/lib/constants";
 import type { PassiveRec, Purpose, PurposeId, SpeciesRec } from "@/lib/purpose";
 import { PURPOSES } from "@/lib/purpose";
@@ -40,9 +41,10 @@ export interface PurposePickerProps {
 
 /** ÄGD / AVLAS ×n / FÅNGA – korta former, annars trycks artnamnet bort (designregel 6). */
 function ReachTag({ reach }: { reach: SpeciesRec["reach"] }) {
-  if (reach.kind === "owned") return <Tag kind="keep">ÄGD</Tag>;
-  if (reach.kind === "catch") return <Tag kind="cond">FÅNGA</Tag>;
-  return <Tag kind="lucky">AVLAS ×{reach.pairings}</Tag>;
+  const t = useT();
+  if (reach.kind === "owned") return <Tag kind="keep">{t("purpose.reachOwned")}</Tag>;
+  if (reach.kind === "catch") return <Tag kind="cond">{t("purpose.reachCatch")}</Tag>;
+  return <Tag kind="lucky">{t("purpose.reachBreed", { n: reach.pairings })}</Tag>;
 }
 
 function RecRow({ rec, chosen, disabled, onClick }: {
@@ -73,9 +75,12 @@ export function PurposePicker({
   value, onChange, work, onWorkChange, speciesRecs, speciesOf, onPickTarget, currentTarget,
   picks, missing, chosen, onToggle, onUseAll, targetName, full,
 }: PurposePickerProps) {
+  const t = useT();
   const active: Purpose | undefined = PURPOSES.find((p) => p.id === value);
   const allChosen = picks.length > 0 && picks.every((r) => chosen.includes(r.id));
-  const workLabel = work ? WORK_META[work]!.label : null;
+  /* Sysslans namn är spelets eget (engelskt) och står mitt i en mening, därför
+     gemener – men bara i språk som skriver substantiv med liten bokstav. */
+  const workLabel = work ? WORK_META[work]!.label.toLowerCase() : null;
 
   return (
     <div className="purpose">
@@ -88,14 +93,14 @@ export function PurposePicker({
             aria-pressed={value === p.id}
             onClick={() => onChange(value === p.id ? null : p.id)}
           >
-            <b>{p.label}</b>
-            <span>{p.hint}</span>
+            <b>{t(p.label)}</b>
+            <span>{t(p.hint)}</span>
           </button>
         ))}
       </div>
 
       {value === "work" && (
-        <div className="workrow" role="group" aria-label="Syssla">
+        <div className="workrow" role="group" aria-label={t("purpose.taskAria")}>
           {WORK_TYPES.map((t) => (
             <button
               key={t}
@@ -115,21 +120,16 @@ export function PurposePicker({
       {value === "work" && work && currentTarget !== null
         && (speciesOf(currentTarget).ws[work] ?? 0) === 0 && (
         <div className="warnbox">
-          <b>{speciesOf(currentTarget).name}</b> kan inte {workLabel!.toLowerCase()} alls
-          (arbetsnivå 0). Passivförslagen nedan höjer bara arbetshastigheten – de gör ingen
-          nytta på en art som saknar sysslan. Välj en art ur listan i stället.
+          {t("purpose.cantWork", { name: speciesOf(currentTarget).name, work: workLabel! })}
         </div>
       )}
 
       {value === "work" && work && (
         <div className="recbox">
           <div className="rechd">
-            <span className="k">Bäst art för {workLabel!.toLowerCase()}</span>
+            <span className="k">{t("purpose.bestSpecies", { work: workLabel! })}</span>
           </div>
-          <div className="recwhy">
-            Sorterat på arbetsnivå först – en nivå högre slår alltid en billigare väg.
-            Klicka för att sätta arten som mål.
-          </div>
+          <div className="recwhy">{t("purpose.bestSpeciesWhy")}</div>
           <div className="specrecs">
             {speciesRecs.map((r) => (
               <button
@@ -154,19 +154,19 @@ export function PurposePicker({
         <div className="recbox">
           <div className="rechd">
             <span className="k">
-              Rekommenderat för {workLabel ? workLabel.toLowerCase() : active.label.toLowerCase()}
+              {t("purpose.recommendedFor", {
+                what: workLabel ?? t(active.label).toLowerCase(),
+              })}
             </span>
             {picks.length > 0 && (
               <button type="button" className="fchip" onClick={onUseAll} disabled={allChosen}>
-                {allChosen ? "Redan valda" : `Använd dessa ${picks.length}`}
+                {allChosen ? t("purpose.alreadyChosen") : t("purpose.useThese", { n: picks.length })}
               </button>
             )}
           </div>
           {/* Elementboostar räknas bara in för strid – på arbete/riddjur gör de ingen nytta. */}
           {targetName && active.id === "attack" && (
-            <div className="recwhy">
-              Anpassat efter elementet hos {targetName} – boostar för fel element faller bort.
-            </div>
+            <div className="recwhy">{t("purpose.elementNote", { name: targetName })}</div>
           )}
 
           {picks.length > 0 ? (
@@ -186,21 +186,18 @@ export function PurposePicker({
                 {picks.map((r) => (
                   <li key={r.id}>
                     <b className="pname" data-passive={r.id}>{r.name}</b> – {r.why} ·{" "}
-                    {r.carriers} i boxen
+                    {t("purpose.inBox", { n: r.carriers })}
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <div className="hint">
-              Ingen i boxen bär en passiv som passar det här syftet. Fånga eller avla fram en bärare
-              först – planen kan bara ärva vidare det som redan finns.
-            </div>
+            <div className="hint">{t("purpose.noCarriers")}</div>
           )}
 
           {missing.length > 0 && (
             <div className="recmiss">
-              <span className="k">Ännu bättre, men saknas i boxen</span>
+              <span className="k">{t("purpose.better")}</span>
               <div className="prows">
                 {missing.map((r) => (
                   <div key={r.id} className="missrow">

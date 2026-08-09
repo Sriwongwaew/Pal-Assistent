@@ -11,6 +11,7 @@
  * är lätt att hitta. Alla tre villkoren måste hålla – annars är det inte en
  * genväg utan bara ännu ett steg.
  */
+import { msg, type Msg } from "../i18n";
 import { childrenOf, inheritOdds } from "./breeding";
 import type { PassivePlan } from "./passivePlan";
 import type { AppData, Species } from "./types";
@@ -41,7 +42,7 @@ export interface Shortcut {
   /** Ungefärligt antal ägg det sparar. */
   saves: number;
   /** Varför – i klartext, för UI:t. */
-  why: string;
+  why: Msg;
   /** Lätt att hitta i vilt tillstånd. */
   easy: boolean;
   /** Sorteringsvikt: gör paret möjligt alls > sparar ägg. */
@@ -82,8 +83,9 @@ export function suggestShortcuts(
       out.push({
         s: sc.blockedBy, species: sp, gender: null, saves: saved, blocking: false,
         easy: sp.rarity <= EASY_RARITY,
-        why: `Det finns en väg på ${sc.steps} steg i stället för ${plan.speciesPhase?.length}, `
-          + `men din ${sp.name} släpar med skräp-passiver. En ren gör den korta vägen billigast.`,
+        why: msg("shortcut.shorterPath", {
+          steps: sc.steps, now: plan.speciesPhase?.length ?? 0, name: sp.name,
+        }),
       });
     }
   }
@@ -99,7 +101,7 @@ export function suggestShortcuts(
       out.push({
         s: st.with, species: sp, gender: need, saves: Infinity, blocking: true,
         easy: sp.rarity <= EASY_RARITY,
-        why: `Paret kan inte avla – du har bara ${st.partner.g === "M" ? "hanar" : "honor"} av arten.`,
+        why: msg(st.partner.g === "M" ? "shortcut.onlyMales" : "shortcut.onlyFemales"),
       });
       continue;
     }
@@ -115,8 +117,7 @@ export function suggestShortcuts(
           gender: st.first && st.partner ? (st.partner.g === "M" ? "M" : "F") : null,
           saves: saved, blocking: false,
           easy: sp.rarity <= EASY_RARITY,
-          why: `Din ${sp.name} bär ${st.partnerJunk} passiv${st.partnerJunk > 1 ? "er" : ""} `
-            + `du inte vill ha – de hamnar i poolen varje gång.`,
+          why: msg("shortcut.junkPartner", { name: sp.name, n: st.partnerJunk }),
         });
       }
     }

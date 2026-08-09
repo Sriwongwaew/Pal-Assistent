@@ -13,6 +13,69 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **A "check for updates" button, at the bottom of every page.** The app asks GitHub once a day and
+  is quiet the rest of the time. That is right for a notice you never asked for and wrong the moment
+  you have heard there is a new version and want it now. The button asks straight away, brings back
+  a version you once waved off with "Later", and answers even when the answer is bad: "could not
+  reach GitHub" is its own reply and is never dressed up as "you are up to date". The version you
+  are running is printed next to it, so there is somewhere to read it off when reporting a problem.
+
+- **The language switch now changes the whole app, not just the menu.** Every screen speaks the
+  language you pick — the breeding planner's odds and explanations, the recommendation queue and its
+  keep-reasons, best-for, the save panel, the update notice, and the error messages that come back
+  from reading your save. Passive descriptions follow along too: the hover card shows the game's own
+  wording in your language. English is the default and the fallback, Swedish is complete, and the
+  six other languages in the list fall back to English until they are translated. Species, passive,
+  element and work names stay in the game's English on purpose, so you can still find them in
+  Palworld's own menus.
+
+- **The red warning box at the top of the recommendations page is gone.** The page now opens
+  straight into **keep these**, followed by the condensing queue. What condensing costs — the pals
+  you feed are gone from the box for good, and their passives and IVs can only be inherited — is
+  still spelled out under *What condensing does* above the queue.
+- **Manual mode: pick the two parents yourself.** The planner otherwise chooses carriers from your
+  box and minimises how many you need. Manual mode answers the other question — "I *want* to use
+  these two, what does it cost?" Take two from your box, or build a parent by hand (species plus the
+  passives you intend it to have) to price a pal you are *planning* to catch. You get the pool, the
+  odds per egg, the eggs and the time. It also says plainly when the pair **cannot** work: no child
+  in the breeding table, both the same gender, or a wanted passive neither parent carries — passives
+  can only be inherited, and planning on the game's random roll is planning on luck.
+  A finding worth knowing: unlike the normal plan, breaking a manual pair into stages usually does
+  **not** help. Every child comes out of the same pool, so staging pays the dirty pool twice. It only
+  wins once the pool gets large — with four wanted in a pool of six, direct wins (~150 eggs vs ~160);
+  in a pool of ten, staging wins by a mile (~460 vs ~2100).
+- **A home for your implants.** A panel at the top of the breeding page lists what your world holds,
+  and each row adds that passive to your goals in one click. Previously implants were only mentioned
+  when one of your wanted passives happened to be implantable — so the question "what implants do I
+  have?" had no answer anywhere in the app.
+- **A checkbox that makes the implant advice real.** "Use the implants" lifts the passives you hold
+  an implant for out of what the plan *breeds*, so the odds are the ones for the smaller pool. The
+  goal card still shows all four — the target is unchanged, only the road there is shorter. Before
+  this, the advice said "the plan shrinks to three" while the plan below kept breeding four.
+
+- **Fixed: the installed app could shut itself down a few seconds after starting.** It opens its
+  window in a browser profile of its own, but "own profile" turned out not to mean "empty profile":
+  on a machine with a work account the browser signs itself in there and syncs down your extensions.
+  An ad blocker that has just landed in it opens a "thank you for using…" window on top of the app —
+  and the launcher, which watched the window title to know when you had closed the app, was handed
+  the title of *that* window instead and concluded you had quit. It now looks at every window rather
+  than the topmost one, and no extension loads in the app's profile any more.
+- **The planner reads your implant stash.** Reading the save now also picks up the Pal Surgery Table
+  implants lying in your world, and the passive picker tells you — right where you choose — which of
+  your wanted passives you can simply install instead of breeding, and what it saves. An implant goes
+  on the *finished* pal, after breeding, so the passive never enters the inheritance pool: two
+  implants took a four-passive plan from 10 % to 60 % per egg on the final step, **six times fewer
+  eggs**. Passives you hold an implant for are marked in the grid, are never hidden behind "show
+  all" (you need no carrier for them), and every hover box says how many you hold.
+- **Correction: the app no longer claims a passive *can't* be implanted.** The first version went by
+  a published implant list that stops at legendary rank — and a real save had implants for Swift and
+  Mastery of Fasting, both above it. The list is one family of items, not the whole set, so the app
+  now states what you own (read from the save), hints at what is known to exist, and never denies.
+- Your implant stash is scrubbed from the installer along with your box, and the release refuses to
+  publish a package that carries it.
+
 ## 2.1.0 – 2026-08-09
 
 - **The planner now tells you what you can skip breeding.** 26 passives exist as implants for the

@@ -1,9 +1,19 @@
+"use client";
+
 /* Dumb: Base Info-panel – 1:1-replika av spelets layout.
-   PalDetailBody används både i modal och i Boxens högerpanel. */
+   PalDetailBody används både i modal och i Boxens högerpanel.
+
+   Etiketterna i själva replikan (LEVEL, NEXT, SAN, Attack, Current Task, Food,
+   Paldeck …) står kvar på spelets engelska och är alltså inte nycklar: panelen
+   är en avbild av spelets ruta, precis som art- och passivnamnen. Det
+   PalAssistent säger med egen röst under den – IV-raden, spara-flaggan,
+   skälen – är översatt. */
 /* eslint-disable @next/next/no-img-element */
 import { ELEMENT_ICON, ELEMENT_META, WORK_META, WORK_TYPES } from "@/lib/constants";
 import type { DisplayStats } from "@/lib/scoring";
 import type { AppData, ScoredPal, Species } from "@/lib/types";
+import { useT } from "@/i18n/LocaleContext";
+import { formatNumber } from "@/i18n";
 import { PassiveRow } from "./PassiveRow";
 import { GameIcon, MaskIcon } from "./GameIcon";
 import { StatIcon, WorkIcon } from "./WorkIcon";
@@ -35,6 +45,8 @@ function SoulIcon() {
 }
 
 export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps) {
+  const t = useT();
+  const num = (n: number) => formatNumber(n, t.locale);
   const el = species.elements[0] ?? "Normal";
   const elMeta = ELEMENT_META[el];
   // NEXT-exp: kvar till nästa level
@@ -65,7 +77,7 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
           </div>
           <div className="pd-nextrow">
             <span className="nk">NEXT</span>
-            <span className="nv">{hasNext ? nextRemain.toLocaleString("sv-SE") : "MAX"}</span>
+            <span className="nv">{hasNext ? num(nextRemain) : "MAX"}</span>
             <span className="pd-elbadge" title={el} style={{ borderColor: `${elMeta?.color}88` }}>
               <GameIcon name={ELEMENT_ICON[el] ?? "neutral"} size={17} />
             </span>
@@ -101,7 +113,7 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
             <span className="bic hp"><MaskIcon name="heart" color="#35d07f" width={15} height={14} /></span>
             <div className="btrack green">
               <i style={{ width: "100%" }} />
-              <span className="intext">{stats.hp.toLocaleString("sv-SE")} <em>/{stats.hp.toLocaleString("sv-SE")}</em></span>
+              <span className="intext">{num(stats.hp)} <em>/{num(stats.hp)}</em></span>
             </div>
           </div>
           <div className="pd-brow">
@@ -118,8 +130,8 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
 
           {/* stats-boxen */}
           <div className="pd-statbox">
-            <div className="pd-statrow"><span className="icbox"><StatIcon kind="atk" /></span> Attack <b>{stats.atk.toLocaleString("sv-SE")}<Delta d={stats.dir.atk} /></b></div>
-            <div className="pd-statrow"><span className="icbox"><StatIcon kind="def" /></span> Defense <b>{stats.def.toLocaleString("sv-SE")}<Delta d={stats.dir.def} /></b></div>
+            <div className="pd-statrow"><span className="icbox"><StatIcon kind="atk" /></span> Attack <b>{num(stats.atk)}<Delta d={stats.dir.atk} /></b></div>
+            <div className="pd-statrow"><span className="icbox"><StatIcon kind="def" /></span> Defense <b>{num(stats.def)}<Delta d={stats.dir.def} /></b></div>
             <div className="pd-statrow"><span className="icbox"><StatIcon kind="work" /></span> Work Speed <b>{stats.work}<Delta d={stats.dir.work} /></b></div>
           </div>
         </div>
@@ -128,11 +140,12 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
       {/* ===== arbetsikoner + Current Task + Food ===== */}
       <div className="pd-workstrip">
         <div className="wicons">
-          {WORK_TYPES.map((t) => {
-            const lvl = species.ws[t] ?? 0;
+          {WORK_TYPES.map((w) => {
+            const lvl = species.ws[w] ?? 0;
             return (
-              <span key={t} className={`wi ${lvl ? "on" : ""}`} title={`${WORK_META[t]!.label}${lvl ? ` Lv ${lvl}` : ""}`}>
-                <WorkIcon type={t} active={lvl > 0} size={19} />
+              <span key={w} className={`wi ${lvl ? "on" : ""}`}
+                title={lvl ? t("pal.workLv", { name: WORK_META[w]!.label, n: lvl }) : WORK_META[w]!.label}>
+                <WorkIcon type={w} active={lvl > 0} size={19} />
                 {lvl > 0 && <b>{lvl}</b>}
               </span>
             );
@@ -168,7 +181,7 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
             <PassiveRow key={id} id={id} name={data.passives[id]?.n ?? id} tier={data.passives[id]?.r ?? 0} />
           ))
         ) : (
-          <div className="meta">Inga passiver</div>
+          <div className="meta">{t("pal.noPassives")}</div>
         )}
       </div>
 
@@ -177,10 +190,12 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
         <span className={`pd-iv ${pal.iv[0] >= 100 ? "max" : ""}`}>IV HP <b>{pal.iv[0]}</b></span>
         <span className={`pd-iv ${pal.iv[1] >= 100 ? "max" : ""}`}>IV ATK <b>{pal.iv[1]}</b></span>
         <span className={`pd-iv ${pal.iv[2] >= 100 ? "max" : ""}`}>IV DEF <b>{pal.iv[2]}</b></span>
-        <span className="pd-iv">Poäng <b>{pal.score}</b></span>
-        <span className={`pd-iv ${pal.keep ? "max" : ""}`}><b>{pal.keep ? "SPARA" : "KONDENSERA"}</b></span>
+        <span className="pd-iv">{t("pal.score")} <b>{pal.score}</b></span>
+        <span className={`pd-iv ${pal.keep ? "max" : ""}`}><b>{pal.keep ? t("pal.keep") : t("pal.condense")}</b></span>
       </div>
-      {pal.reasons.length > 0 && <div className="pd-reasons">{pal.reasons.join(" · ")}</div>}
+      {pal.reasons.length > 0 && (
+        <div className="pd-reasons">{pal.reasons.map(t.msg).join(" · ")}</div>
+      )}
     </>
   );
 }
@@ -190,10 +205,11 @@ export interface PalDetailProps extends PalDetailBodyProps {
 }
 
 export function PalDetail({ onClose, ...body }: PalDetailProps) {
+  const t = useT();
   return (
     <div className="pd-overlay" onClick={onClose} role="dialog" aria-modal>
       <div className="pd gpanel" onClick={(e) => e.stopPropagation()}>
-        <button className="pd-close" onClick={onClose} aria-label="Stäng">✕</button>
+        <button className="pd-close" onClick={onClose} aria-label={t("pal.close")}>✕</button>
         <PalDetailBody {...body} />
       </div>
     </div>
