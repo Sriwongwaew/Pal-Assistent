@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 2.2.1 – 2026-08-09
+
 - **"Check for updates" has moved to the left rail**, next to the theme and language controls,
   where the rest of the things you *do to* the app live — rather than at the bottom of the page
   among the things you read *about* it. The answer sits under the button, and the rail no longer
