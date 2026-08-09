@@ -551,9 +551,17 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    släktet, inklusive en installer mitt i installationen. Symptomet är precis det man inte gissar
    på: *appen stängs, ingenting installeras, och nästa start är samma version.* Så här hänger det
    ihop nu, och ingen del av kedjan är valfri:
-   - Rutten laddar ner, kontrollsummerar och lägger installern + `uppdatera.cmd` i
-     `%LOCALAPPDATA%\PalAssistent\update\`. **Skriptet skrivs sist** — det är dess existens
-     launchern går på. Sedan svarar den och avslutar sig efter 1,5 s. Den startar ingenting.
+   - Rutten laddar ner, kontrollsummerar och lägger installern + `uppdatera.cmd` i mappen
+     **launchern pekat ut** med `PA_UPDATE_DIR` (`%LOCALAPPDATA%\PalAssistent\update\`).
+     **Skriptet skrivs sist** — det är dess existens launchern går på. Sedan svarar den och
+     avslutar sig efter 1,5 s. Den startar ingenting.
+     Rutten räknar med flit *inte* ut sökvägen själv, och det är inte bara för att slippa två
+     ställen som kan glida isär: `next build` spårar filer statiskt inför standalone-bygget, och
+     en sökväg som går att räkna ut vid byggtid försöker den **läsa in på byggmaskinen**. En
+     `process.env.LOCALAPPDATA ?? homedir()` i rutten fällde hela paketbygget på CI med
+     `EPERM ... scandir 'C:\Users\runneradmin\AppData\Local\Application Data'` — grönt lokalt,
+     rött bara i utgåvan, och felet såg ut att handla om Next. Bygg inte sökvägar ur miljön i
+     kod som Next spårar.
    - Launchern kör `RunPendingUpdate` allra sist, när servern är död, fönstret stängt och
      job-handtaget släppt. Launchern är själv inte medlem i jobbet, så det den startar går fritt.
      Den kör bara ett skript som är **nyare än launcherns egen starttid**; ett äldre är en rest

@@ -224,6 +224,13 @@ internal static class Program
         // Talar om för uppdateringsrutten att det här är den installerade appen
         // och inte någons arbetskopia. Utan den vägrar den installera.
         info.EnvironmentVariables["PA_PACKAGED"] = "1";
+        // ...och VAR den ska lägga uppdateringen. Servern räknar med flit inte ut
+        // sökvägen själv: den som ska KÖRA skriptet är den som får bestämma var
+        // det ligger, så de två aldrig kan råka peka olika. Att en server annars
+        // hade byggt sökvägen ur %LOCALAPPDATA% kostade dessutom ett paketbygge –
+        // Next spårar filer statiskt inför standalone-bygget, och en sökväg som
+        // går att räkna ut vid bygget försöker den läsa in på byggmaskinen.
+        info.EnvironmentVariables["PA_UPDATE_DIR"] = UpdateDir;
 
         var process = new Process { StartInfo = info };
         DataReceivedEventHandler collect = (s, e) =>

@@ -128,8 +128,11 @@ export function isTrustedAssetUrl(url: string, repo: string): boolean {
   return parsed.pathname.startsWith(`/${repo}/releases/download/`);
 }
 
-/** Filnamnen uppdateringen lägger ut. Måste stämma med `Launcher.cs`. */
-export const UPDATE_DIR_NAME = "update";
+/**
+ * Filnamnen uppdateringen lägger ut. Måste stämma med `Launcher.cs`, som letar
+ * efter skriptet på namnet. *Mappen* de ligger i står bara på ett ställe –
+ * launchern skickar den till servern som `PA_UPDATE_DIR`.
+ */
 export const UPDATE_SCRIPT_NAME = "uppdatera.cmd";
 export const UPDATE_INSTALLER_NAME = "PalAssistent-Setup.exe";
 

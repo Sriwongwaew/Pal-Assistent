@@ -32,15 +32,9 @@
 import { serverT } from "@/i18n/server";
 import { createHash } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import {
-  updateScript,
-  UPDATE_DIR_NAME,
-  UPDATE_INSTALLER_NAME,
-  UPDATE_SCRIPT_NAME,
-} from "@/lib/update";
+import { updateScript, UPDATE_INSTALLER_NAME, UPDATE_SCRIPT_NAME } from "@/lib/update";
 import {
   ASSET_NAME,
   isTrustedAssetUrl,
@@ -53,6 +47,18 @@ export const dynamic = "force-dynamic";
 
 /** Sätts av launchern. Saknas den kör vi från källkoden. */
 const PACKAGED = process.env.PA_PACKAGED === "1";
+/**
+ * Mappen launchern hämtar uppdateringen ur, utpekad av launchern själv.
+ *
+ * Rutten räknar med flit **inte** ut sökvägen: den som ska köra skriptet är den
+ * som får bestämma var det ligger, annars finns samma sökväg på två ställen och
+ * kan glida isär tyst. Att i stället bygga den ur `%LOCALAPPDATA%` kostade ett
+ * paketbygge – Next spårar filer statiskt inför standalone-bygget, och en
+ * sökväg som går att räkna ut vid byggtid försöker den läsa in på
+ * *byggmaskinen*: `EPERM ... scandir 'C:\\Users\\runneradmin\\AppData\\Local\\
+ * Application Data'`, mitt i en release. Lägg inte tillbaka en uträkning här.
+ */
+const UPDATE_DIR = process.env.PA_UPDATE_DIR ?? "";
 /** 60 MB över en dålig förbindelse får ta sin tid, men inte hur lång som helst. */
 const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -60,19 +66,6 @@ function fail(error: string, status = 500) {
   return NextResponse.json({ ok: false, error }, { status });
 }
 
-/**
- * Mappen launchern hämtar uppdateringen ur. Samma sökväg finns i `Launcher.cs`
- * (`StateDir\update`) – ändras den ena måste den andra med, annars händer
- * ingenting alls när användaren trycker på knappen.
- *
- * Den ligger hos användaren och inte i programmappen, av samma skäl som portfilen
- * och webbläsarprofilen: installern skriver över programmappen medan det här
- * ligger kvar och används.
- */
-function updateDir(): string {
-  const local = process.env.LOCALAPPDATA ?? path.join(homedir(), "AppData", "Local");
-  return path.join(local, "PalAssistent", UPDATE_DIR_NAME);
-}
 
 /** Plockar ut kontrollsumman för en fil ur ett sha256sum-formaterat dokument. */
 function sumFor(document: string, filename: string): string | null {
@@ -99,7 +92,9 @@ async function download(url: string): Promise<Buffer> {
 
 export async function POST() {
   const t = await serverT();
-  if (!PACKAGED) {
+  // Båda kommer från launchern, så de saknas i samma lägen: ett bygge från
+  // källkoden, eller en server någon startat för hand.
+  if (!PACKAGED || !UPDATE_DIR) {
     return fail(
       t("api.packagedOnly"),
       400,
@@ -132,7 +127,7 @@ export async function POST() {
 
   // --- hämta och kontrollera -------------------------------------------------
 
-  const work = updateDir();
+  const work = UPDATE_DIR;
 
   try {
     const [binary, sums] = await Promise.all([
