@@ -163,19 +163,41 @@ a { color: inherit; }
    version. Klassnamnen är egna (updbar/updtxt/updlink/updgo) just för att inget
    `kind`- eller variantvärde ska kunna råka matcha dem – se Design rules 5. */
 .updbar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   margin-bottom: 14px; padding: 10px 14px;
   border-radius: var(--r2);
   background: var(--acc-soft);
   border: 1px solid color-mix(in srgb, var(--acc) 32%, transparent);
   font-size: 13px; color: var(--ink2);
 }
+.updhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .updbar .updtxt { flex: 1; min-width: 220px; }
 .updbar .updtxt b { color: var(--ink); }
-.updbar .updlink { color: var(--acc); font-weight: 800; text-decoration: none; font-size: 12.5px; }
+/* Både länken till GitHub och "Vad är nytt?"-knappen – samma utseende, för de
+   gör samma sak för användaren. Knappen måste nollställas: den ärver annars
+   button.ghost-ytan och blir en knapp till i raden. */
+.updbar .updlink {
+  color: var(--acc); font: 800 12.5px inherit; text-decoration: none;
+  background: none; border: none; padding: 0; cursor: pointer; flex: none;
+}
 .updbar .updlink:hover { text-decoration: underline; }
 .updbar button.ghost { background: var(--panel); flex: none; }
 .updbar button.ghost.updgo { border-color: var(--acc); color: var(--acc); }
+
+/* Utgåvans noteringar, hämtade ur CHANGELOG.md. Håll dem läsbara men lugna –
+   de ska kunna fällas ut utan att sidan känns kapad. */
+.updnotes {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--acc) 22%, transparent);
+  display: flex; flex-direction: column; gap: 5px; max-width: 780px;
+}
+.updnotes b { color: var(--ink); font-size: 12.5px; margin-top: 4px; }
+.updnotes p { margin: 0; }
+.updnote { display: flex; gap: 8px; align-items: baseline; line-height: 1.5; }
+.updnote .dot {
+  flex: none; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--acc); transform: translateY(-2px);
+}
+.updnotes .updlink { align-self: flex-start; margin-top: 6px; }
 
 /* ---------- topprad i innehållet ---------- */
 .headrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }

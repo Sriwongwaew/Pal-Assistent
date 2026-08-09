@@ -5,6 +5,8 @@ out/
 dist/
 packaging/build/
 _to_delete/
+__pycache__/
+*.pyc
 
 # Arbetskopian av datan – DIN box. Grunddatan ligger i data/pal-data.base.json
 # och kopieras hit av scripts/ensure-data.mjs. Committa aldrig den här filen:
