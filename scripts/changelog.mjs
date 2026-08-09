@@ -1,13 +1,18 @@
 /**
  * CHANGELOG.md som enda källa för utgåvans text.
  *
+ *   node scripts/changelog.mjs check          finns det något att släppa alls?
  *   node scripts/changelog.mjs stamp          döper om "Ej släppt" till versionen
  *                                             i package.json och dagens datum
  *   node scripts/changelog.mjs notes 2.1.0    skriver ut just den versionens avsnitt
  *
- * `stamp` körs av npm som `version`-skript, alltså efter att package.json fått sitt
- * nya nummer men innan commiten görs – ändringen hamnar därmed i samma commit som
- * versionshöjningen. `notes` körs av utgåve-workflowen och blir utgåvans text.
+ * `check` körs som npm:s `preversion`, `stamp` som `version`. Uppdelningen finns av
+ * en konkret anledning: npm höjer package.json INNAN `version` körs och backar inte
+ * när skriptet failar. Låg hela kontrollen i `stamp` blev resultatet ett höjt men
+ * ocommittat nummer, och nästa försök hoppade över en version. `preversion` kör
+ * före höjningen, så ett stopp där lämnar allting orört.
+ *
+ * `notes` körs av utgåve-workflowen och blir utgåvans text.
  *
  * Båda **vägrar** när avsnittet är tomt. Det är hela poängen: en utgåva utan
  * noteringar är en utgåva ingen förstår, och det enda som säkert får någon att
@@ -80,7 +85,30 @@ function notes(wanted) {
   process.stdout.write(hit.body + "\n");
 }
 
-// ------------------------------------------------------------------- stamp
+// ------------------------------------------------------------- check / stamp
+
+/** Hämtar "Ej släppt"-avsnittet, eller avbryter med ett begripligt besked. */
+function unreleasedOrDie(found) {
+  const unreleased = found.find((s) => s.title === UNRELEASED);
+  if (!unreleased) {
+    console.error(`CHANGELOG.md saknar rubriken "## ${UNRELEASED}".`);
+    process.exit(1);
+  }
+  if (!unreleased.body) {
+    console.error(
+      `Inga rader under "## ${UNRELEASED}" i CHANGELOG.md.\n` +
+        "Skriv vad som ändrats för den som använder appen, så går utgåvan igenom.",
+    );
+    process.exit(1);
+  }
+  return unreleased;
+}
+
+function check() {
+  const unreleased = unreleasedOrDie(sections(read()));
+  const rows = unreleased.body.split("\n").filter((line) => line.trim()).length;
+  console.log(`"${UNRELEASED}" har ${rows} rader – redo att släppa.`);
+}
 
 function stamp() {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -96,18 +124,7 @@ function stamp() {
     process.exit(1);
   }
 
-  const unreleased = found.find((s) => s.title === UNRELEASED);
-  if (!unreleased) {
-    console.error(`CHANGELOG.md saknar rubriken "## ${UNRELEASED}".`);
-    process.exit(1);
-  }
-  if (!unreleased.body) {
-    console.error(
-      `Inga rader under "## ${UNRELEASED}" i CHANGELOG.md.\n` +
-        "Skriv vad som ändrats för den som använder appen, så går utgåvan igenom.",
-    );
-    process.exit(1);
-  }
+  const unreleased = unreleasedOrDie(found);
 
   // Lokalt datum, inte UTC: en utgåva kvart över midnatt ska inte dateras igår.
   const now = new Date();
@@ -127,9 +144,10 @@ function stamp() {
 // --------------------------------------------------------------------------
 
 const [command, argument] = process.argv.slice(2);
-if (command === "stamp") stamp();
+if (command === "check") check();
+else if (command === "stamp") stamp();
 else if (command === "notes") notes(argument);
 else {
-  console.error("Användning: changelog.mjs stamp | notes <version>");
+  console.error("Användning: changelog.mjs check | stamp | notes <version>");
   process.exit(1);
 }
