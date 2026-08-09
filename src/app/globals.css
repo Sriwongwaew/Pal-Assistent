@@ -5,7 +5,7 @@
    Bakgrunden ritas i canvas (BgTexture), inte som gradient.
 
    Tre paletter väljs med data-pal på <html>: basalt (standard),
-   nattskog, djupvatten. Ljust/mörkt styrs av data-theme med
+   nightwood, deepwater. Ljust/mörkt styrs av data-theme med
    systeminställningen som fallback. Ordningen nedan är viktig:
      1. :root                          = ljusa tokens
      2. @media (prefers-color-scheme)  = system-mörkt, men bara om
@@ -27,14 +27,14 @@
   --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
   --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
 }
-:root[data-pal="nattskog"] {
+:root[data-pal="nightwood"] {
   --bg: #e4e9e4; --panel: rgba(255, 255, 255, .92); --panel2: rgba(255, 255, 255, .62);
   --inset: rgba(20, 60, 44, .05); --strip: rgba(255, 255, 255, .7);
   --line: rgba(20, 60, 44, .13); --line2: rgba(20, 60, 44, .24);
   --ink: #12211a; --ink2: #3d5a4c; --muted: #6f8779;
   --acc: #1f8a45; --acc-soft: rgba(31, 138, 69, .14);
 }
-:root[data-pal="djupvatten"] {
+:root[data-pal="deepwater"] {
   --bg: #e1eaee; --panel: rgba(255, 255, 255, .93); --panel2: rgba(255, 255, 255, .62);
   --inset: rgba(10, 60, 80, .05); --strip: rgba(255, 255, 255, .7);
   --line: rgba(10, 60, 80, .12); --line2: rgba(10, 60, 80, .22);
@@ -53,14 +53,14 @@
     --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
     --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
   }
-  :root:not([data-theme="light"])[data-pal="nattskog"] {
+  :root:not([data-theme="light"])[data-pal="nightwood"] {
     --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
     --inset: rgba(0, 0, 0, .28); --strip: rgba(32, 54, 45, .6);
     --line: rgba(160, 220, 195, .14); --line2: rgba(160, 220, 195, .26);
     --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
     --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
   }
-  :root:not([data-theme="light"])[data-pal="djupvatten"] {
+  :root:not([data-theme="light"])[data-pal="deepwater"] {
     --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
     --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
     --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
@@ -79,14 +79,14 @@
   --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
   --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
 }
-:root[data-theme="dark"][data-pal="nattskog"] {
+:root[data-theme="dark"][data-pal="nightwood"] {
   --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
   --inset: rgba(0, 0, 0, .28); --strip: rgba(32, 54, 45, .6);
   --line: rgba(160, 220, 195, .14); --line2: rgba(160, 220, 195, .26);
   --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
   --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
 }
-:root[data-theme="dark"][data-pal="djupvatten"] {
+:root[data-theme="dark"][data-pal="deepwater"] {
   --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
   --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
   --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
@@ -297,6 +297,20 @@ a { color: inherit; }
   padding: 0; flex: none;
 }
 .tctl .swatch[aria-pressed="true"] { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+/* Language. A native select so the list is operable in any language and by
+   keyboard; the surface is themed so it does not read as a browser widget
+   dropped into the rail. Full width because the rail is narrow and the
+   endonyms ("Português (BR)") are longer than the theme labels. */
+.tctl .lang {
+  width: 100%; appearance: none; cursor: pointer;
+  background: var(--panel2); color: var(--ink); border: 1px solid var(--line2);
+  border-radius: 999px; padding: 7px 12px; font: 800 11px/1 inherit;
+}
+.tctl .lang:hover { border-color: var(--acc); }
+.tctl .lang:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+/* The popup list is drawn by the OS, which does not inherit --panel: state
+   the colours explicitly or dark mode gets white-on-white options. */
+.tctl .lang option { background: var(--panel); color: var(--ink); }
 
 /* ============================================================
    YTOR: paneler och sektioner

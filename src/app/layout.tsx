@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import "@fontsource/m-plus-rounded-1c/400.css";
 import "@fontsource/m-plus-rounded-1c/500.css";
@@ -17,52 +18,70 @@ import { HeaderMeta } from "@/components/ui/HeaderMeta";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { PassiveTipHost } from "@/components/ui/PassiveTip";
 import { Rail } from "@/components/ui/Rail";
+import { htmlLang, LOCALE_KEY, normalizeLocale, type Locale } from "@/i18n/config";
+import { LocaleProvider } from "@/i18n/LocaleContext";
+import { translate } from "@/i18n";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "PalAssistent",
-  description: "Palworld-assistent byggd från Level.sav – box, breeding-planerare och rekommendationer",
-};
+/* The language is read from a cookie rather than guessed on the client, so the
+   very first paint is already in the right language. See LocaleContext. */
+async function activeLocale(): Promise<Locale> {
+  const store = await cookies();
+  return normalizeLocale(store.get(LOCALE_KEY)?.value);
+}
 
-/* Sätter tema och palett på <html> INNAN första målningen, annars blinkar
-   sidan i fel läge en bildruta. Nycklarna är samma som i ThemeControls. */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await activeLocale();
+  return {
+    title: translate(locale, "meta.title"),
+    description: translate(locale, "meta.description"),
+  };
+}
+
+/* Sets theme and palette on <html> BEFORE the first paint, otherwise the page
+   flashes in the wrong mode for one frame. The keys match ThemeControls. */
 const themeInit = `(function(){try{var d=document.documentElement,
 t=localStorage.getItem("pa-theme"),p=localStorage.getItem("pa-pal");
 if(t==="light"||t==="dark")d.dataset.theme=t;
-d.dataset.pal=(p==="nattskog"||p==="djupvatten")?p:"basalt";
+d.dataset.pal=(p==="nightwood"||p==="deepwater")?p:"basalt";
 }catch(e){document.documentElement.dataset.pal="basalt";}})();`;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await activeLocale();
+
   return (
-    <html lang="sv" suppressHydrationWarning>
+    <html lang={htmlLang(locale)} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body>
-        <BgTexture />
-        <PalDataProvider>
-          <SelectedPalProvider>
-            <div className="shell">
-              <Rail />
-              <div className="content">
-                <div className="wrap">
-                  <UpdateBanner />
-                  <div className="headrow">
-                    <PageTitle />
-                    <HeaderMeta />
-                    <SaveImport />
+        <LocaleProvider initial={locale}>
+          <BgTexture />
+          <PalDataProvider>
+            <SelectedPalProvider>
+              <div className="shell">
+                <Rail />
+                <div className="content">
+                  <div className="wrap">
+                    <UpdateBanner />
+                    <div className="headrow">
+                      <PageTitle />
+                      <HeaderMeta />
+                      <SaveImport />
+                    </div>
+                    <main>{children}</main>
+                    <FooterLegend />
                   </div>
-                  <main>{children}</main>
-                  <FooterLegend />
                 </div>
               </div>
-            </div>
-            <PalDetailHost />
-            {/* En värd för hela sidan: varje banner med data-passive får hover.
-                Ligger utanför .shell så rutan inte klipps av något som scrollar. */}
-            <PassiveTipHost />
-          </SelectedPalProvider>
-        </PalDataProvider>
+              <PalDetailHost />
+              {/* One host for the whole page: every banner with data-passive
+                  gets a hover card. Sits outside .shell so the card is not
+                  clipped by anything that scrolls. */}
+              <PassiveTipHost />
+            </SelectedPalProvider>
+          </PalDataProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

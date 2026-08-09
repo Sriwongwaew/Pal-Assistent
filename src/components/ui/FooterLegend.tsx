@@ -1,15 +1,22 @@
+"use client";
+
+import { useT } from "@/i18n/LocaleContext";
+import { useRichT } from "@/i18n/rich";
 import { PassiveRow } from "./PassiveRow";
 
 export function FooterLegend() {
+  const t = useT();
+  const rich = useRichT();
+
   return (
     <footer>
-      Data läst ur Level.sav · breeding enligt Palworld 1.0 · Ärvnings-odds är uppskattningar (spelets tvåslagsmodell; vikterna är community-testade).
-      Passiver visas som i spelet – <b>håll muspekaren över en banner</b> för att se vad den gör:
+      {t("footer.source")}{" "}
+      {rich("footer.hover", { action: <b>{t("footer.hoverAction")}</b> })}
       <div className="plegend">
-        <PassiveRow name="Tier 1–3 (fler pilar = högre)" tier={3} />
-        <PassiveRow name="Legendarisk – animerad (Legend, Lucky…)" tier={4} />
-        <PassiveRow name="World Tree/rainbow-tier" tier={5} />
-        <PassiveRow name="Negativ (Clumsy, Slacker…)" tier={-1} />
+        <PassiveRow name={t("footer.tier13")} tier={3} />
+        <PassiveRow name={t("footer.tier4")} tier={4} />
+        <PassiveRow name={t("footer.tier5")} tier={5} />
+        <PassiveRow name={t("footer.tierNeg")} tier={-1} />
       </div>
     </footer>
   );

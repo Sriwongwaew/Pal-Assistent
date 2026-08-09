@@ -1,19 +1,21 @@
 "use client";
 
 import { usePalData } from "@/context/PalDataContext";
+import { useT } from "@/i18n/LocaleContext";
 
 export function HeaderMeta() {
   const { data, pals, ownedSpecies } = usePalData();
+  const t = useT();
 
-  // Före första inläsningen är player och exported tomma strängar. Skrivs de ut
-  // rakt av blir raden "v2 · s värld · 0 pals · 0 arter ·" – ett genitiv-s utan
-  // namn och ett hängande skiljetecken. Bygg raden av de delar som finns i
-  // stället, så håller den både tom och fylld box.
+  // Before the first import, player and exported are empty strings. Printed
+  // raw the row reads "v2 · 's world · 0 pals · 0 species ·" — a possessive
+  // without a name and a dangling separator. Build the row from the parts that
+  // exist instead, so it holds for both an empty and a full box.
   const parts = [
     "v2",
-    data.player ? `${data.player}s värld` : null,
-    `${pals.length} pals`,
-    `${ownedSpecies.size} arter`,
+    data.player ? t("header.world", { name: data.player }) : null,
+    t.plural("header.pals", pals.length),
+    t.plural("header.species", ownedSpecies.size),
     data.exported || null,
   ].filter((part): part is string => Boolean(part));
 

@@ -2,11 +2,11 @@
 
 /* Dumb-ish: Habitats bakgrundsstruktur, ritad i canvas.
    Varje palett har sin egen struktur – stenkorn (basalt), höjdkurvor
-   (nattskog) och vattenstrata (djupvatten). Mönstret är deterministiskt
+   (nightwood) och vattenstrata (deepwater). Mönstret är deterministiskt
    (egen LCG, ingen Math.random) så det inte flimrar mellan omritningar. */
 import { useEffect, useRef } from "react";
 
-type Pal = "basalt" | "nattskog" | "djupvatten";
+type Pal = "basalt" | "nightwood" | "deepwater";
 
 /** Läser av vilket läge <html> faktiskt hamnat i just nu. */
 function readState(): { pal: Pal; dark: boolean } {
@@ -33,7 +33,7 @@ function draw(cv: HTMLCanvasElement) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
 
-  if (pal === "nattskog") {
+  if (pal === "nightwood") {
     g.strokeStyle = dark ? "rgba(140,220,190,.085)" : "rgba(40,90,70,.085)";
     g.lineWidth = 1.2;
     const cx = w * 0.22, cy = h * 0.62, span = Math.max(w, h) * 1.5;
@@ -53,7 +53,7 @@ function draw(cv: HTMLCanvasElement) {
     return;
   }
 
-  if (pal === "djupvatten") {
+  if (pal === "deepwater") {
     g.strokeStyle = dark ? "rgba(120,200,240,.10)" : "rgba(20,80,120,.09)";
     g.lineWidth = 1.1;
     for (let y = -40; y < h + 40; y += 21) {

@@ -149,7 +149,7 @@ jobs:
             }
             if (-not $up) { throw "Servern svarade aldrig." }
 
-            foreach ($p in '/','/box','/breeding','/bast-for','/rekommendationer') {
+            foreach ($p in '/','/box','/breeding','/best-for','/recommendations') {
               $r = Invoke-WebRequest "$base$p" -UseBasicParsing -TimeoutSec 30
               if ($r.StatusCode -ne 200) { throw "$p svarade $($r.StatusCode)." }
             }

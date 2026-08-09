@@ -1,51 +1,57 @@
 "use client";
 
-/* Dumb: Habitats vertikala navigation. Aktiv sida markeras med
-   accentfärgad punkt och mjuk platta – inte med spelets cyan-understreck. */
+/* Dumb: Habitat's vertical navigation. The active page is marked with an
+   accent-coloured dot and a soft plate — not with the game's cyan underline. */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
+import { useT } from "@/i18n/LocaleContext";
+import type { MessageKey } from "@/i18n";
 import { ThemeControls } from "./ThemeControls";
 
-/** Donationslänken, inbakad vid bygget (PA_DONATE). Tom = visas inte. */
+/** The donation link, baked in at build time (PA_DONATE). Empty = not shown. */
 const DONATE = process.env.PA_DONATE ?? "";
 
-const TABS: [string, string][] = [
-  ["/", "Översikt"],
-  ["/box", "Boxen"],
-  ["/breeding", "Breeding"],
-  ["/rekommendationer", "Rekommendationer"],
-  ["/bast-for", "Bäst för…"],
+const TABS: [string, MessageKey][] = [
+  ["/", "nav.overview"],
+  ["/box", "nav.box"],
+  ["/breeding", "nav.breeding"],
+  ["/recommendations", "nav.recommendations"],
+  ["/best-for", "nav.bestFor"],
 ];
 
 export function Rail() {
   const pathname = usePathname();
   const { data, pals, ownedSpecies } = usePalData();
+  const t = useT();
 
   return (
-    <nav className="rail" aria-label="Huvudnavigation">
+    <nav className="rail" aria-label={t("nav.aria")}>
       <div className="brand">Pal<em>A</em></div>
-      {TABS.map(([href, label]) => (
+      {TABS.map(([href, key]) => (
         <Link key={href} href={href} className={`ri ${pathname === href ? "on" : ""}`}
           aria-current={pathname === href ? "page" : undefined}>
           <i className="d" />
-          {label}
+          {t(key)}
         </Link>
       ))}
       <div className="railfoot">
         <ThemeControls />
         <div className="who">
-          <span className="k">Spelare</span>
-          {/* Tom sträng före första inläsningen – då blir <b> en tom rad som ser
-              ut som ett renderingsfel i stället för ett tillstånd. */}
-          <b>{data.player || "Ingen save inläst"}</b>
-          <span className="sm">{pals.length} pals · {ownedSpecies.size} arter</span>
+          <span className="k">{t("nav.player")}</span>
+          {/* Empty string before the first import — an empty <b> reads as a
+              rendering fault rather than as a state. */}
+          <b>{data.player || t("nav.noSave")}</b>
+          <span className="sm">
+            {t.plural("header.pals", pals.length)} · {t.plural("header.species", ownedSpecies.size)}
+          </span>
         </div>
-        {/* Bakas in vid bygget. Tom i ett bygge från källkoden, och då finns
-            länken inte alls – ingen ska råka be om pengar i någon annans namn. */}
+        {/* Baked in at build time. Empty in a build from source, and then the
+            link does not exist at all — nobody should end up asking for money
+            in someone else's name. */}
         {DONATE && (
           <a className="donate" href={DONATE} target="_blank" rel="noreferrer">
-            ♥ Stöd projektet
+            {t("nav.donate")}
           </a>
         )}
       </div>
