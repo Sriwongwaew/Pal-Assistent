@@ -20,6 +20,16 @@ name: Paket
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: >-
+          Tagg eller commit att bygga. Tomt = det som utlöste körningen.
+          Den automatiska utgåvan skapar sin tagg först och pekar hit, annars
+          hade paketet byggts från commiten FÖRE versionshöjningen – och
+          installern fått fel versionsnummer i sig.
+        type: string
+        required: false
+        default: ""
   push:
     branches: [main]
     paths:
@@ -54,6 +64,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-node@v4
         with:

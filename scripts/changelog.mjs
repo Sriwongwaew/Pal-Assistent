@@ -2,6 +2,7 @@
  * CHANGELOG.md som enda källa för utgåvans text.
  *
  *   node scripts/changelog.mjs check          finns det något att släppa alls?
+ *   node scripts/changelog.mjs bump           patch | minor | major
  *   node scripts/changelog.mjs stamp          döper om "Ej släppt" till versionen
  *                                             i package.json och dagens datum
  *   node scripts/changelog.mjs notes 2.1.0    skriver ut just den versionens avsnitt
@@ -27,6 +28,18 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const file = join(root, "CHANGELOG.md");
 
 const UNRELEASED = "Ej släppt";
+
+/**
+ * Versionssteget skrivs som `<!-- bump: minor -->` under "Ej släppt".
+ *
+ * En kommentar och inte en rubrik, av två skäl: den syns inte i den renderade
+ * texten som användarna möter, och den går att lämna kvar utan att någon undrar
+ * vad den betyder. Utan markör blir det `patch`, vilket är rätt gissning för de
+ * flesta utgåvor och det ofarliga valet när någon glömt.
+ */
+const BUMP_MONSTER = /<!--\s*bump:\s*(patch|minor|major)\s*-->/i;
+/** Alla HTML-kommentarer plockas bort innan texten blir utgåvans beskrivning. */
+const KOMMENTARER = /<!--[\s\S]*?-->/g;
 
 /** Rubriknivå 2 inleder ett avsnitt. Allt fram till nästa sådan hör till det. */
 function sections(text) {
@@ -82,7 +95,15 @@ function notes(wanted) {
     process.exit(1);
   }
 
-  process.stdout.write(hit.body + "\n");
+  // Kommentarer är instruktioner till oss själva, inte till användarna. De ska
+  // aldrig hamna i utgåvans beskrivning eller i appens "Vad är nytt?"-ruta.
+  const text = hit.body.replace(KOMMENTARER, "").replace(/\n{3,}/g, "\n\n").trim();
+  if (!text) {
+    console.error(`Avsnittet för ${version} innehåller bara kommentarer.`);
+    process.exit(1);
+  }
+
+  process.stdout.write(text + "\n");
 }
 
 // ------------------------------------------------------------- check / stamp
@@ -104,10 +125,39 @@ function unreleasedOrDie(found) {
   return unreleased;
 }
 
+/** Är det värt en utgåva? Kommentarer räknas inte som innehåll. */
+function unreleasedText(found) {
+  return unreleasedOrDie(found).body.replace(KOMMENTARER, "").trim();
+}
+
 function check() {
-  const unreleased = unreleasedOrDie(sections(read()));
-  const rows = unreleased.body.split("\n").filter((line) => line.trim()).length;
+  const text = unreleasedText(sections(read()));
+  if (!text) {
+    console.error(
+      `"## ${UNRELEASED}" innehåller bara kommentarer – inget att släppa.`,
+    );
+    process.exit(1);
+  }
+  const rows = text.split("\n").filter((line) => line.trim()).length;
   console.log(`"${UNRELEASED}" har ${rows} rader – redo att släppa.`);
+}
+
+/**
+ * Vilket versionssteg utgåvan ska ta. Skrivs ut naket så ett skalskript kan
+ * använda svaret direkt; skriv aldrig något annat till stdout här.
+ *
+ * Svarar `none` när det inte finns något att släppa – då ska den automatiska
+ * utgåvan lägga sig, inte falla. En vecka utan ändringar är inte ett fel.
+ */
+function bump() {
+  const found = sections(read());
+  const unreleased = found.find((s) => s.title === UNRELEASED);
+  if (!unreleased || !unreleased.body.replace(KOMMENTARER, "").trim()) {
+    process.stdout.write("none\n");
+    return;
+  }
+  const match = unreleased.body.match(BUMP_MONSTER);
+  process.stdout.write((match?.[1]?.toLowerCase() ?? "patch") + "\n");
 }
 
 function stamp() {
@@ -136,7 +186,11 @@ function stamp() {
 
   const lines = text.split(/\r?\n/);
   lines[unreleased.index] = `## ${UNRELEASED}\n\n## ${version} – ${date}`;
-  writeFileSync(file, lines.join("\n"));
+
+  // Markören gällde den här utgåvan och ska inte bli kvar i det släppta
+  // avsnittet – nästa gång ska den skrivas på nytt eller utebli.
+  const utan = lines.filter((line) => !BUMP_MONSTER.test(line) || line.replace(BUMP_MONSTER, "").trim());
+  writeFileSync(file, utan.join("\n"));
 
   console.log(`CHANGELOG.md: "${UNRELEASED}" blev ${version} – ${date}.`);
 }
@@ -145,9 +199,10 @@ function stamp() {
 
 const [command, argument] = process.argv.slice(2);
 if (command === "check") check();
+else if (command === "bump") bump();
 else if (command === "stamp") stamp();
 else if (command === "notes") notes(argument);
 else {
-  console.error("Användning: changelog.mjs check | stamp | notes <version>");
+  console.error("Användning: changelog.mjs check | bump | stamp | notes <version>");
   process.exit(1);
 }

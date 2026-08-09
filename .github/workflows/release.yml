@@ -1,23 +1,22 @@
-# Publicerar en GitHub-utgåva av det package.yml byggt och provkört.
+# Publicerar en GitHub-utgåva. Kan starta på tre sätt.
 #
-# Körs när en tagg som `v2.1.0` pushas:
+#   1. AUTOMATISKT, söndag kväll. Finns det något under "## Ej släppt" i
+#      CHANGELOG.md höjs versionen, taggen skapas och utgåvan publiceras.
+#      Finns det inget händer ingenting alls – en lugn vecka är inte ett fel.
+#   2. MANUELLT från Actions-fliken, med valfritt versionssteg.
+#   3. Av en tagg du pushat själv (`npm version minor && git push --follow-tags`).
 #
-#     npm version minor        # uppdaterar package.json, stämplar CHANGELOG, taggar
-#     git push --follow-tags
+# Kadensen kommer alltså från schemat, men SÄKERHETEN kommer inte därifrån. Den
+# kommer från grindarna i package.yml: typecheck, tester, lint, hela paketet
+# byggt, och installern faktiskt installerad och startad. Går något av det fel
+# publiceras ingenting. Det är därför det går att släppa ofta utan att det
+# skickas ut något trasigt.
 #
-# Resultatet blir en utgåva med två filer, och båda namnen är stabila med flit:
-#
-#     PalAssistent-Setup.exe   installationsfilen
-#     SHA256SUMS.txt           kontrollsumman som appen verifierar mot
-#
-# Den senaste versionen har därmed alltid samma adress, och det är den README
-# länkar till:
-#
-#     https://github.com/<owner>/<repo>/releases/latest/download/PalAssistent-Setup.exe
-#
-# Själva bygget ligger i package.yml och körs likadant här som på en vanlig push –
-# poängen med att anropa det i stället för att upprepa det är att en utgåva aldrig
-# ska kunna byggas på ett annat sätt än det som testats hela veckan.
+# Varför utgåvan inte bara pushar en tagg och låter tagg-triggern göra jobbet:
+# GitHub startar med flit inga workflows från händelser som GITHUB_TOKEN skapat,
+# just för att undvika slingor. En tagg som pushas härifrån väcker alltså
+# ingenting. Därför gör den här filen hela kedjan själv – och slipper en
+# långlivad personlig token som hade behövts annars.
 
 name: Utgåva
 
@@ -25,6 +24,17 @@ on:
   push:
     tags:
       - "v*"
+  schedule:
+    # Söndag 17:00 UTC. Veckans ändringar hinner sätta sig, och notisen når
+    # användarna i lugn och ro i stället för mitt i en speltimme.
+    - cron: "0 17 * * 0"
+  workflow_dispatch:
+    inputs:
+      steg:
+        description: "Versionssteg (tomt = läs markören i CHANGELOG.md)"
+        type: choice
+        options: ["", patch, minor, major]
+        default: ""
 
 permissions:
   contents: read
@@ -36,21 +46,86 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Bygger installern, provinstallerar den och laddar upp den som artefakt.
+  # Avgör om det finns något att släppa, och skapar i så fall taggen.
+  forbered:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      slapp: ${{ steps.beslut.outputs.slapp }}
+      tagg: ${{ steps.beslut.outputs.tagg }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: beslut
+        env:
+          VALT_STEG: ${{ inputs.steg }}
+        run: |
+          set -euo pipefail
+
+          # Kom vi hit via en tagg är beslutet redan fattat.
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "Utlöst av taggen $GITHUB_REF_NAME."
+            echo "slapp=true"           >> "$GITHUB_OUTPUT"
+            echo "tagg=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          steg="${VALT_STEG:-$(node scripts/changelog.mjs bump)}"
+          if [[ "$steg" == "none" ]]; then
+            echo "Inget under '## Ej släppt' – ingen utgåva den här gången."
+            echo "slapp=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Släpper som $steg."
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # npm version kör preversion (kontrollerar att noteringar finns) och
+          # version (stämplar CHANGELOG och lägger den i commiten). Behöver inga
+          # installerade beroenden.
+          npm version "$steg"
+
+          tagg="v$(node -p "require('./package.json').version")"
+          # Explicita pushar: --follow-tags tar bara annoterade taggar, och npm
+          # skapar inte alltid sådana.
+          git push origin HEAD:main
+          git push origin "$tagg"
+
+          echo "slapp=true"     >> "$GITHUB_OUTPUT"
+          echo "tagg=$tagg"     >> "$GITHUB_OUTPUT"
+
+  # Bygger installern ur taggen och provinstallerar den. Publiceras aldrig något
+  # som inte klarat det här.
   paket:
+    needs: forbered
+    if: needs.forbered.outputs.slapp == 'true'
     uses: ./.github/workflows/package.yml
+    with:
+      ref: ${{ needs.forbered.outputs.tagg }}
 
   publicera:
-    needs: paket
-    # Publiceringen är bara filhantering och ett API-anrop – ingen anledning att
+    needs: [forbered, paket]
+    if: needs.forbered.outputs.slapp == 'true'
+    # Publiceringen är filhantering och ett API-anrop – ingen anledning att
     # betala för en Windows-runner till det.
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      # Behövs för CHANGELOG.md och scripts/changelog.mjs.
+      # Måste vara taggen: CHANGELOG.md ska vara den stämplade versionen.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.forbered.outputs.tagg }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -59,21 +134,21 @@ jobs:
 
       # Utgåvans text kommer ur CHANGELOG.md, inte ur commit-rubrikerna. Samma
       # text visas i appen när den säger att en uppdatering finns, så den är
-      # skriven för den som använder appen. Saknas avsnittet stannar det här –
-      # med flit: en utgåva utan noteringar är en utgåva ingen förstår.
+      # skriven för den som använder appen.
       - name: Hämta noteringar ur CHANGELOG.md
-        run: node scripts/changelog.mjs notes "${GITHUB_REF_NAME}" > release-notes.md
+        run: node scripts/changelog.mjs notes "${{ needs.forbered.outputs.tagg }}" > release-notes.md
 
       - name: Kontrollera att kontrollsumman stämmer
         run: |
           # Appens uppdateringsfunktion vägrar installera när hashen inte matchar,
           # så en felaktig SHA256SUMS.txt gör utgåvan oanvändbar för alla som
-          # redan kör programmet – utan att något syns här.
+          # redan kör programmet – utan att något syns i bygget.
           cd dist && sha256sum --check SHA256SUMS.txt
 
       - name: Publicera utgåvan
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.forbered.outputs.tagg }}
           files: |
             dist/PalAssistent-Setup.exe
             dist/SHA256SUMS.txt
