@@ -4,7 +4,10 @@
 import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
-import { pickAttackTeam, pickBaseCrew, topGlobalAttackers, topGlobalWorkers, workScore } from "@/lib/best";
+import {
+  BASE_WORK_TYPES, pickAttackTeam, pickBaseCrew, ranchGuide,
+  topGlobalAttackers, topGlobalWorkers, workScore,
+} from "@/lib/best";
 import { idealLoadout, topWork } from "@/lib/loadout";
 import type { PurposeId } from "@/lib/purpose";
 import { FISHING_PALS, WORK_META, WORK_TYPES } from "@/lib/constants";
@@ -58,6 +61,7 @@ export function BestView() {
   const crew = useMemo(() => pickBaseCrew(data, pals, bestOf), [data, pals, bestOf]);
   const globalAttackers = useMemo(() => topGlobalAttackers(data), [data]);
   const globalWorkers = useMemo(() => topGlobalWorkers(data), [data]);
+  const ranch = useMemo(() => ranchGuide(data, ownedSpecies), [data, ownedSpecies]);
   const mounts = useMemo(
     () => [...new Set([...bestOf.values()])]
       .filter((p) => (data.species[p.s]?.spr ?? 0) > 0)
@@ -100,9 +104,11 @@ export function BestView() {
     </div>
   );
 
+  /* Ranchen är aldrig skälet till att någon står i basgänget (se `BASE_WORK_TYPES`),
+     så den ska inte heller stå som motivering under porträttet. */
   const crewWhy = (p: ScoredPal) => {
     const s = sp(p.s);
-    const top = WORK_TYPES
+    const top = BASE_WORK_TYPES
       .filter((t) => (s.ws[t] ?? 0) > 0)
       .sort((a, b) => (s.ws[b] ?? 0) - (s.ws[a] ?? 0))
       .slice(0, 2);
@@ -114,6 +120,10 @@ export function BestView() {
           </span>
         ))}
         {s.noct ? " 🌙" : ""}
+        {/* Var exemplaret faktiskt står just nu: laget väljer artens bästa
+            individ, och den ligger oftast i boxen även när en sämre redan är
+            utplacerad. Utan raden ser förslaget ut som "det är redan klart". */}
+        <span className="tpwhere">{p.c === "Palbox" ? "i boxen – placera ut" : p.c}</span>
       </>
     );
   };
@@ -193,7 +203,7 @@ export function BestView() {
         <details className="dgroup">
           <summary>Bästa arbetare per syssla – ur din box</summary>
           <div className="wgrid">
-            {WORK_TYPES.map((t) => {
+            {BASE_WORK_TYPES.map((t) => {
               const best = [...pals]
                 .filter((p) => (sp(p.s).ws[t] ?? 0) > 0)
                 .sort((a, b) => workScore(data, b, t) - workScore(data, a, t))
@@ -239,6 +249,46 @@ export function BestView() {
             ))}
           </div>
         </details>
+      </Section>
+
+      <Section
+        title={<><WorkIcon type="MonsterFarm" size={17} /> Ranchen – vem lägger vad</>}
+        sub={<>
+          Ranchen är den enda sysslan där <b>arten avgör värdet</b>: varje art lägger sin egen
+          vara, och Farming-nivån säger bara hur snabbt den kommer. Leta efter varan du behöver –
+          inte efter högsta siffran.
+        </>}
+      >
+        <div className="wgrid">
+          {ranch.filter((e) => e.item !== null).map((entry) => (
+            <div key={entry.item} className="wcard">
+              <div className="wt"><span className="em"><WorkIcon type="MonsterFarm" size={17} /></span>{entry.item}</div>
+              {entry.producers.slice(0, 4).map((prod, i) => (
+                <button key={prod.s} className="wrow rowbtn" onClick={() => gotoBreeding(prod.s)}
+                  title={prod.owned ? "Ställ den i ranchen – klicka för avelsplan" : "Klicka för avelsplan"}>
+                  <span className={`rank sm r${Math.min(i + 1, 4)}`}>{i + 1}</span>
+                  <span className="ava sm" style={{ background: elementBg(sp(prod.s)) }}>
+                    <SpeciesIcon sp={sp(prod.s)} size={28} radius={14} />
+                  </span>
+                  <span className="nm">{sp(prod.s).name}</span>
+                  <span className="lvl" title="Farming-nivå = takten, inte varan">{prod.level}</span>
+                  {ownStatus(prod.s, true)}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* Datasetet har inga ranch-varor alls, så tabellen är handkurerad. Att
+            visa luckan är hela poängen: en gissad vara skickar någon till
+            ranchen med fel pal, och det syns först timmar senare. */}
+        {ranch.filter((e) => e.item === null).map((entry) => (
+          <div key="okand" className="hint ranchgap">
+            <b>Vara okänd för {entry.producers.length} arter</b> – vår tabell är handkurerad och
+            spelets data innehåller ingen ranch-vara att läsa av:{" "}
+            {entry.producers.map((p) => sp(p.s).name).join(", ")}. Säg vad de lägger så fylls
+            listan på; tills dess gissar vi hellre inte.
+          </div>
+        ))}
       </Section>
 
       <Section title="🎣 Fiske-hjälpar" sub="Pals med partner-skills som förbättrar fisket (Palworld 1.0).">

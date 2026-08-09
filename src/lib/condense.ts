@@ -12,7 +12,7 @@
  */
 import { workScore } from "./best";
 import { FISHING_PALS, WORK_META, WORK_TYPES } from "./constants";
-import { condenseReach } from "./scoring";
+import { condenseReach, displayStats, type DisplayStats } from "./scoring";
 import type { AppData, ScoredPal, WorkType } from "./types";
 
 /* ============================================================
@@ -28,8 +28,16 @@ export interface PalUse {
   /** Arbetsnivå (1–8) för work, annars placeringen i boxens topplista. */
   level?: number;
   label: string;
-  /** Bäst i boxen på just det här – det starkaste skälet att inte mata bort den. */
+  /** Bäst i boxen **och** nivån är hög nog att siffran betyder något. */
   best: boolean;
+  /**
+   * Bäst i boxen bara för att ingen annan kan – nivån ligger under `WORK_FLOOR`.
+   * Skilt från `best` med flit: "bäst i boxen på Mining" om boxens enda gruvpal
+   * är en Cattiva på nivå 1 låter som ett skäl att spara henne, och är det inte.
+   */
+  only: boolean;
+  /** Varför siffran inte är hela sanningen (ranchen). */
+  caveat?: string;
 }
 
 export interface UseIndex {
@@ -47,6 +55,17 @@ export interface UseIndex {
 const RANK_DEPTH = 10;
 /** Arbetsnivå som räcker för att kalla arten "bra på" en syssla. */
 const WORK_FLOOR = 3;
+
+/**
+ * Ranchen (`MonsterFarm`) är den enda sysslan där nivån inte avgör värdet.
+ * Varje art lägger sin **egen** vara i ranchen – ull, ägg, honung, tyg – och
+ * Farming-nivån styr bara takten. Att kröna den med högst siffra till "bäst i
+ * boxen" svarar därför på en fråga ingen ställer: det som avgör är om man vill
+ * ha just den varan, inte hur snabbt den kommer. Sysslan visas ändå, för att
+ * behålla *ett* exemplar av arten är hela poängen med en ranchpal – men aldrig
+ * som en topplacering.
+ */
+const RANCH_CAVEAT = "Ranchen ger artens egen vara – nivån styr bara takten, inte vad som kommer ut.";
 
 /**
  * Räknar en gång per box vad varje pal är bäst på. Att göra det per kort vore
@@ -89,6 +108,7 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
   if (!sp) return [];
 
   const work = WORK_TYPES
+    .filter((t) => t !== "MonsterFarm")
     .map((t) => ({ t, level: sp.ws[t] ?? 0 }))
     .filter((w) => w.level > 0)
     .sort((a, b) => b.level - a.level);
@@ -96,24 +116,36 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
   const uses: PalUse[] = work
     // En låg arbetsnivå säger inget – utom när ingen annan i boxen gör det bättre.
     .filter((w) => w.level >= WORK_FLOOR || idx.bestWorker.get(w.t) === p.id)
-    .map((w) => ({
-      kind: "work" as const,
-      work: w.t,
-      level: w.level,
-      label: WORK_META[w.t]?.label ?? w.t,
-      best: idx.bestWorker.get(w.t) === p.id,
-    }));
+    .map((w) => {
+      const top = idx.bestWorker.get(w.t) === p.id;
+      return {
+        kind: "work" as const,
+        work: w.t,
+        level: w.level,
+        label: WORK_META[w.t]?.label ?? w.t,
+        best: top && w.level >= WORK_FLOOR,
+        only: top && w.level < WORK_FLOOR,
+      };
+    });
 
   const combat = idx.combatRank.get(p.id);
   if (combat !== undefined) {
-    uses.push({ kind: "combat", level: combat, label: `Strid #${combat}`, best: combat === 1 });
+    uses.push({ kind: "combat", level: combat, label: `Strid #${combat}`, best: combat === 1, only: false });
   }
   const mount = idx.mountRank.get(p.id);
   if (mount !== undefined) {
-    uses.push({ kind: "mount", level: mount, label: `Riddjur #${mount}`, best: mount === 1 });
+    uses.push({ kind: "mount", level: mount, label: `Riddjur #${mount}`, best: mount === 1, only: false });
+  }
+  const ranch = sp.ws.MonsterFarm ?? 0;
+  if (ranch > 0) {
+    uses.push({
+      kind: "work", work: "MonsterFarm", level: ranch,
+      label: WORK_META.MonsterFarm?.label ?? "Farming",
+      best: false, only: false, caveat: RANCH_CAVEAT,
+    });
   }
   if (idx.fishing.has(p.s)) {
-    uses.push({ kind: "fishing", label: "Fiskehjälpare", best: false });
+    uses.push({ kind: "fishing", label: "Fiskehjälpare", best: false, only: false });
   }
 
   // Utan något att visa ser kortet ut som ett fel. Artens bästa syssla oavsett
@@ -121,13 +153,15 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
   if (!uses.length && work[0]) {
     uses.push({
       kind: "work", work: work[0].t, level: work[0].level,
-      label: WORK_META[work[0].t]?.label ?? work[0].t, best: false,
+      label: WORK_META[work[0].t]?.label ?? work[0].t, best: false, only: false,
     });
   }
 
-  // "Bäst i boxen" får aldrig kapas bort av `limit` – sorten är stabil, så
-  // inbördes ordning inom varje halva står kvar.
-  return [...uses].sort((a, b) => Number(b.best) - Number(a.best)).slice(0, limit);
+  // "Bäst i boxen" får aldrig kapas bort av `limit`, och "enda i boxen" ska
+  // ligga före resten – sorten är stabil, så inbördes ordning inom varje
+  // grupp står kvar.
+  const weight = (u: PalUse) => (u.best ? 2 : u.only ? 1 : 0);
+  return [...uses].sort((a, b) => weight(b) - weight(a)).slice(0, limit);
 }
 
 /* ============================================================
@@ -276,6 +310,37 @@ export interface CondenseSummary {
   feed: number;
   /** Stjärnor som kommer ut av det. */
   stars: number;
+}
+
+/** Vad kondenseringen faktiskt ger – i stats, inte i stjärnor. */
+export interface CondenseGain {
+  /** Stjärnor man hoppar (0 om ingenting går att göra nu). */
+  stars: number;
+  /** ≈ +5 % HP/attack/försvar per stjärna. */
+  pct: number;
+  /** Frigjorda boxplatser = antalet matade. */
+  slots: number;
+  before: DisplayStats;
+  after: DisplayStats;
+}
+
+/**
+ * "Varför ska jag kondensera?" går inte att svara på med en stjärna: +2★ säger
+ * ingenting om man inte vet vad en stjärna gör. Samma pal före och efter, med
+ * spelets egna stat-formler, gör vinsten konkret – och visar när den är för
+ * liten för att vara värd de exemplar man matar bort.
+ */
+export function condenseGain(data: AppData, plan: CondensePlan): CondenseGain {
+  const stars = plan.reach - plan.fromStars;
+  return {
+    stars,
+    pct: stars * 5,
+    slots: plan.feed,
+    before: displayStats(data, plan.keeper),
+    // `displayStats` läser `stars`, inte `rk` – båda sätts så kopian är ett
+    // giltigt ScoredPal och inte ett halvt tillstånd.
+    after: displayStats(data, { ...plan.keeper, stars: plan.reach, rk: plan.reach + 1 }),
+  };
 }
 
 export function summarizeCondense(plans: readonly CondensePlan[]): CondenseSummary {

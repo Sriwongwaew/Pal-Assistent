@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { planPerfectLine, statOddsFromHas } from "../src/lib/perfectPlan";
-import { inheritOdds } from "../src/lib/breeding";
+import { exactOdds, inheritOdds, RANDOM_EXTRA_ODDS } from "../src/lib/breeding";
 import { condenseReach } from "../src/lib/scoring";
 import type { ScoredPal } from "../src/lib/types";
 
@@ -39,7 +39,11 @@ describe("statOddsFromHas – 30/30/40-modellen", () => {
   });
 });
 
-describe("inheritOdds – passivarv utan mutationer", () => {
+/* Spelets tvåslagsmodell (Palworld-wikin, "Breeding"):
+ *   X ∈ 1..4 med 0,4/0,3/0,2/0,1 → så många ärvs ur poolen, eller HELA poolen
+ *   om X ≥ poolens storlek. Sedan Y med samma vikter; är Y > X får ungen Y−X
+ *   helt slumpade passiver. Facit nedan är handräknat ur just det. */
+describe("inheritOdds – ärver ungen alla önskade?", () => {
   it("noll önskade passiver är alltid uppfyllt", () => {
     close(inheritOdds(0, 0), 1);
     close(inheritOdds(0, 5), 1);
@@ -49,15 +53,70 @@ describe("inheritOdds – passivarv utan mutationer", () => {
     close(inheritOdds(3, 2), 0);
   });
 
-  it("en ren pool på 1 ärvs så ofta ett arv alls sker", () => {
-    // Med u=1 finns bara c=1 att lotta på, och den viktas 1.0 efter normalisering.
+  it("en pool på 1 ärvs alltid – varje X ≥ 1 tar hela poolen", () => {
     close(inheritOdds(1, 1), 1);
+  });
+
+  it("ren pool: X större än poolen kastas inte bort", () => {
+    // u = k, alltså ärvs allt så fort X ≥ u. Summan är vikterna från k och upp.
+    close(inheritOdds(2, 2), 0.3 + 0.2 + 0.1);
+    close(inheritOdds(3, 3), 0.2 + 0.1);
+    close(inheritOdds(4, 4), 0.1);
+  });
+
+  it("smutsig pool: dragningen måste råka få med alla önskade", () => {
+    // X = 3: 0,2·C(1,0)/C(4,3) = 0,05 · X = 4 tar hela poolen: 0,10
+    close(inheritOdds(3, 4), 0.15);
+    // X = 3: 0,2·C(2,0)/C(5,3) = 0,02 · X = 4: 0,1·C(2,1)/C(5,4) = 0,04
+    close(inheritOdds(3, 5), 0.06);
+    // X = 2: 0,3·C(1,0)/C(3,2) = 0,1 · X = 3 och 4 tar hela poolen: 0,3
+    close(inheritOdds(2, 3), 0.4);
   });
 
   it("skräp i poolen späder ut oddsen", () => {
     const clean = inheritOdds(2, 2);
     const dirty = inheritOdds(2, 4);
     assert.ok(dirty < clean, `${dirty} < ${clean}`);
+  });
+});
+
+describe("exactOdds – får ungen PRECIS de önskade?", () => {
+  it("slumpslaget är det enda som kan smutsa ner en ren pool", () => {
+    // u = k = 3: X = 3 → allt ärvs, men Y = 4 lägger på en (P = 0,1) → 0,2·0,9
+    //            X = 4 → allt ärvs och Y kan aldrig överstiga 4    → 0,1·1,0
+    close(exactOdds(3, 3), 0.2 * 0.9 + 0.1 * 1);
+    // u = k = 2: 0,3·P(Y≤2) + 0,2·P(Y≤3) + 0,1·P(Y≤4)
+    close(exactOdds(2, 2), 0.3 * 0.7 + 0.2 * 0.9 + 0.1 * 1);
+  });
+
+  it("fyra önskade har ingen ledig plats – exakt = minst", () => {
+    close(exactOdds(4, 4), inheritOdds(4, 4));
+  });
+
+  it("skräp i poolen kräver att dragningen blir precis de önskade", () => {
+    // Bara X = 3 duger (X = 4 drar med skräpet): 0,2 · 1/C(4,3) · P(Y≤3)
+    close(exactOdds(3, 4), 0.2 * (1 / 4) * 0.9);
+  });
+
+  it("är aldrig bättre än chansen att alls få dem", () => {
+    for (let k = 1; k <= 4; k++) {
+      for (let u = k; u <= 6; u++) {
+        assert.ok(exactOdds(k, u) <= inheritOdds(k, u) + 1e-12, `k=${k} u=${u}`);
+      }
+    }
+  });
+});
+
+describe("RANDOM_EXTRA_ODDS – slumppassiver går inte att avla bort", () => {
+  it("P(Y > X) = 35 % oavsett pool", () => {
+    // 0,4·P(Y>1) + 0,3·P(Y>2) + 0,2·P(Y>3) + 0,1·0
+    close(RANDOM_EXTRA_ODDS, 0.4 * 0.6 + 0.3 * 0.3 + 0.2 * 0.1);
+    close(RANDOM_EXTRA_ODDS, 0.35);
+  });
+
+  it("är komplementet till en helt ren tom kull", () => {
+    // Inga passiver alls hos föräldrarna → allt som dyker upp är slumpat.
+    close(exactOdds(0, 0), 1 - RANDOM_EXTRA_ODDS);
   });
 });
 

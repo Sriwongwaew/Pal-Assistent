@@ -6,7 +6,9 @@
  * stjärna ser precis lika trovärdig ut som en riktig. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildUseIndex, palUses, planCondense, summarizeCondense } from "../src/lib/condense";
+import {
+  buildUseIndex, condenseGain, palUses, planCondense, summarizeCondense,
+} from "../src/lib/condense";
 import type { AppData, PassiveDef, ScoredPal, Species } from "../src/lib/types";
 
 const passives: Record<string, PassiveDef> = {
@@ -173,11 +175,39 @@ describe("planCondense – varningar", () => {
   });
 });
 
+describe("condenseGain – vad stjärnorna är värda", () => {
+  it("0★ → 2★ är +10 % på HP, attack och försvar", () => {
+    const { pals, bestOf } = box(0, 20);
+    const [p] = planCondense(data, pals, bestOf);
+    assert.ok(p);
+    const g = condenseGain(data, p);
+    assert.equal(g.stars, 2);
+    assert.equal(g.pct, 10);
+    assert.equal(g.slots, 20);
+    /* Handräknat med spelets formel för en art med scaling 100/100/100,
+       level 50 och IV 50: 500 + 5·50 + 100·0,5·50·1,15 = 3625 HP utan
+       stjärnor, och 3625 · 1,10 = 3987,5 → 3987 med två. */
+    assert.equal(g.before.hp, 3625);
+    assert.equal(g.after.hp, 3987);
+  });
+
+  it("en art som inte kan kondenseras nu vinner ingenting", () => {
+    const { pals, bestOf } = box(2, 20);
+    const [p] = planCondense(data, pals, bestOf);
+    assert.ok(p);
+    const g = condenseGain(data, p);
+    assert.equal(g.stars, 0);
+    assert.equal(g.after.hp, g.before.hp);
+  });
+});
+
 describe("palUses – vad är den bra för", () => {
   const workData = makeData([
     species("Verdash", { Handcraft: 5, Collection: 5, Transport: 3, Seeding: 4 }),
     species("Cattiva", { Handcraft: 1, Mining: 1 }),
     species("Jetragon", {}, { spr: 3300 }),
+    species("Dumud Gild", { MonsterFarm: 4, Watering: 2 }),
+    species("Chikipi", { MonsterFarm: 1 }),
   ]);
 
   it("tar med sysslor från nivå 3 och upp, högsta först", () => {
@@ -187,12 +217,27 @@ describe("palUses – vad är den bra för", () => {
     assert.deepEqual(uses.filter((u) => u.kind === "work").map((u) => u.level), [5, 5, 4, 3]);
   });
 
-  it("en låg arbetsnivå kommer med när ingen annan i boxen gör det bättre", () => {
+  it("en låg arbetsnivå kommer med när ingen annan i boxen gör det bättre – som 'enda', inte 'bäst'", () => {
     const cat = pal(1);
     const idx = buildUseIndex(workData, [cat]);
     const mining = palUses(workData, cat, idx).find((u) => u.work === "Mining");
     assert.ok(mining, "Mining saknas trots att katten är boxens enda gruvarbetare");
-    assert.equal(mining.best, true);
+    // Nivå 1 är inte "bäst i boxen på gruvarbete", det är "ingen annan kan alls".
+    assert.equal(mining.best, false);
+    assert.equal(mining.only, true);
+  });
+
+  it("ranchen kröner aldrig den med högst nivå – varan sitter i arten", () => {
+    const dumud = pal(3);
+    const chikipi = pal(4);
+    const idx = buildUseIndex(workData, [dumud, chikipi]);
+    const farm = palUses(workData, dumud, idx).find((u) => u.work === "MonsterFarm");
+    assert.ok(farm, "Farming saknas – ranchpalen ser ut att sakna användning");
+    assert.equal(farm.level, 4);
+    assert.equal(farm.best, false, "nivå 4 i ranchen är takt, inte 'bäst i boxen'");
+    assert.ok(farm.caveat);
+    // Och den lägsta ranchpalen tappas inte bort bara för att nivån är 1.
+    assert.ok(palUses(workData, chikipi, idx).some((u) => u.work === "MonsterFarm"));
   });
 
   it("den som gör det bättre tar 'bäst i boxen'", () => {

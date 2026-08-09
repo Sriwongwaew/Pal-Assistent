@@ -110,9 +110,9 @@ export function AltRouteBlock({
             </ol>
 
             <div className="hint">
-              Uppskattningar utan mutationer, samma modell som planen ovan – jämförbara med
-              varandra, men inte exakta. Vill du följa den här vägen i stället: byt inget i
-              väljarna, den utgår från pals du redan äger.
+              Uppskattningar, samma modell som planen ovan – jämförbara med varandra, men inte
+              exakta, och som där är oddsen &quot;minst de önskade&quot;. Vill du följa den här
+              vägen i stället: byt inget i väljarna, den utgår från pals du redan äger.
             </div>
           </div>
         );

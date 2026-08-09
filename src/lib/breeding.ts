@@ -296,22 +296,74 @@ function choose(n: number, k: number): number {
 
 const INHERIT_WEIGHTS = [0, 0.4, 0.3, 0.2, 0.1] as const;
 
+/** P(Y ≤ x), alltså att slumpslaget inte lägger till något ovanpå x ärvda. */
+function noExtraOdds(x: number): number {
+  let p = 0;
+  for (let y = 1; y <= x && y <= 4; y++) p += INHERIT_WEIGHTS[y] ?? 0;
+  return p;
+}
+
 /**
  * P(barnet ärver ALLA k önskade passiver) när föräldrarnas
- * gemensamma passiv-pool innehåller u passiver. Utan mutationer.
+ * gemensamma passiv-pool innehåller u passiver.
+ *
+ * Spelets modell är **två slag**, inte ett (Palworld-wikin, "Breeding"):
+ *
+ *   1. Slå X ∈ 1..4 med vikterna 40/30/20/10.
+ *   2. Ungen ärver X slumpvis valda ur poolen – **eller hela poolen om
+ *      X ≥ poolens storlek**. Inget slås om.
+ *   3. Slå Y ∈ 1..4 med samma vikter. Är Y > X får ungen Y−X **helt slumpade**
+ *      passiver som ingen förälder bär (se `exactOdds`).
+ *
+ * Steg 2 är det som gör en ren pool bättre än den ser ut: rullar man 4 mot en
+ * pool på 3 ärvs alla tre, utfallet kastas inte bort. Den gamla modellen här
+ * normaliserade i stället bort X > u och underskattade därför precis de rena
+ * stegen planeraren siktar mot (3 önskade ur ren pool: 22 % → 30 %). Från
+ * pool 4 och uppåt ger de två exakt samma siffra.
  */
 export function inheritOdds(k: number, u: number): number {
   if (k === 0) return 1;
   if (u < k) return 0;
   let total = 0;
-  let norm = 0;
-  for (let c = 1; c <= 4 && c <= u; c++) {
-    const w = INHERIT_WEIGHTS[c] ?? 0;
-    norm += w;
-    if (c >= k) total += (w * choose(u - k, c - k)) / choose(u, c);
+  for (let x = 1; x <= 4; x++) {
+    const w = INHERIT_WEIGHTS[x] ?? 0;
+    // choose() ger 0 när x < k, så de utfallen faller bort av sig själva.
+    total += x >= u ? w : (w * choose(u - k, x - k)) / choose(u, x);
   }
-  return norm > 0 ? total / norm : 0;
+  return total;
 }
+
+/**
+ * P(ungen får **precis** de k önskade och inget mer) ur en pool på u.
+ *
+ * Två saker kan smutsa ner den: skräp som följer med ur poolen (bara möjligt
+ * när u > k) och slumppassiverna ur steg 3 ovan. Skillnaden mot `inheritOdds`
+ * är hela svaret på "varför får jag aldrig exakt de jag vill ha" – med fyra
+ * önskade finns ingen ledig plats och siffrorna sammanfaller, med tre ur ren
+ * pool är det 30 % mot 28 %, med två 60 % mot 49 %.
+ */
+export function exactOdds(k: number, u: number): number {
+  if (u < k) return 0;
+  let total = 0;
+  for (let x = 1; x <= 4; x++) {
+    const w = INHERIT_WEIGHTS[x] ?? 0;
+    // Ärvs hela poolen blir det exakt rätt bara om poolen ÄR de önskade;
+    // annars måste dragningen råka bli precis de k, vilket kräver x = k.
+    const hit = x >= u ? (u === k ? 1 : 0) : x === k ? 1 / choose(u, k) : 0;
+    if (hit > 0) total += w * hit * noExtraOdds(x);
+  }
+  return total;
+}
+
+/**
+ * P(ungen får minst en helt slumpad passiv) = P(Y > X). Oberoende av poolen,
+ * och går alltså inte att avla bort – därför en konstant, inte en funktion.
+ */
+export const RANDOM_EXTRA_ODDS = (() => {
+  let p = 0;
+  for (let x = 1; x <= 4; x++) p += (INHERIT_WEIGHTS[x] ?? 0) * (1 - noExtraOdds(x));
+  return p;
+})();
 
 export const oddsText = (p: number): string => {
   if (p <= 0) return "~0 %";

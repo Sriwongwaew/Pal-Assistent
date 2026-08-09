@@ -15,6 +15,7 @@ import { BgTexture } from "@/components/ui/BgTexture";
 import { FooterLegend } from "@/components/ui/FooterLegend";
 import { HeaderMeta } from "@/components/ui/HeaderMeta";
 import { PageTitle } from "@/components/ui/PageTitle";
+import { PassiveTipHost } from "@/components/ui/PassiveTip";
 import { Rail } from "@/components/ui/Rail";
 import "./globals.css";
 
@@ -57,6 +58,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
             <PalDetailHost />
+            {/* En värd för hela sidan: varje banner med data-passive får hover.
+                Ligger utanför .shell så rutan inte klipps av något som scrollar. */}
+            <PassiveTipHost />
           </SelectedPalProvider>
         </PalDataProvider>
       </body>

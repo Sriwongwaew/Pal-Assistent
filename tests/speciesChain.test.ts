@@ -6,7 +6,8 @@
  * som första steg mot Renjishi: 1,7 % per ägg, ~59 ägg för det enda steget, när
  * en väg med ett steg till men rena partners kostade ~23 ägg totalt.
  *
- * Facit under är handräknat ur INHERIT_WEIGHTS = 0,4/0,3/0,2/0,1. */
+ * Facit under är handräknat ur spelets tvåslagsmodell: X ∈ 1..4 med vikterna
+ * 0,4/0,3/0,2/0,1, och hela poolen ärvs när X ≥ poolens storlek. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildPassivePlan } from "../src/lib/passivePlan";
@@ -66,15 +67,14 @@ const owned = new Set([0, 1, 2]);
 const linje = () => pal(0, ["A", "B", "C"]);
 
 /* Handräknat, k = 3 önskade:
- *  Ren partner (0 skräp) → pool u = 3. Bara c = 1..3 kan dras (c ≤ u),
- *    norm = 0,4+0,3+0,2 = 0,9; enda träffen c = 3: 0,2·C(0,0)/C(3,3) = 0,2.
- *    odds = 0,2/0,9 = 2/9 ≈ 22,2 %  →  4,5 ägg.
- *  Smutsig partner (3 skräp) → pool u = 6, norm = 1,0.
- *    c = 3: 0,2·C(3,0)/C(6,3) = 0,2/20  = 0,010
- *    c = 4: 0,1·C(3,1)/C(6,4) = 0,1·3/15 = 0,020
+ *  Ren partner (0 skräp) → pool u = 3. Både X = 3 och X = 4 ärver hela poolen,
+ *    alltså alla tre: odds = 0,2 + 0,1 = 0,30 = 30 %  →  3,333 ägg.
+ *  Smutsig partner (3 skräp) → pool u = 6, och X når aldrig upp till poolen.
+ *    X = 3: 0,2·C(3,0)/C(6,3) = 0,2/20  = 0,010
+ *    X = 4: 0,1·C(3,1)/C(6,4) = 0,1·3/15 = 0,020
  *    odds = 0,03 = 3 %  →  33,33 ägg. */
-const REN_ODDS = 2 / 9;
-const REN_EGGS = 4.5;
+const REN_ODDS = 0.3;
+const REN_EGGS = 1 / 0.3;
 const SMUTSIG_EGGS = 100 / 3;
 
 describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
@@ -90,11 +90,11 @@ describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
       "sökningen tog genvägen via den smutsiga partnern",
     );
     for (const st of plan.speciesPhase!) {
-      assert.ok(Math.abs(st.odds - REN_ODDS) < 1e-9, `odds ${st.odds} ≠ 2/9`);
+      assert.ok(Math.abs(st.odds - REN_ODDS) < 1e-9, `odds ${st.odds} ≠ 0,30`);
     }
-    // 2 × 4,5 = 9 ägg mot 33,33 för det enda korta steget.
+    // 2 × 3,333 = 6,667 ägg mot 33,33 för det enda korta steget.
     assert.ok(Math.abs(plan.expectedEggs - 2 * REN_EGGS) < 1e-9,
-      `totalen ${plan.expectedEggs} ≠ 9`);
+      `totalen ${plan.expectedEggs} ≠ 6,67`);
   });
 
   it("redovisar vad genvägen hade kostat, så omvägen går att motivera", () => {
@@ -107,7 +107,7 @@ describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
   });
 
   it("tar genvägen när den korta partnern är lika ren – inga onödiga steg", () => {
-    // Samma karta, men Smutsig bär inget skräp: 1 steg à 4,5 ägg slår 2 steg à 4,5.
+    // Samma karta, men Smutsig bär inget skräp: 1 steg à 3,33 ägg slår 2 steg à 3,33.
     const pals = [linje(), pal(1, [], "M"), pal(2, [], "M")];
     const plan = buildPassivePlan(makeData(), pals, owned, wanted, 4);
     assert.deepEqual(plan.speciesPhase!.map((s) => [s.from, s.with, s.to]), [[0, 1, 4]]);
@@ -116,9 +116,11 @@ describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
   });
 
   it("en enda skräp-passiv hos partnern räcker inte för att motivera omvägen", () => {
-    // 1 skräp → u = 4, norm = 1,0: c = 3: 0,2·C(1,0)/C(4,3) = 0,05;
-    //                              c = 4: 0,1·C(1,1)/C(4,4) = 0,1  → 0,15 = 6,67 ägg.
-    // 6,67 < 9, så genvägen är fortfarande billigast.
+    /* 1 skräp → u = 4: X = 3: 0,2·C(1,0)/C(4,3) = 0,05
+     *                  X = 4: ärver hela poolen  = 0,10  → 0,15 → 6,667 ägg.
+     * I den korrigerade modellen är det exakt lika med två rena steg
+     * (2 × 3,333 = 6,667) – en skräp-passiv hos partnern kostar alltså precis
+     * ett extra rent steg. Likheten bryts på färst steg, så genvägen vinner. */
     const pals = [linje(), pal(1, ["J1"], "M"), pal(2, [], "M")];
     const plan = buildPassivePlan(makeData(), pals, owned, wanted, 4);
     assert.deepEqual(plan.speciesPhase!.map((s) => [s.from, s.with, s.to]), [[0, 1, 4]]);
@@ -130,10 +132,10 @@ describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
     /* Startpalen är en riktig pal ur boxen och bär det den bär – räknas bara de
        önskade blir första steget för optimistiskt. (Ken har just nu två Dogen med
        alla tre önskade *plus* en skräp-passiv, så det här är inte hypotetiskt.)
-       Handräknat, linje = A,B,C,J1 + ren partner → pool u = 4, norm = 1,0:
-         c = 3: 0,2·C(1,0)/C(4,3) = 0,05
-         c = 4: 0,1·C(1,1)/C(4,4) = 0,10   → 15 % → 6,667 ägg
-       Steg 2 utgår från en kläckt, ren unge → tillbaka till 2/9 = 4,5 ägg. */
+       Handräknat, linje = A,B,C,J1 + ren partner → pool u = 4:
+         X = 3: 0,2·C(1,0)/C(4,3) = 0,05
+         X = 4: ärver hela poolen  = 0,10   → 15 % → 6,667 ägg
+       Steg 2 utgår från en kläckt, ren unge → tillbaka till 30 % = 3,333 ägg. */
     const pals = [
       pal(0, ["A", "B", "C", "J1"]),
       pal(1, ["J1", "J2", "J3"], "M"),
@@ -147,7 +149,7 @@ describe("artkedjan väljer billigast i ägg, inte färst steg", () => {
     assert.ok(Math.abs(plan.speciesPhase![1]!.odds - REN_ODDS) < 1e-9,
       "andra steget ska utgå från en ren unge");
     assert.ok(Math.abs(plan.expectedEggs - (1 / 0.15 + REN_EGGS)) < 1e-9,
-      `totalen ${plan.expectedEggs} ≠ 11,17`);
+      `totalen ${plan.expectedEggs} ≠ 10,0`);
     // Genvägen delar J1 med linjen – poolen blir 6, inte 7. Unionen, inte summan.
     assert.ok(Math.abs(plan.speciesPhaseShortcut!.eggs - SMUTSIG_EGGS) < 1e-9,
       `genvägen ${plan.speciesPhaseShortcut!.eggs} ≠ 33,33 – skräp räknades dubbelt`);

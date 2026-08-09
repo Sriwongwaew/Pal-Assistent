@@ -1,3 +1,48 @@
+/** Passiv-planen: samla ihop de önskade passiverna, byt sedan art till målet.
+ *
+ * **Fas 1 är ett träd, inte en kedja.** Det är hela poängen med filen, och det
+ * togs fel en gång: planen lade tidigare på en passiv i taget på en och samma
+ * linje (start + bärare → + bärare → + bärare). Att i stället para ihop bärarna
+ * **två och två** och slå ihop mellanresultaten är billigare, och skälet är att
+ * kostnaden är konvex i poolens storlek:
+ *
+ *   `inheritOdds(2, 2)` = 60 % → ~1,7 ägg      (två önskade ur en ren pool)
+ *   `inheritOdds(3, 3)` = 30 % → ~3,3 ägg
+ *   `inheritOdds(4, 4)` = 10 % → ~10 ägg
+ *
+ * Sista steget kostar 10 ägg oavsett hur man kommer dit – poolen är de fyra
+ * önskade i båda fallen. Skillnaden ligger i vägen fram: den linjära bygger en
+ * trea på vägen (1,7 + 3,3 = 5 ägg), den parvisa bygger två tvåor (1,7 + 1,7 =
+ * 3,3 ägg). Med fyra bärare som har varsin passiv blir det 15 mot 13,3 ägg, och
+ * räknar man med kön (nedan) 20 mot 15 – en fjärdedel billigare. Har en bärare
+ * redan två av dem sparar den parvisa 12,5 % oavsett kön.
+ *
+ * Därför söks **alla** sätt att para ihop bärarna igenom, inte bara ett. Att det
+ * går är ingen tur: en pal har fyra passiv-platser i spelet, så `MAX_WANTED` är
+ * 4 och set-covern kan aldrig välja fler än fyra bärare. Sökningen är alltså
+ * 2⁴ = 16 delmängder och kostar ingenting. Höjs taket någon gång är det 3ⁿ
+ * uppdelningar det växer med – fortfarande försumbart långt förbi åtta.
+ *
+ * Tre saker modellen räknar med, som inte syns i oddsen:
+ *
+ * 1. **Kön kostar.** En unge ur ett tidigare steg är 50/50, så måste den ha ett
+ *    bestämt kön kostar den i snitt en kull till. Är båda föräldrarna mellansteg
+ *    räcker det att jaga kön på den *billigare*. Är den ena en ägd bärare som
+ *    finns i båda könen i boxen är det gratis – då väljer man partner efter vad
+ *    ungen råkade bli. Det är just den kostnaden som gör den parvisa vägen så
+ *    mycket bättre: den linjära betalar könspåslag i vartenda steg efter det
+ *    första, den parvisa bara i det sista.
+ * 2. **Bara ägda pals bär skräp.** Ett mellansteg kläcker man tills det har de
+ *    önskade, och antas då rent – samma antagande som resten av planeraren.
+ * 3. **Poolen är unionen av mängder**, aldrig summan av antal: bär båda
+ *    föräldrarna samma skräp-passiv ligger den bara en gång i poolen.
+ *
+ * Vad sökningen med flit **inte** gör: den väljer inte om vilka bärare som ska
+ * användas. Det gör set-covern ovanför, som minimerar antalet bärare. Två andra
+ * pals som tillsammans bär precis de önskade kan ändå vara billigare – det är
+ * vad `altRoutes.ts` letar efter, som ett tillägg under planen.
+ */
+
 import { findAltRoutes } from "./altRoutes";
 import type { AltRoute } from "./altRoutes";
 import {
@@ -6,6 +51,23 @@ import {
 } from "./breeding";
 import type { ParentPrefs } from "./breeding";
 import type { AppData, ChainStep, ScoredPal } from "./types";
+
+/** Djupgräns för artkedjan i fas 2. */
+const MAX_DEPTH = 10;
+
+/**
+ * Så många rot-kandidater (en per landningsart) som får kosta en artkedje-sökning.
+ * Trädet kan landa i olika arter beroende på hur bärarna paras ihop, och fas 2
+ * kostar väldigt olika mycket därifrån – men varje uppslag är en Dijkstra över
+ * alla arter, så listan måste ha ett tak.
+ */
+const ROOT_CANDIDATES = 4;
+
+/** Så många noder som mest sparas per delmängd. Fler ger inga bättre träd. */
+const NODES_PER_MASK = 8;
+
+/** Minsta vinst (i ägg) för att en avvikande ihopslagningsordning ska förklaras. */
+const MIN_DETOUR_SAVING = 1;
 
 export interface CarrierInfo {
   passiveId: string;
@@ -19,16 +81,35 @@ export interface CarrierInfo {
   covers: number;
 }
 
+/** En förälder i ett merge-steg: en ägd bärare, eller ungen ur ett tidigare steg. */
+export interface MergeParent {
+  /** Ägd pal, eller null när föräldern kommer ur ett tidigare steg. */
+  pal: ScoredPal | null;
+  /** 1-baserat stegnummer när föräldern kommer ur ett tidigare steg. */
+  fromStep?: number;
+  species: number;
+  /** Önskade passiver föräldern bidrar med. */
+  gives: string[];
+}
+
 export interface MergeStep {
-  lineSpecies: number;
-  carrier: ScoredPal;
+  /** 1-baserat stegnummer. Stegen är ordnade så att föräldrarna alltid finns. */
+  n: number;
+  a: MergeParent;
+  b: MergeParent;
   childSpecies: number;
-  /** Önskade passiver som linjen har efter steget. */
+  /** Önskade passiver ungen ska ha efter steget. */
   haveAfter: string[];
+  /** Passiv-poolen ungen lottar ur. */
+  pool: number;
   odds: number;
+  /** Ägg för steget, könspåslaget inräknat. */
+  eggs: number;
+  /** Av dem: extra ägg för att träffa rätt kön på en unge ur ett tidigare steg. */
+  genderEggs: number;
   /** false = paret kan inte avla (t.ex. legendar × annan art) – steget kräver omväg. */
   possible: boolean;
-  /** false = båda föräldrarna har samma kön, alltså ingen parning alls. */
+  /** false = båda föräldrarna är kända individer med samma kön, alltså ingen parning. */
   genderOk: boolean;
 }
 
@@ -49,9 +130,26 @@ export interface PassivePlan {
   carrierInfo: CarrierInfo[];
   missing: string[];
   usable: string[];
-  /** Vald startbärare (null om inga bärare alls). */
+  /**
+   * Huvudbäraren – den som täcker flest önskade. Är den ensam räcker den hela
+   * vägen och fas 1 hoppas över; annars är den en av flera i trädet nedan.
+   */
   start: ScoredPal | null;
   mergeSteps: MergeStep[];
+  /** Ägda bärare som trädet faktiskt använder. */
+  carriersUsed: ScoredPal[];
+  /** Ägg för fas 1 ensam, könspåslag inräknat. */
+  mergeEggs: number;
+  /**
+   * Satt när ihopslagningsordningen **inte** är den billigaste i fas 1.
+   *
+   * Trädet väljs på hela planen, inte på halva: olika sätt att para ihop bärarna
+   * landar i olika arter, och en ordning som kostar några ägg mer i fas 1 kan
+   * landa ett artsteg närmare målet och därmed bli billigare totalt. Utan den
+   * här upplysningen ser ordningen ut som ett misstag – planen säger ju själv
+   * att man ska mötas på mitten.
+   */
+  mergeDetour: { cheapestEggs: number; saves: number } | null;
   /** Art som linjen landar i efter fas 1. */
   lineSpecies: number | null;
   speciesPhase: SpeciesPhaseStep[] | null;
@@ -79,9 +177,40 @@ export interface PassivePlan {
   alternatives: AltRoute[];
 }
 
+/** En individ i handen under sökningen: en ägd bärare eller en kläckt unge. */
+interface Node {
+  /** Bitmask över bärarna i deltäckningen. Sökningens nyckel. */
+  leaves: number;
+  /** Önskade passiver noden bär. */
+  want: ReadonlySet<string>;
+  species: number;
+  /** Skräp noden släpar in i poolen. Bara ägda pals har sådant. */
+  junk: ReadonlySet<string>;
+  /** Ägd pal, eller null för en kläckt unge. */
+  pal: ScoredPal | null;
+  /** Ägg för just den här kläckningen (0 för en ägd pal), könspåslaget inräknat. */
+  stepEggs: number;
+  genderEggs: number;
+  /** Ägg för hela deltäckningen: noden och allt under den. */
+  eggs: number;
+  /** Antal steg som inte går att genomföra. Sorteras på före ägg – aldrig ägg. */
+  broken: number;
+  via?: {
+    a: Node;
+    b: Node;
+    odds: number;
+    pool: number;
+    possible: boolean;
+    genderOk: boolean;
+  };
+}
+
+const opposite = (g: "M" | "F" | "?") => (g === "M" ? "F" : g === "F" ? "M" : null);
+
 /**
- * Bygger en komplett plan: greedy set cover av bärare → merge-ordning med odds,
- * sedan artbyteskedja till target (om satt) med renaste partner per steg.
+ * Bygger en komplett plan: greedy set cover av bärare → billigaste merge-TRÄDET
+ * (se filhuvudet), sedan artbyteskedja till target (om satt) med renaste partner
+ * per steg.
  */
 export function buildPassivePlan(
   data: AppData,
@@ -120,7 +249,8 @@ export function buildPassivePlan(
 
   const plan: PassivePlan = {
     carrierInfo, missing, usable,
-    start: null, mergeSteps: [], lineSpecies: null,
+    start: null, mergeSteps: [], carriersUsed: [], mergeEggs: 0, mergeDetour: null,
+    lineSpecies: null,
     speciesPhase: null, speciesPhaseFailed: false, speciesPhaseShortcut: null,
     expectedEggs: 0, alternatives: [],
   };
@@ -169,136 +299,296 @@ export function buildPassivePlan(
   plan.start = start;
   if (!start) return plan;
 
-  let lineSpecies = start.s;
-  let have = new Set(start.pv.filter((id) => wantedSet.has(id)));
   /**
-   * Linjens *faktiska* passiver, skräpet inräknat. Startpalen är en riktig pal ur
-   * boxen och bär det den bär – räknar vi bara de önskade blir första stegets odds
-   * för höga. Efter ett steg är linjen däremot en unge man kläcker tills den har de
-   * önskade, så då antas den ren (samma antagande som resten av planen vilar på).
+   * En likvärdig individ av motsatt kön. Bärarna väljs enbart på passiver, så
+   * set-covern kan råka plocka två honor – och två honor kan inte avla. Bär
+   * någon annan i boxen samma önskade passiver är den ett fullgott byte, och
+   * renast vinner bland dem.
+   *
+   * `maxJunk` skiljer två olika frågor åt: för att över huvud taget få paret att
+   * avla duger vilken ersättare som helst (en smutsig partner är bättre än
+   * ingen), men för att räkna könet som *gratis* måste bytet vara verkligt
+   * likvärdigt – annars smyger sig skräp in i poolen utan att synas i oddsen.
    */
-  let linePv = new Set(start.pv);
-  let eggs = 0;
-  /**
-   * Könet på linjens individ. Startpalen är en riktig pal ur boxen, så den
-   * FÖRSTA parningen sker mellan två kända individer och måste vara ♂+♀ – annars
-   * blir det ingen parning alls. Efter första kläckningen är linjen en unge vars
-   * kön är slumpat, och då duger vilken partner som helst: man kläcker helt
-   * enkelt tills man får det kön som behövs. Därför nollas det efter ett steg.
-   */
-  let lineGender: "M" | "F" | "?" | null = start.g;
-  const opposite = (g: "M" | "F" | "?") => (g === "M" ? "F" : g === "F" ? "M" : null);
-
-  /**
-   * En likvärdig individ av motsatt kön. Set-covern väljer bärare enbart på
-   * passiver, så den kan råka plocka två honor – och två honor kan inte avla.
-   * Bär någon annan i boxen samma önskade passiver men har rätt kön är den ett
-   * fullgott byte, och renast vinner bland dem.
-   */
-  const sameCoverAlt = (p: ScoredPal, need: "M" | "F" | null): ScoredPal | null => {
+  const altOfGender = (
+    p: ScoredPal,
+    need: "M" | "F" | null,
+    maxJunk = Infinity,
+  ): ScoredPal | null => {
     if (!need) return null;
     const gives = p.pv.filter((id) => wantedSet.has(id));
     return pals
-      .filter((x) => x.g === need && x.id !== p.id && gives.every((id) => x.pv.includes(id)))
+      .filter((x) =>
+        x.g === need && x.id !== p.id && junkOf(x) <= maxJunk &&
+        gives.every((id) => x.pv.includes(id)) &&
+        !selected.some((s) => s.id === x.id))
       .sort((a, b) => junkOf(a) - junkOf(b) || compareParents(a, b, parentPrefs))[0] ?? null;
   };
 
-  // Para ihop bärarna i en ordning där varje steg faktiskt kan avla, om möjligt.
-  const rest = selected.slice(1);
-  while (rest.length) {
-    const canBreed = (c: ScoredPal) => childrenOf(data, lineSpecies, c.s).length > 0;
-    const needG = lineGender ? opposite(lineGender) : null;
-    // Först en som både kan avla OCH har rätt kön; annars vilken som kan avla.
-    let idx = rest.findIndex((c) => canBreed(c) && (!needG || c.g === needG));
-    if (idx < 0) idx = rest.findIndex(canBreed);
-    if (idx < 0) idx = 0; // ingen giltig partner kvar – ta första och flagga steget
-    let carrier = rest.splice(idx, 1)[0]!;
-    /* Fel kön kvar? Byt individ, inte plan: först bäraren mot en likvärdig av
-       motsatt kön, annars startpalen. Först när ingetdera går flaggas steget. */
-    if (needG && carrier.g !== needG) {
-      const altCarrier = sameCoverAlt(carrier, needG);
-      if (altCarrier) {
-        carrier = altCarrier;
-      } else if (plan.mergeSteps.length === 0 && lineGender) {
-        const altStart = sameCoverAlt(start, opposite(carrier.g));
-        if (altStart) {
-          plan.start = altStart;
-          have = new Set(altStart.pv.filter((id) => wantedSet.has(id)));
-          linePv = new Set(altStart.pv);
-          lineSpecies = altStart.s;
-          lineGender = altStart.g;
+  /* ---- Fas 1: billigaste merge-trädet över bärarna ---- */
+
+  const leafOf = (p: ScoredPal, leaves: number): Node => ({
+    leaves,
+    want: new Set(p.pv.filter((id) => wantedSet.has(id))),
+    species: p.s,
+    junk: new Set(p.pv.filter((id) => !wantedSet.has(id))),
+    pal: p,
+    stepEggs: 0, genderEggs: 0, eggs: 0, broken: 0,
+  });
+
+  /**
+   * Två kända individer måste vara ♂ + ♀. Går det inte byts *individ, inte plan*:
+   * en annan pal som bär samma önskade passiver duger lika bra. Först när
+   * ingetdera går flaggas steget i stället för att tigas ihjäl.
+   */
+  const resolvePair = (x: ScoredPal, y: ScoredPal) => {
+    if (x.g !== y.g && x.g !== "?" && y.g !== "?") return { x, y, ok: true };
+    const ax = altOfGender(x, opposite(y.g));
+    if (ax) return { x: ax, y, ok: true };
+    const ay = altOfGender(y, opposite(x.g));
+    if (ay) return { x, y: ay, ok: true };
+    return { x, y, ok: false };
+  };
+
+  const combine = (a: Node, b: Node): Node | null => {
+    let na = a;
+    let nb = b;
+    let genderOk = true;
+    let genderEggs = 0;
+
+    if (a.pal && b.pal) {
+      // Två ägda bärare: könet avgörs av vilka individer man väljer, inte av ägg.
+      const r = resolvePair(a.pal, b.pal);
+      genderOk = r.ok;
+      if (r.x !== a.pal) na = leafOf(r.x, a.leaves);
+      if (r.y !== b.pal) nb = leafOf(r.y, b.leaves);
+    } else if (a.pal || b.pal) {
+      /* En ägd bärare + en unge ur ett tidigare steg. Ungens kön är slumpat.
+         Finns bäraren i båda könen i boxen väljer man partner efter vad ungen
+         blev – gratis. Annars måste ungen ha ett bestämt kön: en kull till. */
+      const leaf = (a.pal ? a : b).pal!;
+      const derived = a.pal ? b : a;
+      const free = altOfGender(leaf, opposite(leaf.g), junkOf(leaf)) !== null;
+      genderEggs = free ? 0 : derived.stepEggs;
+    } else {
+      // Två mellansteg: jaga kön på den billigare av dem.
+      genderEggs = Math.min(a.stepEggs, b.stepEggs);
+    }
+
+    const want = new Set([...na.want, ...nb.want]);
+    // Union av mängderna, inte summa av antal: bär båda samma skräp-passiv ligger
+    // den bara en gång i poolen.
+    const pool = new Set([...want, ...na.junk, ...nb.junk]).size;
+    const odds = inheritOdds(want.size, pool);
+    if (odds <= 0) return null;
+
+    /* Linjen är den sida som bär flest önskade – det är den som "fortsätter" när
+       paret inte kan avla, precis som den linjära planen gjorde. */
+    const line = nb.want.size > na.want.size ? nb : na;
+    const kids = childrenOf(data, na.species, nb.species);
+    const possible = kids.length > 0;
+    const stepEggs = 1 / odds;
+
+    return {
+      leaves: a.leaves | b.leaves,
+      want,
+      species: kids[0]?.c ?? line.species,
+      junk: new Set<string>(),
+      pal: null,
+      stepEggs, genderEggs,
+      eggs: na.eggs + nb.eggs + stepEggs + genderEggs,
+      broken: na.broken + nb.broken + (possible ? 0 : 1) + (genderOk ? 0 : 1),
+      via: { a: na, b: nb, odds, pool, possible, genderOk },
+    };
+  };
+
+  /** Trasiga steg först bort, sedan billigast, sedan färst steg. */
+  const rank = (x: Node, y: Node) =>
+    x.broken - y.broken || x.eggs - y.eggs || countSteps(x) - countSteps(y);
+
+  const n = selected.length;
+  const full = (1 << n) - 1;
+  const table = new Map<number, Node[]>();
+  selected.forEach((p, i) => table.set(1 << i, [leafOf(p, 1 << i)]));
+
+  for (let mask = 1; mask <= full; mask++) {
+    if (table.has(mask)) continue; // löven är redan lagda
+    const out: Node[] = [];
+    // Dela upp i två icke-tomma delmängder. `sub < mask` alltid, så alla delar
+    // är färdigräknade när masken nås.
+    for (let sub = (mask - 1) & mask; sub; sub = (sub - 1) & mask) {
+      const other = mask ^ sub;
+      if (sub > other) continue;
+      for (const x of table.get(sub) ?? []) {
+        for (const y of table.get(other) ?? []) {
+          const node = combine(x, y);
+          if (node) out.push(node);
         }
       }
     }
-    const genderOk = !lineGender || carrier.g === opposite(lineGender);
-    // Union av mängderna, inte summa av antal: bär båda samma skräp-passiv ligger
-    // den bara en gång i poolen.
-    const union = new Set([...linePv, ...carrier.pv]).size;
-    const haveAfter = new Set([...have, ...carrier.pv.filter((id) => wantedSet.has(id))]);
-    const odds = inheritOdds(haveAfter.size, union);
-    eggs += odds > 0 ? 1 / odds : 0;
-    const child = childrenOf(data, lineSpecies, carrier.s);
-    const possible = child.length > 0;
-    const childSpecies = child[0]?.c ?? lineSpecies;
-    plan.mergeSteps.push({
-      lineSpecies, carrier, childSpecies, haveAfter: [...haveAfter], odds, possible, genderOk,
-    });
-    lineSpecies = childSpecies;
-    have = haveAfter;
-    linePv = new Set(haveAfter);
-    lineGender = null; // ungens kön är slumpat – kläck tills det stämmer
+    /* Bara den billigaste noden per landningsart behövs: allt ovanför beror på
+       arten, inte på vägen dit. Arten sparas i stället för att slås ihop, för
+       fas 2 kostar väldigt olika mycket från olika arter. */
+    const bySpecies = new Map<number, Node>();
+    for (const node of out.sort(rank)) {
+      if (!bySpecies.has(node.species)) bySpecies.set(node.species, node);
+    }
+    table.set(mask, [...bySpecies.values()].slice(0, NODES_PER_MASK));
   }
-  plan.lineSpecies = lineSpecies;
 
-  if (target !== null && lineSpecies !== target) {
-    const k = usable.length;
-    // Renast möjliga partner per art – varje extra passiv hos partnern hamnar i
-    // poolen. Memoiserad, för sökningen nedan frågar om samma art hundratals gånger.
-    const partnerCache = new Map<string, ScoredPal | null>();
-    /** `first` = linjen är fortfarande startpalen, så partnern måste ha motsatt kön. */
-    const partnerFor = (s: number, first: boolean): ScoredPal | null => {
-      const need = first && lineGender ? opposite(lineGender) : null;
-      const key = `${s}|${need ?? "*"}`;
-      const hit = partnerCache.get(key);
-      if (hit !== undefined) return hit;
-      const list = pals
-        .filter((x) => x.s === s)
-        .sort((a, b) => compareParents(a, b, parentPrefs));
-      // Rätt kön först; finns inget sådant tas den renaste ändå och steget flaggas.
-      const p = (need ? list.find((x) => x.g === need) : undefined) ?? list[0] ?? null;
-      partnerCache.set(key, p);
-      return p;
-    };
-    /* Poolen är unionen av linjens och partnerns passiver – bär partnern en passiv
-       linjen redan har växer poolen inte. Första steget utgår från `linePv`, som
-       kan innehålla startpalens eget skräp; därefter är linjen en ren unge. */
-    const stepPool = (s: number, first: boolean) => {
-      const p = partnerFor(s, first);
-      const pool = new Set<string>(first ? linePv : usable);
-      p?.pv.forEach((id) => pool.add(id));
-      return pool.size;
-    };
-    const stepOdds = (s: number, first: boolean) => inheritOdds(k, stepPool(s, first));
-    const stepEggs = (s: number, first: boolean) => {
-      const o = stepOdds(s, first);
-      return o > 0 ? 1 / o : Infinity;
-    };
-    const chainEggs = (st: ChainStep[]) =>
-      st.reduce((n, x, i) => n + stepEggs(x.with, i === 0), 0);
+  const roots = (table.get(full) ?? []).slice().sort(rank);
+  if (!roots.length) return plan;
 
+  /* ---- Fas 2: artkedja till målet ----
+     Kostnaden räknas *innan* roten väljs: olika träd landar i olika arter, och
+     vägen därifrån till målet kan skilja mer än hela fas 1. Att välja rot på
+     enbart fas 1 vore att optimera halva planen. */
+
+  /**
+   * Linjens egna passiver när fas 2 börjar. Sker minst en merge är linjen en
+   * unge man kläckt tills den bär de önskade – alltså ren och med slumpat kön.
+   * Räcker en enda bärare hela vägen är linjen fortfarande den ägda palen, med
+   * sitt eget skräp och sitt eget kön.
+   */
+  const merged = n > 1;
+  const linePv = merged ? new Set(usable) : new Set(start.pv);
+  const lineGender: "M" | "F" | "?" | null = merged ? null : start.g;
+  const k = usable.length;
+
+  // Renast möjliga partner per art – varje extra passiv hos partnern hamnar i
+  // poolen. Memoiserad, för sökningen nedan frågar om samma art hundratals gånger.
+  const partnerCache = new Map<string, ScoredPal | null>();
+  /** `first` = linjen är fortfarande startpalen, så partnern måste ha motsatt kön. */
+  const partnerFor = (s: number, first: boolean): ScoredPal | null => {
+    const need = first && lineGender ? opposite(lineGender) : null;
+    const key = `${s}|${need ?? "*"}`;
+    const hit = partnerCache.get(key);
+    if (hit !== undefined) return hit;
+    const list = pals
+      .filter((x) => x.s === s)
+      .sort((a, b) => compareParents(a, b, parentPrefs));
+    // Rätt kön först; finns inget sådant tas den renaste ändå och steget flaggas.
+    const p = (need ? list.find((x) => x.g === need) : undefined) ?? list[0] ?? null;
+    partnerCache.set(key, p);
+    return p;
+  };
+  /* Poolen är unionen av linjens och partnerns passiver – bär partnern en passiv
+     linjen redan har växer poolen inte. */
+  const stepPool = (s: number, first: boolean) => {
+    const p = partnerFor(s, first);
+    const pool = new Set<string>(first ? linePv : usable);
+    p?.pv.forEach((id) => pool.add(id));
+    return pool.size;
+  };
+  const stepOdds = (s: number, first: boolean) => inheritOdds(k, stepPool(s, first));
+  const stepEggs = (s: number, first: boolean) => {
+    const o = stepOdds(s, first);
+    return o > 0 ? 1 / o : Infinity;
+  };
+  const chainEggs = (st: ChainStep[]) =>
+    st.reduce((n2, x, i) => n2 + stepEggs(x.with, i === 0), 0);
+
+  /** Billigaste artkedjan från en art, memoiserad – varje uppslag är en Dijkstra. */
+  const chainCache = new Map<number, ChainStep[] | null>();
+  const chainFrom = (from: number): ChainStep[] | null => {
+    if (target === null || from === target) return [];
+    const hit = chainCache.get(from);
+    if (hit !== undefined) return hit;
     // Billigast i ägg, inte färst steg: ett steg med en partner som bär fyra
     // skräp-passiver kan kosta mer än en hel längre kedja med rena partners.
     const steps =
-      solveChainCheapest(data, ownedSpecies, lineSpecies, target, stepEggs, 10) ??
-      solveChain(data, ownedSpecies, lineSpecies, target, 10);
-    if (!steps) {
+      solveChainCheapest(data, ownedSpecies, from, target, stepEggs, MAX_DEPTH) ??
+      solveChain(data, ownedSpecies, from, target, MAX_DEPTH);
+    chainCache.set(from, steps);
+    return steps;
+  };
+
+  const cheapest = roots[0]!;
+  let root = cheapest;
+  let chain = chainFrom(root.species);
+  if (target !== null && roots.length > 1) {
+    const cheapestTotal = chain ? root.eggs + chainEggs(chain) : Infinity;
+    let bestTotal = cheapestTotal;
+    for (const cand of roots.slice(1, ROOT_CANDIDATES)) {
+      if (cand.broken > root.broken) break; // roots är sorterad – trasigt blir aldrig bättre
+      const c = chainFrom(cand.species);
+      if (!c) continue;
+      const total = cand.eggs + chainEggs(c);
+      if (total < bestTotal - 1e-9) {
+        bestTotal = total;
+        root = cand;
+        chain = c;
+      }
+    }
+    /* Bara när omvägen faktiskt är värd en förklaring. Under ett ägg är det
+       avrundningsbrus, och en ruta som förklarar noll är bara mer text. */
+    if (root !== cheapest && Number.isFinite(cheapestTotal) &&
+        cheapestTotal - bestTotal >= MIN_DETOUR_SAVING) {
+      plan.mergeDetour = { cheapestEggs: cheapest.eggs, saves: cheapestTotal - bestTotal };
+    }
+  }
+
+  /* ---- Vik ut trädet till en numrerad stegordning ----
+     Post-order: föräldrarna får alltid lägre nummer än steget som använder dem,
+     så listan går att läsa uppifrån och ner utan att bläddra. */
+  const stepNo = new Map<Node, number>();
+  const used: ScoredPal[] = [];
+  const walk = (node: Node): void => {
+    if (!node.via) {
+      if (node.pal) used.push(node.pal);
+      return;
+    }
+    walk(node.via.a);
+    walk(node.via.b);
+    const num = plan.mergeSteps.length + 1;
+    stepNo.set(node, num);
+    const desc = (x: Node): MergeParent => ({
+      pal: x.pal,
+      fromStep: x.pal ? undefined : stepNo.get(x),
+      species: x.species,
+      gives: [...x.want],
+    });
+    plan.mergeSteps.push({
+      n: num,
+      a: desc(node.via.a), b: desc(node.via.b),
+      childSpecies: node.species,
+      haveAfter: [...node.want],
+      pool: node.via.pool,
+      odds: node.via.odds,
+      eggs: node.stepEggs + node.genderEggs,
+      genderEggs: node.genderEggs,
+      possible: node.via.possible,
+      genderOk: node.via.genderOk,
+    });
+  };
+  walk(root);
+
+  /* Bärarkorten överst måste peka ut de individer trädet faktiskt använder.
+     Set-covern väljer bärare enbart på passiver, så `resolvePair` kan ha bytt
+     ut en av dem mot en av motsatt kön – och då pekade korten tidigare på en
+     pal planen aldrig rör. */
+  plan.carriersUsed = used;
+  for (const c of carrierInfo) {
+    const actual = used.find((p) => p.pv.includes(c.passiveId));
+    if (actual) {
+      c.chosen = actual;
+      c.covers = coverOf(actual);
+    }
+  }
+  plan.start = used.reduce<ScoredPal>((best, p) => (coverOf(p) > coverOf(best) ? p : best), start);
+  plan.mergeEggs = root.eggs;
+  plan.lineSpecies = root.species;
+  let eggs = root.eggs;
+
+  if (target !== null && root.species !== target) {
+    if (!chain) {
       plan.speciesPhaseFailed = true;
     } else {
       // Vad den kortaste vägen hade kostat – bara för att kunna motivera omvägen.
-      const short = solveChain(data, ownedSpecies, lineSpecies, target, 10);
-      if (short && short.length < steps.length) {
+      const short = solveChain(data, ownedSpecies, root.species, target, MAX_DEPTH);
+      if (short && short.length < chain.length) {
         const shortEggs = chainEggs(short);
-        if (shortEggs > chainEggs(steps) * 1.2) {
+        if (shortEggs > chainEggs(chain) * 1.2) {
           /* Vilket steg på den korta vägen är det som gör den dyr? Nästan alltid
              ett enda: en partner som släpar med skräp. Kan man fånga en ren av
              just den arten blir den korta vägen plötsligt den billiga. */
@@ -309,12 +599,12 @@ export function buildPassivePlan(
             if (!worst || j > worst.junk) worst = { s: st.with, junk: j };
           }
           // Samma kedja, men den värsta partnern utbytt mot en ren (pool = k).
-          const eggsIfClean = short.reduce((n, st, i) => {
+          const eggsIfClean = short.reduce((n2, st, i) => {
             if (worst && st.with === worst.s) {
               const o = inheritOdds(k, i === 0 ? new Set([...linePv, ...usable]).size : k);
-              return n + (o > 0 ? 1 / o : Infinity);
+              return n2 + (o > 0 ? 1 / o : Infinity);
             }
-            return n + stepEggs(st.with, i === 0);
+            return n2 + stepEggs(st.with, i === 0);
           }, 0);
           plan.speciesPhaseShortcut = {
             steps: short.length, eggs: shortEggs,
@@ -323,7 +613,7 @@ export function buildPassivePlan(
           };
         }
       }
-      plan.speciesPhase = steps.map((st, i) => {
+      plan.speciesPhase = chain.map((st, i) => {
         const first = i === 0;
         const odds = stepOdds(st.with, first);
         eggs += odds > 0 ? 1 / odds : 0;
@@ -344,8 +634,13 @@ export function buildPassivePlan(
      alls är totalen ingen ärlig jämförelsepunkt – då hoppas de över. */
   if (!plan.speciesPhaseFailed) {
     plan.alternatives = findAltRoutes(
-      data, pals, ownedSpecies, usable, target, eggs, lineSpecies, parentPrefs,
+      data, pals, ownedSpecies, usable, target, eggs, root.species, parentPrefs,
     );
   }
   return plan;
+}
+
+/** Antal parningar i deltäckningen – tiebreak när två träd kostar lika mycket. */
+function countSteps(node: Node): number {
+  return node.via ? 1 + countSteps(node.via.a) + countSteps(node.via.b) : 0;
 }

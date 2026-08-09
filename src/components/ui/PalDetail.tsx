@@ -165,7 +165,7 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
       <div className="pd-pgrid">
         {pal.pv.length ? (
           pal.pv.map((id) => (
-            <PassiveRow key={id} name={data.passives[id]?.n ?? id} tier={data.passives[id]?.r ?? 0} />
+            <PassiveRow key={id} id={id} name={data.passives[id]?.n ?? id} tier={data.passives[id]?.r ?? 0} />
           ))
         ) : (
           <div className="meta">Inga passiver</div>

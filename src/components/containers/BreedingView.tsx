@@ -5,11 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
 import {
-  bestParentPair, buildTree, childrenOf, eggsText, isReachable,
-  oddsText, pairQuality, solveChain,
+  bestParentPair, buildTree, childrenOf, eggsText, exactOdds, isReachable,
+  oddsText, pairQuality, RANDOM_EXTRA_ODDS, solveChain,
 } from "@/lib/breeding";
 import type { IvGoal, ParentPrefs } from "@/lib/breeding";
 import { buildPassivePlan } from "@/lib/passivePlan";
+import type { PassivePlan } from "@/lib/passivePlan";
 import { suggestShortcuts } from "@/lib/shortcuts";
 import {
   IV_LABELS, ivEggsText, ivOddsText, planPerfectIv,
@@ -22,15 +23,17 @@ import {
   BREEDING_PREFS_KEY, emptyBreedingPrefs, hasBreedingPrefs, MAX_WANTED,
   parseBreedingPrefs, serializeBreedingPrefs, type BreedingPrefs,
 } from "@/lib/breedingPrefs";
+import { planBreedSetup, spanText, CAP_FREE, eggSeconds } from "@/lib/breedRate";
 import type { AppData, BreedTree, ScoredPal, WorkType } from "@/lib/types";
 import { AltRouteBlock } from "@/components/ui/AltRouteBlock";
 import { OddsBadge, OkBox, SpeciesMini, StepCard, WarnBox } from "@/components/ui/BreedBits";
+import { BreedSetupPanel } from "@/components/ui/BreedSetup";
 import { GoalCard } from "@/components/ui/GoalCard";
 import { PalPicker } from "@/components/ui/PalPicker";
 import { PassivePicker } from "@/components/ui/PassivePicker";
 import { PurposePicker } from "@/components/ui/PurposePicker";
-import { PassiveChips, PassiveRow } from "@/components/ui/PassiveRow";
-import { Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
+import { PassiveChips, PassiveNames, PassiveRow } from "@/components/ui/PassiveRow";
+import { DeckNo, ElementIcons, Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
 import { PalIdent } from "@/components/ui/PalIdent";
 import { Shortcuts } from "@/components/ui/Shortcuts";
 
@@ -57,6 +60,44 @@ function writePrefs(prefs: BreedingPrefs): void {
       localStorage.removeItem(BREEDING_PREFS_KEY);
     }
   } catch { /* privat läge – strunt samma */ }
+}
+
+/**
+ * Planens odds är "minst de önskade". Frågan man faktiskt ställer sig vid
+ * kläckaren är "exakt de önskade", och den är alltid lägre: spelet slår ett
+ * andra tärningsslag som lägger till helt slumpade passiver i 35 % av alla ägg.
+ * Utan den här noten ser skillnaden ut som otur i stället för som en regel.
+ */
+function ExactNote({ plan }: { plan: PassivePlan }) {
+  const steps = plan.speciesPhase;
+  const last = steps && steps.length > 0 ? steps[steps.length - 1]! : null;
+  if (!last) return null;
+  const k = plan.usable.length;
+  if (k === 0) return null;
+
+  const exact = exactOdds(k, last.pool);
+  // Med fyra önskade finns ingen ledig plats kvar, så inget kan läggas till.
+  const noRoom = k >= 4;
+
+  return (
+    <div className="hint">
+      Oddsen ovan är chansen att ungen får <b>minst</b> de önskade passiverna.{" "}
+      {noRoom ? (
+        <>
+          Med fyra önskade finns ingen ledig plats kvar, så där är <b>exakt</b> samma
+          sak som <b>minst</b> – blir det fyra rätt kan inget skräp följa med.
+        </>
+      ) : (
+        <>
+          Vill du ha <b>exakt</b> dem och inget mer är sista steget{" "}
+          <b>{oddsText(exact)} per ägg</b> ({eggsText(exact)}), eftersom spelet slumpar in
+          minst en extra passiv i {Math.round(RANDOM_EXTRA_ODDS * 100)} % av alla ägg –
+          oberoende av hur ren poolen är. Det går alltså inte att avla bort, bara att
+          kläcka förbi.
+        </>
+      )}
+    </div>
+  );
 }
 
 export function BreedingView() {
@@ -245,6 +286,23 @@ export function BreedingView() {
     return buildTree(target, freeSolve.from, ownedSpecies);
   }, [base, target, freeSolve, ownedSpecies]);
 
+  /* Avelstakten hänger inte på planen – den gäller varje ägg oavsett mål – men
+     den är det som översätter "~545 ägg" till en kväll eller en vecka. */
+  const setup = useMemo(() => planBreedSetup(data, pals), [data, pals]);
+  /* Ägg → tid, i den takt boxen faktiskt har och i den den skulle kunna ha.
+     Jämförelsetaket är CAP_FREE, inte spelets absoluta: `eggs` är räknat med
+     RENA föräldrar, och det absoluta taket förutsätter Philanthropist på båda,
+     alltså en skräp-passiv i arvspoolen. Att gånga en ren äggsiffra med en
+     smutsig takt hade lovat en kväll ingen kan få. */
+  const eggTime = (eggs: number) => (
+    <>
+      ≈{spanText(eggs * setup.seconds)}
+      {setup.rate < CAP_FREE && (
+        <span className="bsdim"> · ≈{spanText(eggs * eggSeconds(CAP_FREE))} med maxad avelsbas</span>
+      )}
+    </>
+  );
+
   return (
     <>
       <div className="planhd">
@@ -260,6 +318,15 @@ export function BreedingView() {
           Rensa allt
         </button>
       </div>
+
+      <BreedSetupPanel
+        setup={setup}
+        wanted={wanted.length}
+        speciesOf={sp}
+        passiveName={pName}
+        passiveTier={pTier}
+        onPickTarget={setTarget}
+      />
 
       <div className="pickrow">
         <div className="pickcol">
@@ -361,13 +428,16 @@ export function BreedingView() {
               wanted.map((id) => (
                 <PassiveRow
                   key={id}
+                  id={id}
                   name={data.passives[id]?.n ?? id}
                   tier={data.passives[id]?.r ?? 0}
                   suffix={
                     <button
                       type="button"
                       className="rm"
-                      title="Ta bort"
+                      /* aria-label, inte title: bannern har redan hover-rutan med
+                         vad passiven gör, och två tooltips krockar. */
+                      aria-label="Ta bort"
                       onClick={() => setWanted((w) => w.filter((x) => x !== id))}
                     >
                       ✕
@@ -431,6 +501,8 @@ export function BreedingView() {
         <span className="mini" title={palShort(p.pal, sp(p.pal.s).name)}>
           <SpeciesIcon sp={sp(p.pal.s)} size={22} radius={7} />
           {sp(p.pal.s).name}
+          <ElementIcons sp={sp(p.pal.s)} size={14} />
+          <DeckNo sp={sp(p.pal.s)} />
           <span className="q">{p.pal.g === "M" ? "♂" : "♀"}</span>
           <span className="o">{p.pal.iv.join("/")}</span>
           {p.junk > 0 && <span className="jk">+{p.junk} skräp</span>}
@@ -505,6 +577,8 @@ export function BreedingView() {
                         <span key={p.id} className="mini">
                           <SpeciesIcon sp={sp(p.s)} size={22} radius={7} />
                           {sp(p.s).name}
+                          <ElementIcons sp={sp(p.s)} size={14} />
+                          <DeckNo sp={sp(p.s)} />
                           <span className="q">{p.g === "M" ? "♂" : "♀"}</span>
                           <span className="o">{p.pv.length ? `${p.pv.length} passiver` : "ren"}</span>
                         </span>
@@ -528,7 +602,11 @@ export function BreedingView() {
         {perfect.missingPassives.length > 0 && (
           <WarnBox>
             Ingen av dina {name} bär{" "}
-            <b>{perfect.missingPassives.map((id) => data.passives[id]?.n ?? id).join(", ")}</b>.
+            <b>
+              <PassiveNames
+                items={perfect.missingPassives.map((id) => ({ id, name: pname(id) }))}
+              />
+            </b>.
             Den måste hämtas in från en annan art först – se passiv-planen nedan. Planen här
             räknar bara på det som faktiskt går att ärva inom arten.
           </WarnBox>
@@ -576,7 +654,9 @@ export function BreedingView() {
               <div className="col">
                 <span className="k">Etappvis</span>
                 <b>{ivEggsText(1 / perfect.totalEggs)}</b>
-                <span className="hint">totalt över {perfect.steps.length} steg</span>
+                <span className="hint">
+                  totalt över {perfect.steps.length} steg · {eggTime(perfect.totalEggs)}
+                </span>
               </div>
               {perfect.direct && (
                 <>
@@ -600,7 +680,7 @@ export function BreedingView() {
               )}
             </div>
             <div className="hint">
-              Uppskattningar utan mutationer. <b>Kön räknas in</b>: en unge ur ett tidigare steg
+              Uppskattningar. <b>Kön räknas in</b>: en unge ur ett tidigare steg
               som måste ha ett bestämt kön kostar i snitt dubbelt, eftersom könet är slumpat.
               Steg som delar föräldrapar hämtar dessutom sina ungar ur <b>samma kull</b> och
               räknas därför bara en gång.
@@ -630,7 +710,7 @@ export function BreedingView() {
     return (
       <Section
         title="Passiv-plan"
-        sub="Så samlar du ihop passiverna innan (eller medan) du byter art. Odds = chansen att barnet ärver alla önskade i steget (utan mutationer)."
+        sub="Så samlar du ihop passiverna innan (eller medan) du byter art. Odds = chansen att barnet ärver alla önskade i steget – extra passiver kan följa med, se noten under planen."
       >
         {/* Ett kort per BÄRARE, inte per passiv. Täcker en och samma pal alla
             önskade – vilket är det bästa utfallet – blev det tidigare tre
@@ -659,7 +739,7 @@ export function BreedingView() {
           })}
           {plan.carrierInfo.filter((c) => !c.chosen).map((c) => (
             <div key={c.passiveId} className="stepcard" style={{ margin: 0 }}>
-              <PassiveRow name={pName(c.passiveId)} tier={pTier(c.passiveId)} />
+              <PassiveRow id={c.passiveId} name={pName(c.passiveId)} tier={pTier(c.passiveId)} />
               <div className="hint bad" style={{ marginTop: 7 }}>
                 Ingen i boxen har denna – kan inte planeras (endast slumpmutation vid kläckning).
               </div>
@@ -691,39 +771,92 @@ export function BreedingView() {
                 Alla valda passiver finns redan på <b>{palShort(plan.start, sp(plan.start.s).name)}</b> – gå direkt till art-fasen nedan.
               </OkBox>
             )}
-            {plan.mergeSteps.length > 0 && plan.start && (
+            {plan.mergeSteps.length > 0 && (
               <>
-                <h3 className="phase">Fas 1 · Samla passiverna ({plan.mergeSteps.length + 1} bärare)</h3>
-                <StepCard num="Start">
-                  <SpeciesMini sp={sp(plan.start.s)} badge="BÄRARE" />
-                  <span className="meta">{palShort(plan.start, sp(plan.start.s).name)}</span>
-                </StepCard>
-                {plan.mergeSteps.map((st, k) => (
-                  <StepCard
-                    key={k} num={k + 1}
-                    hint={
-                      st.possible
-                        ? <>
-                            {!st.genderOk && (
-                              <span className="warn-inline">
-                                ⚠ Båda är {st.carrier.g === "M" ? "hanar" : "honor"} – paret kan inte avla.
-                                Skaffa en av motsatt kön, eller använd en annan bärare.{" "}
-                              </span>
-                            )}
-                            Kläck tills du får en unge med precis det här – helst utan skräp.
-                            <Chips ids={st.haveAfter} label="Mål i steget: barn med" />
-                            <Ident pal={st.carrier} label="Bärare i steget" />
-                          </>
-                        : <span className="warn-inline">⚠ Detta par kan inte avla (legendarer avlar bara med sin egen art). Flytta passiven via en mellanpal:
-                            para {sp(st.carrier.s).name} med sin egen art och använd avkomman, eller välj en annan bärare av passiven.</span>
-                    }
-                  >
-                    <SpeciesMini sp={sp(st.lineSpecies)} badge={k === 0 ? "START" : `STEG ${k}`} badgeClass="q" />＋
-                    <SpeciesMini sp={sp(st.carrier.s)} badge="BÄRARE" />→
-                    {st.possible ? <SpeciesMini sp={sp(st.childSpecies)} /> : <span className="warn-inline">✕ inget barn</span>}
-                    <OddsBadge odds={oddsText(st.odds)} eggs={eggsText(st.odds)} />
-                  </StepCard>
-                ))}
+                <h3 className="phase">Fas 1 · Samla passiverna ({plan.carriersUsed.length} bärare)</h3>
+                {/* Varför ordningen ser ut som den gör. Utan förklaringen ser den
+                    godtycklig ut, och det är precis den som gör planen billig.
+                    Två fall, och rutan får bara påstå det som stämmer för just
+                    den här planen. */}
+                {plan.mergeSteps.some((st) => !st.a.pal && !st.b.pal) && (
+                  <OkBox>
+                    <b>Para ihop två och två.</b> Sista steget kostar lika mycket hur du än
+                    kommer dit – poolen är ändå dina {plan.usable.length} önskade. Skillnaden
+                    ligger i vägen fram: bygger du en förälder med tre passiver först
+                    (~3 ägg) blir det dyrare än att bygga <i>två</i> föräldrar med två
+                    passiver var (~2 ägg styck). Därför slår planen ihop bärarna parvis och
+                    möts på mitten.
+                  </OkBox>
+                )}
+                {plan.mergeDetour && (
+                  <OkBox>
+                    <b>Ordningen är vald på hela planen, inte på fas 1.</b>{" "}
+                    {/* Två fall: den andra ordningen är billigare i fas 1, eller
+                        kostar lika mycket men landar i en annan art. Att skriva
+                        "~15 ägg i stället för ~15" i det andra fallet är brus. */}
+                    {plan.mergeDetour.cheapestEggs < plan.mergeEggs - 0.5 ? (
+                      <>
+                        En annan ihopslagning hade kostat{" "}
+                        <b>~{Math.ceil(plan.mergeDetour.cheapestEggs)} ägg</b> här i stället för{" "}
+                        <b>~{Math.ceil(plan.mergeEggs)}</b>, men den landar i en art som ligger
+                        längre från {target !== null ? sp(target).name : "målet"}.
+                      </>
+                    ) : (
+                      <>
+                        Bärarna går att para ihop på flera sätt som kostar lika mycket här, men
+                        de landar i olika arter – den här hamnar närmast{" "}
+                        {target !== null ? sp(target).name : "målet"}.
+                      </>
+                    )}{" "}
+                    Vägen nedan sparar <b>~{Math.round(plan.mergeDetour.saves)} ägg</b> totalt,
+                    eftersom artkedjan efteråt blir kortare.
+                  </OkBox>
+                )}
+                {plan.mergeSteps.map((st) => {
+                  const parents = [st.a, st.b];
+                  const owned = parents.filter((p) => p.pal);
+                  const clash = !st.genderOk && st.a.pal && st.b.pal;
+                  return (
+                    <StepCard
+                      key={st.n} num={st.n}
+                      hint={
+                        st.possible
+                          ? <>
+                              {clash && (
+                                <span className="warn-inline">
+                                  ⚠ Båda är {st.a.pal!.g === "M" ? "hanar" : "honor"} – paret kan inte avla.
+                                  Skaffa en av motsatt kön, eller använd en annan bärare.{" "}
+                                </span>
+                              )}
+                              Kläck tills du får en unge med precis det här – helst utan skräp.
+                              {st.genderEggs > 0 && (
+                                <> Ungen behöver dessutom ett bestämt kön här, vilket i snitt
+                                  kostar ~{Math.ceil(st.genderEggs)} ägg extra.</>
+                              )}
+                              <Chips ids={st.haveAfter} label="Mål i steget: barn med" />
+                              {owned.map((p) => (
+                                <Ident key={p.pal!.id} pal={p.pal!} label="Bärare i steget" />
+                              ))}
+                            </>
+                          : <span className="warn-inline">⚠ Detta par kan inte avla (legendarer avlar bara med sin egen art). Flytta passiven via en mellanpal:
+                              para {sp(st.a.species).name} med sin egen art och använd avkomman, eller välj en annan bärare av passiven.</span>
+                      }
+                    >
+                      <SpeciesMini
+                        sp={sp(st.a.species)}
+                        badge={st.a.pal ? "BÄRARE" : `STEG ${st.a.fromStep}`}
+                        badgeClass={st.a.pal ? "o" : "q"}
+                      />＋
+                      <SpeciesMini
+                        sp={sp(st.b.species)}
+                        badge={st.b.pal ? "BÄRARE" : `STEG ${st.b.fromStep}`}
+                        badgeClass={st.b.pal ? "o" : "q"}
+                      />→
+                      {st.possible ? <SpeciesMini sp={sp(st.childSpecies)} /> : <span className="warn-inline">✕ inget barn</span>}
+                      <OddsBadge odds={oddsText(st.odds)} eggs={eggsText(st.odds)} />
+                    </StepCard>
+                  );
+                })}
               </>
             )}
             {target !== null && plan.lineSpecies === target && (
@@ -733,6 +866,23 @@ export function BreedingView() {
               <WarnBox>
                 Hittade ingen kedja från {plan.lineSpecies !== null ? sp(plan.lineSpecies).name : "?"} till {sp(target).name} med dina ägda pals som partners – prova fritt läge nedan.
               </WarnBox>
+            )}
+            {/* Tillägg, inte ersättning: planen står kvar precis som den är.
+                Den ligger mellan faserna med flit – alternativet byter ut hela
+                planen, inte ett steg, så det ska läsas *innan* man ger sig in i
+                artkedjan. Sist på sidan, efter totalen, kom det fram först när
+                man redan bestämt sig. */}
+            {target !== null && (
+              <AltRouteBlock
+                routes={plan.alternatives}
+                speciesOf={sp}
+                nameOf={pName}
+                tierOf={pTier}
+                target={target}
+                planEggs={plan.expectedEggs}
+                oddsText={oddsText}
+                eggsText={eggsText}
+              />
             )}
             {plan.speciesPhase && target !== null && (
               <>
@@ -777,23 +927,12 @@ export function BreedingView() {
             )}
             {plan.expectedEggs > 0 && (
               <OkBox>
-                <b>Totalt: ~{Math.ceil(plan.expectedEggs)} ägg</b> förväntat för hela planen. Tips: håll
-                skräp-passiver borta ur linjen – varje extra passiv i poolen sänker oddsen.
+                <b>Totalt: ~{Math.ceil(plan.expectedEggs)} ägg</b> förväntat för hela planen,{" "}
+                {eggTime(plan.expectedEggs)}. Tips: håll skräp-passiver borta ur linjen –
+                varje extra passiv i poolen sänker oddsen.
               </OkBox>
             )}
-            {/* Tillägg, inte ersättning: planen ovan står kvar precis som den är. */}
-            {target !== null && (
-              <AltRouteBlock
-                routes={plan.alternatives}
-                speciesOf={sp}
-                nameOf={pName}
-                tierOf={pTier}
-                target={target}
-                planEggs={plan.expectedEggs}
-                oddsText={oddsText}
-                eggsText={eggsText}
-              />
-            )}
+            <ExactNote plan={plan} />
           </>
         )}
       </Section>

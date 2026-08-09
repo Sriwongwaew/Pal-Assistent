@@ -53,9 +53,12 @@ function RecRow({ rec, chosen, disabled, onClick }: {
     <button
       type="button"
       className={`prow sm opt ${cls} ${chosen ? "on" : ""}`}
-      disabled={disabled}
-      onClick={onClick}
-      title={`${rec.why || rec.name} · ${rec.carriers} i boxen bär den`}
+      /* aria-disabled, inte disabled: raderna under "saknas i boxen" är alltid
+         avstängda, och en disabled knapp går inte att hovra – då hade man aldrig
+         fått veta vad de bättre passiverna faktiskt gör. */
+      aria-disabled={disabled || undefined}
+      onClick={() => { if (!disabled) onClick(); }}
+      data-passive={rec.id}
     >
       <span className="nm">{rec.name}</span>
       <span className="cnt">{rec.carriers}</span>
@@ -181,7 +184,10 @@ export function PurposePicker({
               </div>
               <ul className="reclist">
                 {picks.map((r) => (
-                  <li key={r.id}><b>{r.name}</b> – {r.why} · {r.carriers} i boxen</li>
+                  <li key={r.id}>
+                    <b className="pname" data-passive={r.id}>{r.name}</b> – {r.why} ·{" "}
+                    {r.carriers} i boxen
+                  </li>
                 ))}
               </ul>
             </>
@@ -197,7 +203,7 @@ export function PurposePicker({
               <span className="k">Ännu bättre, men saknas i boxen</span>
               <div className="prows">
                 {missing.map((r) => (
-                  <div key={r.id} className="missrow" title={r.why}>
+                  <div key={r.id} className="missrow">
                     <RecRow rec={r} chosen={false} disabled onClick={() => undefined} />
                   </div>
                 ))}

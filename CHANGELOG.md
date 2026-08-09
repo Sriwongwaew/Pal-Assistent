@@ -13,6 +13,18 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **Breeding base** at the top of the planner: what actually makes eggs come faster, measured
+  against your own box. Braloha in the base, **Grintale** in the party — every egg you pick up has a
+  50 % chance of yielding an extra one, and that extra egg is its own passive roll, so it counts in
+  full — and **Dynamoff** in the base for shorter incubation. The panel is also what turns the
+  plans' egg counts into hours.
+- **Philanthropist is no longer recommended outright.** The passive has to sit on the exact two pals
+  you are pairing, which means it sits in the inheritance pool — and there it is junk. With four
+  wanted passives it drops the final step from 10 % to 2 % per egg, five times more eggs, against
+  only 2.4× faster egg production: a **net loss**. The panel now computes that trade against the
+  passives you picked and says plainly when it pays off (three wanted or fewer, and free when you
+  are only chasing IVs) and when to leave it alone. The same applies to Insomnia. Time estimates
+  under the plan therefore compare against a ceiling that keeps the pool clean.
 - **The breeding plan now pairs carriers two at a time.** It used to add one wanted passive at a
   time along a single line. Building two parents with two passives each and meeting in the middle
   is cheaper — the final step costs the same either way, but the road there is shorter. Against a

@@ -6,7 +6,10 @@
  * saknas. Rollens passiver kommer ur samma poängsättning som `recommendPassives`,
  * så förslagen är elementanpassade och tar hänsyn till vad du har bärare av.
  */
-import { isElementBoost, PURPOSES, recommendPassives, type PassiveRec, type PurposeId } from "./purpose";
+import {
+  isElementBoost, isStamina, PURPOSES, recommendPassives,
+  type PassiveRec, type PurposeId,
+} from "./purpose";
 import type { AppData, ScoredPal, Species, WorkType } from "./types";
 
 /** Antal platser i en uppsättning – spelet ger en pal högst fyra passiver. */
@@ -51,10 +54,15 @@ export function idealLoadout(
   work: WorkType | null = null,
 ): Loadout {
   const purpose = PURPOSES.find((p) => p.id === purposeId) ?? PURPOSES[0]!;
-  // Hämta en bredare lista än vi ska visa, så det finns något att byta in nedan.
-  const { picks: ranked } = recommendPassives(data, counts, {
+  /* `all`, inte `picks`: `picks` innehåller bara passiver du redan har en bärare
+     av i boxen, och uppsättningen ska visa vad rollen SKA ha. Med `picks` föll
+     varje passiv du inte råkade äga bort tyst – Dimensional Leap (+50 % fart)
+     fanns aldrig bland riddjursförslagen trots att den är rollens bästa passiv.
+     Att man saknar den syns på `carriers: 0` i kortet, inte genom att dölja den. */
+  const { all } = recommendPassives(data, counts, {
     purpose, target: species, work, limit: SLOTS * 3,
   });
+  const ranked = all.slice(0, SLOTS * 3);
   const picks = ranked.slice(0, SLOTS);
 
   /* En anfallsbuild har alltid en elementplats. Rent på poäng hamnar en
@@ -65,6 +73,17 @@ export function idealLoadout(
   if (purposeId === "attack" && !picks.some((r) => isElementBoost(r.id))) {
     const boost = ranked.find((r) => isElementBoost(r.id));
     if (boost) picks.push(boost);
+  }
+
+  /* Samma sak för riddjur, av samma skäl. De fyra bästa på ren fart är
+     Dimensional Leap, Swift, Runner och Legend, och det är också guidernas
+     endgame-uppsättning – men en mount utan uthållighet går ner i gånghastighet
+     så fort mätaren tar slut, och då spelar farten mindre roll. Eternal Engine
+     (+75 % uthållighet) läggs därför till som femte i stället för att kapas
+     bort; vilken av de fem man hoppar över är ett val, inte ett faktum. */
+  if (purposeId === "mount" && !picks.some((r) => isStamina(r.id))) {
+    const stamina = ranked.find((r) => isStamina(r.id));
+    if (stamina) picks.push(stamina);
   }
 
   const have = new Set(pal.pv);

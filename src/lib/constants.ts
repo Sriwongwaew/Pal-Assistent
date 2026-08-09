@@ -5,7 +5,21 @@ export const TIER_WEIGHTS: Record<number, number> = {
   5: 40, 4: 25, 3: 12, 2: 6, 1: 2, 0: 0, [-1]: -8, [-2]: -12, [-3]: -16,
 };
 
-/** Antal pals som krävs per kondenserings-stjärna (1★–4★). */
+/**
+ * Antal pals som krävs per kondenserings-stjärna (1★–4★).
+ *
+ * ⚠️ **De här siffrorna är PRE-1.0 och alltså föråldrade.** 4+16+32+64 = 116,
+ * vilket var kostnaden före 1.0. Palworld 1.0 sänkte full kondensering till
+ * **48 pals totalt** — men Pocketpair har inte publicerat någon fördelning per
+ * stjärna, och 1.0 gjorde om arbetslämpligheten i grunden i stället för att
+ * skala ner den gamla kurvan. Att halvera 4/16/32/64 vore alltså en gissning.
+ *
+ * Rätt siffror står i spelets egen Condenser-ruta, som visar exakt hur många
+ * dubbletter nästa rang kostar i den patch man kör. Byt hit dem när du har
+ * dem — allt på `/rekommendationer` räknas ur den här arrayen, så det är den
+ * enda rad som behöver ändras. Uppdatera testerna i `tests/condense.test.ts`
+ * samtidigt: de har handräknat facit mot just de här värdena.
+ */
 export const STAR_COST = [4, 16, 32, 64] as const;
 
 export const ELEMENT_META: Record<ElementType, { color: string; emoji: string }> = {
@@ -50,6 +64,36 @@ export const ELEMENT_ICON: Record<ElementType, string> = {
   Fire: "fire", Water: "water", Leaf: "grass", Electricity: "electric",
   Ice: "ice", Earth: "ground", Dark: "dark", Dragon: "dragon", Normal: "neutral",
 };
+
+/**
+ * Vad varje art lägger i **ranchen**: [speciesName, vara].
+ *
+ * Handkurerad, precis som `FISHING_PALS` – datasetet innehåller inga
+ * ranch-varor alls, bara `MonsterFarm`-nivån, och nivån säger bara hur snabbt
+ * det kommer. Utan den här tabellen kan appen inte svara på den enda fråga man
+ * ställer sig framför ranchen: *vem ska jag ställa dit för att få X?*
+ *
+ * Varunamnen står på engelska som i spelet, av samma skäl som passiver och
+ * arter gör det – man ska kunna matcha mot menyn utan att översätta.
+ *
+ * **Gissa aldrig hit.** En art utan rad hamnar i "vara okänd" i gränssnittet,
+ * vilket är ärligt; en påhittad vara ser precis lika trovärdig ut som en riktig
+ * och skickar någon till ranchen med fel pal.
+ */
+export const RANCH_DROPS: [string, string][] = [
+  ["Chikipi", "Egg"],
+  ["Mozzarina", "Milk"],
+  ["Beegarde", "Honey"],
+  ["Caprity", "Red Berries"],
+  ["Melpaca", "Wool"],
+  ["Cremis", "Wool"],
+  ["Woolipop", "Cotton Candy"],
+  ["Mau", "Gold Coin"],
+  ["Flambelle", "Flame Organ"],
+  ["Sibelyx", "High Quality Cloth"],
+  ["Vixy", "Pal Sphere"],
+  ["Dumud Gild", "High Quality Pal Oil"],
+];
 
 /** Fiske-hjälpar enligt Palworld 1.0-guider: [speciesName, beskrivning]. */
 export const FISHING_PALS: [string, string][] = [

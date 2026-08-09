@@ -227,6 +227,52 @@ def resolve_root(raw: str | None) -> Path:
 _SCAN_DEPTH = 4
 
 
+def _world_meta(world_dir: Path) -> dict[str, Any]:
+    """Läsbar identitet för en värld, ur `LevelMeta.sav`.
+
+    Utan den här är en värld bara två GUID:er i gränssnittet – mappnamnet
+    ("0D0E75DA…") och kontot ("76561198…"). Har man flera konton eller flera
+    världar på samma dator går de i praktiken inte att skilja åt, och då hjälper
+    det inte att man *får* välja.
+
+    Filen är ~2 kB (mot Level.savs ~27 MB) och innehåller precis det man behöver:
+    världens namn, värdens namn och nivå samt vilken dag det är i spelet. Den är
+    därför billig nog att läsa för varje träff under en scanning.
+
+    Allt är valfritt med flit: en lös kopierad `Level.sav` och vissa
+    server-upplägg saknar `LevelMeta.sav`, och då ska scanningen ge samma svar
+    som förut i stället för att misslyckas.
+    """
+    meta_path = world_dir / "LevelMeta.sav"
+    if not meta_path.is_file():
+        return {}
+    try:
+        from palworld_save_tools.gvas import GvasFile
+        from palworld_save_tools.paltypes import PALWORLD_TYPE_HINTS
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            gvas = GvasFile.read(decompress_sav(meta_path), PALWORLD_TYPE_HINTS, {})
+        save_data = gvas.properties["SaveData"]["value"]
+    except Exception:
+        return {}
+
+    out: dict[str, Any] = {}
+    world_name = _scalar(save_data.get("WorldName"), "") or ""
+    host = _scalar(save_data.get("HostPlayerName"), "") or ""
+    # Spelet tillåter tomma namn; en tom sträng är sämre än att låta bli.
+    if world_name.strip():
+        out["worldName"] = world_name.strip()
+    if host.strip():
+        out["host"] = host.strip()
+    level = _scalar(save_data.get("HostPlayerLevel"))
+    if level:
+        out["hostLevel"] = int(level)
+    day = _scalar(save_data.get("InGameDay"))
+    if day:
+        out["day"] = int(day)
+    return out
+
+
 def scan_saves(root: Path) -> list[dict[str, Any]]:
     """Letar upp alla Level.sav under `root` (hoppar över spelets backup-mappar)."""
     found: list[dict[str, Any]] = []
@@ -259,6 +305,7 @@ def scan_saves(root: Path) -> list[dict[str, Any]]:
                     "size": stat.st_size,
                     "modified": int(stat.st_mtime),
                     "players": len(players),
+                    **_world_meta(world_dir),
                 }
             )
     # Senast spelade världen först – den är nästan alltid den man vill läsa in.

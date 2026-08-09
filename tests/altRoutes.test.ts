@@ -8,15 +8,16 @@
  * pals som tillsammans bär precis de önskade – och inget mer – ger pool = k,
  * den bästa odds som går att få, och ligger dessutom ibland närmare målarten.
  *
- * Facit under är handräknat ur INHERIT_WEIGHTS = 0,4/0,3/0,2/0,1:
- *   inheritOdds(3, 3): bara c ≤ 3 kan dras, norm = 0,4+0,3+0,2 = 0,9
- *                      c = 3: 0,2·C(0,0)/C(3,3) = 0,2   → 0,2/0,9 = 2/9 ≈ 22,2 % → 4,5 ägg
- *   inheritOdds(3, 4): norm = 1,0
- *                      c = 3: 0,2·C(1,0)/C(4,3) = 0,05
- *                      c = 4: 0,1·C(1,1)/C(4,4) = 0,10  → 0,15 = 15 %        → 6,667 ägg
- *   inheritOdds(3, 5): norm = 1,0
- *                      c = 3: 0,2·C(2,0)/C(5,3) = 0,02
- *                      c = 4: 0,1·C(2,1)/C(5,4) = 0,04  → 0,06 = 6 %         → 16,667 ägg
+ * Facit under är handräknat ur spelets tvåslagsmodell: X ∈ 1..4 med vikterna
+ * 0,4/0,3/0,2/0,1, och **hela poolen ärvs när X ≥ poolens storlek**.
+ *   inheritOdds(3, 3): X = 3 och X = 4 ärver båda hela poolen
+ *                      → 0,2 + 0,1          = 0,30 = 30 %       → 3,333 ägg
+ *   inheritOdds(3, 4): X = 3: 0,2·C(1,0)/C(4,3) = 0,05
+ *                      X = 4: hela poolen      = 0,10
+ *                      → 0,15 = 15 %                            → 6,667 ägg
+ *   inheritOdds(3, 5): X = 3: 0,2·C(2,0)/C(5,3) = 0,02
+ *                      X = 4: 0,1·C(2,1)/C(5,4) = 0,04
+ *                      → 0,06 = 6 %                             → 16,667 ägg
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -83,7 +84,7 @@ const pal = (s: number, pv: string[], g: "M" | "F" = "F"): ScoredPal => ({
 const wanted = ["A", "B", "C"];
 const owned = new Set([VENUSA, PARTNER, BOTAN, MELLAN]);
 
-const EGGS_POOL3 = 4.5;
+const EGGS_POOL3 = 1 / 0.3;
 const EGGS_POOL4 = 1 / 0.15;
 
 /** Kens uppställning i miniatyr. Partnerarten bär J1, precis som Eidrolon. */
@@ -115,23 +116,23 @@ describe("alternativ väg – tillägg, inte ersättning", () => {
     const plan = buildPassivePlan(makeData(), kensBox(), owned, wanted, MAL);
     const alt = plan.alternatives[0]!;
 
-    // A,C + B = exakt de tre önskade → pool 3 → 2/9 → 4,5 ägg.
+    // A,C + B = exakt de tre önskade → pool 3 → 0,30 → 3,333 ägg.
     assert.equal(alt.pool, 3);
     assert.equal(alt.cleanAssembly, true);
     assert.deepEqual(alt.poolJunk, []);
-    assert.ok(Math.abs(alt.odds - 2 / 9) < 1e-9, `hopsamlingen ${alt.odds} ≠ 2/9`);
+    assert.ok(Math.abs(alt.odds - 0.3) < 1e-9, `hopsamlingen ${alt.odds} ≠ 0,30`);
     assert.ok(Math.abs(alt.assembleEggs - EGGS_POOL3) < 1e-9);
 
     // Båda kedjestegen går via partnerarten som bär J1 → pool 4 → 6,667 ägg.
     for (const st of alt.chain) assert.ok(Math.abs(st.odds - 0.15) < 1e-9);
     assert.ok(Math.abs(alt.totalEggs - (EGGS_POOL3 + 2 * EGGS_POOL4)) < 1e-9,
-      `alternativet ${alt.totalEggs} ≠ 17,83`);
+      `alternativet ${alt.totalEggs} ≠ 16,67`);
 
     // Huvudplanen: tre steg à pool 4 = 20 ägg. Vinsten är skillnaden.
     assert.ok(Math.abs(plan.expectedEggs - 3 * EGGS_POOL4) < 1e-9,
       `planen ${plan.expectedEggs} ≠ 20`);
     assert.ok(Math.abs(alt.saves - (plan.expectedEggs - alt.totalEggs)) < 1e-9);
-    assert.ok(alt.saves > 2 && alt.saves < 2.2, `vinsten ${alt.saves} ≠ ~2,17 ägg`);
+    assert.ok(alt.saves > 3.3 && alt.saves < 3.4, `vinsten ${alt.saves} ≠ ~3,33 ägg`);
   });
 
   it("tiger när alternativet inte är billigare", () => {

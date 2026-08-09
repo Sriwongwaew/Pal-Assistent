@@ -85,7 +85,7 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
       <div className="gsec">
         <span className="gk">Passiva färdigheter · mål</span>
         <div className="prows">
-          {wanted.map((p) => <PassiveRow key={p.id} name={p.name} tier={p.tier} />)}
+          {wanted.map((p) => <PassiveRow key={p.id} id={p.id} name={p.name} tier={p.tier} />)}
           {/* Tomma platser, inte en kortare lista: det syns direkt att det
               finns plats kvar, precis som i spelets 2×2-panel. */}
           {Array.from({ length: slotsLeft }, (_, i) => (

@@ -5,7 +5,7 @@ import type { Loadout } from "@/lib/loadout";
 import type { Species } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
 import { SpeciesIcon } from "./PalBits";
-import { passiveVisual } from "./PassiveRow";
+import { PassiveNames, passiveVisual } from "./PassiveRow";
 
 export interface LoadoutCardProps {
   species: Species;
@@ -35,8 +35,10 @@ export function LoadoutCard({ species, name, sub, loadout, onPlan }: LoadoutCard
       <div className="lslots">
         {loadout.slots.map((s) => {
           const { cls, color, rank } = passiveVisual(s.tier);
+          /* Ingen `title` här: `why` är samma fx-rad som hover-rutan redan visar,
+             och två tooltips på samma banner slåss om ytan. */
           return (
-            <div key={s.id} className={`prow sm ${cls} ${s.owned ? "" : "gap"}`} title={s.why}>
+            <div key={s.id} className={`prow sm ${cls} ${s.owned ? "" : "gap"}`} data-passive={s.id}>
               <span className="nm">{s.name}</span>
               {s.owned
                 ? <span className="tick" aria-label="har redan">✓</span>
@@ -61,14 +63,14 @@ export function LoadoutCard({ species, name, sub, loadout, onPlan }: LoadoutCard
 
       {loadout.alternates.length > 0 && (
         <div className="lalt">
-          Bär också <b>{loadout.alternates.map((j) => j.name).join(", ")}</b> – bra för rollen,
+          Bär också <b><PassiveNames items={loadout.alternates} /></b> – bra för rollen,
           men får inte plats bland fyra.
         </div>
       )}
 
       {loadout.junk.length > 0 && (
         <div className="ljunk">
-          Onödigt i rollen: <b>{loadout.junk.map((j) => j.name).join(", ")}</b> – hamnar i
+          Onödigt i rollen: <b><PassiveNames items={loadout.junk} /></b> – hamnar i
           arvspoolen och sänker oddsen när du avlar vidare på den.
         </div>
       )}

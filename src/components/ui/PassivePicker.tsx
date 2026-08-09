@@ -20,11 +20,13 @@ export interface PassivePickerProps {
   max?: number;
 }
 
-/** En klickbar passiv-banner. Samma markup som PassiveRow, men som knapp. */
+/** En klickbar passiv-banner. Samma markup som PassiveRow, men som knapp.
+ *  `data-passive` ger hover-rutan med vad passiven gör – den räknar också upp
+ *  bärarna, så den gamla `title` med samma siffra är borttagen. */
 function PassiveOption({
-  name, tier, carriers, selected, disabled, onClick,
+  id, name, tier, carriers, selected, disabled, onClick,
 }: {
-  name: string; tier: number; carriers: number;
+  id: string; name: string; tier: number; carriers: number;
   selected: boolean; disabled: boolean; onClick: () => void;
 }) {
   const { cls, color, rank } = passiveVisual(tier);
@@ -32,9 +34,9 @@ function PassiveOption({
     <button
       type="button"
       className={`prow sm opt ${cls} ${selected ? "on" : ""}`}
-      disabled={disabled}
-      onClick={onClick}
-      title={carriers ? `${carriers} i boxen bär ${name}` : `Ingen i boxen har ${name}`}
+      aria-disabled={disabled || undefined}
+      onClick={() => { if (!disabled) onClick(); }}
+      data-passive={id}
     >
       <span className="nm">{name}</span>
       <span className="cnt">{carriers || "–"}</span>
@@ -112,6 +114,7 @@ export function PassivePicker({
             {g.items.map((o) => (
               <PassiveOption
                 key={o.id}
+                id={o.id}
                 name={o.name}
                 tier={o.tier}
                 carriers={o.carriers}

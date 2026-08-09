@@ -28,21 +28,38 @@ Features by route:
   sätter arten som mål. Under mål-väljaren sitter **Målbild** (`GoalCard`): porträttet av arten
   med de önskade passiverna som banners och tomma platser upp till fyra, IV-målet och
   arbetsremsan. Planen under är steg och odds – den visar aldrig hur *resultatet* ser ut.
-  **Varje art i planeraren bär sina element och sitt Paldeck-nummer** (`SpeciesMini`, art-rutnätet,
-  artförslagen, målbilden) — stegen nämner arter man inte äger, och nästa steg är att slå upp dem
+  **Varje art i planeraren bär sina element och sitt Paldeck-nummer** — `SpeciesMini` (alla
+  plansteg, kombos, artkedjan, fritt läge), art-rutnätet, artförslagen, målbilden, **bärarkorten**
+  (`PalIdent`) och **genvägarna** (`Shortcuts`). Lägger du till en ny plats där en art nämns ska
+  den ha det också: stegen nämner arter man inte äger, och nästa steg är att slå upp dem
   i spelets Paldeck. Art-sökningen matchar därför också element ("fire") och nummer ("134").
   Se `Species.deck` under "Domain gotchas" innan du visar numret någon ny plats.
   Also direct combos, shortest-path "fritt läge" tree, `?target=<speciesIdx>` deep-links
   (used by Bäst för…). Alla val **sparas** (`pa-breeding` i localStorage) så planen finns kvar
   när man varit inne på Boxen; **Rensa allt** överst nollar dem.
-- `/rekommendationer` – **Kondensera nu** överst: ett åtgärdskort per art som redan har nog med
-  dubbletter, rankat på störst vinst. Kortet säger stjärnhoppet (0★ → 2★), hur många som ska matas
-  och hur många boxplatser det frigör, vad exemplaret man behåller är **bra för** (spelets
-  arbetsikoner, "bäst i boxen" i grönt) och vad man bör se upp med innan man matar. Under det
-  **Nästan där** (kompakt rutnät: saknar N till nästa stjärna) och **Spara dessa** (grupperat efter
-  anledning, som förut men i ett rutnät och klickbart för Base Info).
+  Överst sitter **Avelsbas** (`BreedSetup`), hopfälld: uppställningen som gör äggen snabbare
+  – Braloha i basen, Philanthropist på föräldrarna, Broncherry i partyt – mätt mot din egen
+  box (utplacerad? kondenserad? hur många bärare?). Den är därför också det som översätter
+  planernas äggsiffror till tid. Se "Domain gotchas".
+- `/rekommendationer` – en **arbetsordning**, läst uppifrån och ner (formen valdes ur fem
+  förslag 2026-08; korten i rutnät var det som gjorde sidan bökig). Ordningen är innehåll,
+  inte layout:
+  1. **Varningen** (`RecoWarning`) – kondensering går inte att ångra, och appen tar inte
+     ansvar för en matning du gör i spelet. Alltid utfälld, aldrig en `details`.
+  2. **Spara dessa** – vad du *inte* ska mata, grupperat efter anledning (grupperna speglar
+     `applyKeepRules`), hopfällt och tätare än vanliga `dgroup`. Står före kön med flit.
+  3. **Kondensera** – en rad per art: stjärnhopp, antal att mata, platser du får tillbaka och
+     varningsprickar. Utfälld visar raden vem du behåller (passiver, **bra för**) och vad
+     stjärnorna är värda i HP/attack/försvar (`condenseGain`).
+  4. **Nästan där** – arter som saknar några dubbletter till nästa stjärna, plus en hopfälld
+     lista med långt kvar/maxade.
+  Vyn är `RecoView` (state + modellen) och delarna ligger i `RecoBits` (`rs`/`rq`-prefixade
+  klasser).
 - `/bast-for` **Bäst för…** – attack team, base dream-team, best workers per task (own + global,
-  global rows are clickable → breeding plan), fishing pals (Palworld 1.0), fastest mounts.
+  global rows are clickable → breeding plan), **Ranchen – vem lägger vad** (`ranchGuide`,
+  grupperad på varan; se "Domain gotchas"), fishing pals (Palworld 1.0), fastest mounts.
+  Basgänget visar också **var exemplaret står** (`p.c`): laget väljer artens bästa individ, och
+  den ligger oftast kvar i boxen fast en sämre redan är utplacerad.
 
 ## Commands
 
@@ -53,6 +70,7 @@ npm run dev        # http://localhost:3000
 npm run build      # must stay green – always run before delivering
 npm run typecheck  # tsc --noEmit (strict, noUncheckedIndexedAccess)
 npm test           # node:test över src/lib – inga beroenden, kompilerar till tests-dist/
+npm run passive-text  # täckningskoll: har varje passiv i datasetet en svensk beskrivning?
 ```
 
 `npm test` täcker sannolikhetsmatematiken (`perfectPlan`, `inheritOdds`, `condenseReach`) med
@@ -77,7 +95,8 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   `solveFree` shortest-path over all species, `solveChain` base→target BFS,
   `solveChainCheapest` samma kedja men billigast i **ägg** (se "Domain gotchas"),
   `inheritOdds` passive inheritance probability), `passivePlan.ts` (carrier set cover +
-  merge ordering; flags impossible pairs), `best.ts` (team pickers, global rankings),
+  billigaste **merge-trädet** över bärarna, se "Domain gotchas"; flags impossible pairs),
+  `best.ts` (team pickers, global rankings),
   `perfectPlan.ts` (`planPerfectLine` — söker **kortaste vägen** till 100/100/100 + önskade
   passiver; se "Domain gotchas"), `findIvDonors` (arter som bär en saknad 100:a och parar
   tillbaka till samma art),
@@ -85,12 +104,18 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   i stället för en handskriven lista, så nya passiver i datasetet kommer med automatiskt;
   `purposeScore` är den delade poängsättningen och `passiveSynergy` hittar färdiga
   uppsättningar åt spara-reglerna; äger också `isEquipmentOnly`, som `PassivePicker` importerar),
+  `passiveText.ts` (`PASSIVE_TEXT` — vad varje passiv **gör**, på svenska, plus `passiveText`
+  och `tierLabel`; `describeEffects` är fx-raden som `recommendPassives` visar som motivering.
+  Se "Domain gotchas"),
   `condense.ts` (`planCondense` — verdict per art: `now`/`soon`/`hold`/`max`, plus `palUses`
-  och `buildUseIndex` som svarar på "vad är den här palen bra för?"; se "Domain gotchas"),
+  och `buildUseIndex` som svarar på "vad är den här palen bra för?", och `condenseGain` som
+  svarar på "vad är stjärnorna värda?" i spelets egna stats; se "Domain gotchas"),
   `breedingPrefs.ts` (`parseBreedingPrefs`/`serializeBreedingPrefs` — planerarens val som
   överlever sidbyten; se "Domain gotchas"), `savePrefs.ts` (var saven ligger + live-läget,
   samma valideringsdisciplin). `loadout.ts` (`idealLoadout` — rollens fyra
-  passiver mot vad palen redan bär, används av Bäst för…).
+  passiver mot vad palen redan bär, används av Bäst för…),
+  `breedRate.ts` (`planBreedSetup`/`eggSpeed` — avelstakten och vad boxen har av den;
+  se "Domain gotchas").
 - `src/context/PalDataContext.tsx` – smart provider: fetches `/data/pal-data.json`, memoizes all
   derived data (scored pals, bestOf per species, freeSolve). `SelectedPalContext` + `PalDetailHost`
   drive the detail modal.
@@ -101,6 +126,8 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   `PalBits` (Tag, IvRow, SpeciesIcon, ElementIcons, GenderSymbol, Section),
   `PalPicker`/`PassivePicker`/`PurposePicker` (breeding's selectors — se "Design rules" 6),
   `GoalCard` (breedingens målbild — art + önskade passiver som banners),
+  `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver, monterad **en gång** i layouten),
+  `BreedSetup` (avelsbasen — hopfälld uppställning + takt-mätare),
   `SaveFolder` (panelen bakom "Mapp" — mapp, hittade världar, live-läget).
   Only their search box/filter chip keep local state; the selection itself always lives in the
   container.
@@ -145,6 +172,10 @@ up, so stop it (or build in a separate checkout) before verifying a build.
    negatives near-black with red. Max **4** condense stars everywhere.
    Habitat rundar bara hörnen (9 px) — banners är **oförändrade i övrigt och byter inte färg med
    temat**, de ser likadana ut i ljust och mörkt läge precis som i spelet.
+   **Hover-rutan (`.ptip`) är däremot gränssnitt, inte spel, och följer temat.** Därför får den
+   aldrig låna bannerns färger: `passiveVisual(5).color` är vit och tier 1 nästan vit, och på
+   rutans ljusa `--panel` blev "WORLD TREE" osynligt. Nivåetiketten går via `tierToken` i
+   `PassiveTip.tsx` — lila/teal/guld/rött ur temats egna tokens, som finns i båda lägena.
 4. **Typsnitt:** "M PLUS Rounded 1c" (400/500/800) för gränssnittet — rundat, samma familjekänsla
    som spelets logotyp — och "Zen Kaku Gothic New" (500/700/900) för **alla siffror**, annars blir
    data gullig. Båda via @fontsource. Byt inte utan visuell jämförelse sida vid sida.
@@ -353,6 +384,19 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    blir Edge-fönstret kvar och visar en död sida mitt under uppdateringen, och mutexen släpps
    aldrig så den nya versionen bara öppnar ett fönster mot en gammal port.
 
+**Utgåvans text kommer ur `CHANGELOG.md`, aldrig ur commit-rubrikerna.** Skriv under
+`## Unreleased` medan du jobbar; `npm version` kör `scripts/changelog.mjs stamp` som döper om
+avsnittet till versionen och dagens datum och lägger det i samma commit som versionshöjningen.
+Workflowen hämtar sedan avsnittet med `changelog.mjs notes <tagg>` och gör det till utgåvans
+text — som i sin tur är det appen visar under "Vad är nytt?". Samma text tre gånger, skriven
+en gång, riktad till den som *använder* appen.
+
+Båda kommandona **avbryter** hellre än att släppa igenom en tom utgåva: `stamp` vägrar när
+"Unreleased" är tom, `notes` vägrar när taggen saknar avsnitt. Det är avsiktligt — det enda som
+säkert får någon att skriva noteringar är att bygget stannar annars. `notesToBlocks`
+(`src/lib/update.ts`, testad) skalar bort markdown-markörerna innan texten visas i appen; en
+`**fet**` mitt i en mening ser trasig ut, inte betonad.
+
 `compareVersions` ligger i `src/lib/version.ts` med test. Strängjämförelse säger att "2.10.0" är
 mindre än "2.9.0" – felet syns först vid den elfte utgåvan, långt efter att man slutat tänka på
 det, och yttrar sig som att ingen får uppdateringen.
@@ -372,8 +416,26 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
 - **Legendaries only breed with their own species** — pairs like Frostallion × Lamball have no
   child in the pair table. `passivePlan` picks a valid merge order and flags impossible steps;
   don't "fix" this by assuming any pair can breed.
-- Inheritance odds (`inheritOdds`) use the community model (1–4 slots at 40/30/20/10 %,
-  uniform subset), **without mutations** — they are estimates; label them as such in UI.
+- **Passivarv är två tärningsslag, inte ett** (`inheritOdds`/`exactOdds` i `breeding.ts`,
+  källa [Palworld-wikin](https://palworld.wiki.gg/wiki/Breeding)): slå X ∈ 1..4 med vikterna
+  40/30/20/10 → ungen ärver X slumpvis valda ur föräldrarnas gemensamma pool, **eller hela
+  poolen om X ≥ poolens storlek**. Slå sedan Y med samma vikter; är Y > X får ungen Y−X
+  **helt slumpade** passiver som ingen förälder bär.
+  Två fällor som redan kostat en gång var:
+  1. **Normalisera inte bort X > pool.** Den gamla modellen gjorde det och underskattade
+     därför precis de rena steg planeraren siktar mot — 3 önskade ur en ren pool är 30 %,
+     inte 22 %, och 2 önskade är 60 %, inte 43 %. Från pool 4 och uppåt är modellerna
+     identiska, så felet syntes bara i de *bästa* stegen. Kuriosa som visar att siffrorna
+     hänger ihop: en skräp-passiv hos partnern kostar exakt lika mycket som ett extra rent
+     artsteg (6,667 ägg mot 2 × 3,333).
+  2. **`inheritOdds` är "minst de önskade", inte "exakt".** Y-slaget ger minst en slumpad
+     passiv i **35 % av alla ägg** oberoende av poolen — det går inte att avla bort. Planen
+     räknar på "minst" (rätt, för mellansteg spelar skräp ingen roll), men vid kläckaren är
+     det "exakt" man vill veta. `exactOdds` svarar på det och `ExactNote` visar det under
+     planen. Med fyra önskade sammanfaller de: då finns ingen ledig plats.
+  Vikterna är community-testade, inte datamined — märk siffrorna som uppskattningar i UI.
+  Guiderna är inte eniga (game8 beskriver en helt annan modell), men wikins tvåslagsmodell
+  är den enda som förklarar slumppassiverna mekaniskt.
 - **IV inheritance is per-stat and independent** (`ivPlan.ts`): each of HP/Attack/Defense rolls
   30 % from the father, 30 % from the mother, 40 % a fresh random value
   ([Palworld wiki](https://palworld.wiki.gg/wiki/Breeding); community-tested, not datamined —
@@ -395,8 +457,11 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   Tre saker som modellen medvetet gör:
   1. En stat som **ingen** förälder har kan ändå komma ur 40 %-omslumpningen (≈1 %), så alla
      delmängder av luckorna provas ovanpå unionen. Utan det saknar en art med lucka plan helt.
-  2. Passiver kan **inte** slumpas fram — saknas en i arten är den ett förkrav för passivplanen,
-     inte ett skäl att sakna IV-plan.
+  2. Passiver slumpas **inte** fram i planeringen — saknas en i arten är den ett förkrav för
+     passivplanen, inte ett skäl att sakna IV-plan. Spelet *kan* visserligen lägga till en
+     slumpad passiv (Y-slaget ovan), men att planera på den vore att planera på tur: den
+     dras ur hela passivtabellen, inte ur den man råkar sakna. Antagandet är alltså medvetet
+     konservativt, inte en beskrivning av spelet.
   3. Sökningen håller sig **inom målarten**: att para två arter byter art på ungen, så all
      IV-möda måste göras med exemplar av arten man faktiskt vill ha. Enda undantaget är
      `findIvDonors`, som bara föreslår donatorer vars art parar *tillbaka* till målarten.
@@ -423,15 +488,41 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   inläsning och blir tomt i stället för fel. Samma sak gäller passiv-id:n. Djuplänken
   (`?target=`/`?wanted=`) vinner alltid över det sparade, och **Rensa allt** måste därför också
   rensa query-strängen, annars sätter djuplänken tillbaka målet vid nästa montering.
-- **Kön måste in i FÖRSTA parningen, men bara där** (`passivePlan.ts`). Startpalen är en riktig
-  individ ur boxen, så steg ett parar två *kända* pals och de måste vara ♂+♀ — annars blir det
-  ingen parning alls. Set-covern väljer bärare enbart på passiver och rekommenderade därför glatt
-  två honor. Efter första kläckningen är linjen en unge med slumpat kön, och då räcker det att
-  kläcka tills rätt kön dyker upp — då ska inget könskrav ställas, annars stryks fullt giltiga
-  partners bort. Fixen byter **individ, inte plan**: `sameCoverAlt` letar en pal som bär samma
-  önskade passiver men har rätt kön (renast vinner), först bland bärarna och sedan bland
-  startpalarna. Går ingetdera flaggas steget med `genderOk: false` i stället för att tigas ihjäl.
-  `bestParentPair` gjorde redan rätt — felet satt bara i passiv-planens egen partnervalslogik.
+- **Fas 1 är ett TRÄD, inte en kedja** (`passivePlan.ts`). Planen lade tidigare på en passiv i
+  taget på en och samma linje. Att i stället para ihop bärarna **två och två** och slå ihop
+  mellanresultaten är billigare, och skälet är att kostnaden är konvex i poolens storlek:
+  `inheritOdds(2,2)` = 60 % → 1,7 ägg, men `inheritOdds(3,3)` = 30 % → 3,3 ägg. Sista steget
+  kostar 10 ägg (pool 4) hur man än kommer dit, så det enda som skiljer vägarna är vad man
+  bygger på vägen: en trea (1,7 + 3,3 = 5) eller en andra tvåa (1,7 + 1,7 = 3,3). `mergeTree`
+  söker därför igenom alla ihopslagningar — med högst fyra önskade finns högst fyra bärare,
+  alltså 2⁴ delmängder, och sökningen kostar ingenting. Mätt mot Kens box: oförändrat vid två
+  bärare, ~5 % billigare vid tre, ~14 % vid fyra, aldrig dyrare (310 fall).
+  Fyra saker som hänger ihop med det:
+  1. **Kön kostar ägg, och det är där det mesta av vinsten sitter.** En unge ur ett tidigare
+     steg är 50/50, så måste den ha ett bestämt kön kostar den i snitt en kull till
+     (`genderEggs`). Den linjära ordningen betalar det i vartenda steg efter det första, den
+     parvisa bara i det sista. Är båda föräldrarna mellansteg räcker det att jaga kön på den
+     *billigare*; är den ena en ägd bärare som finns i **båda** könen i boxen är det gratis.
+  2. **Flera steg parar nu två kända individer**, inte bara det första — det är hela poängen
+     med att mötas på mitten. Varje sådant steg måste vara ♂+♀. `resolvePair` byter därför
+     **individ, inte plan**: `altOfGender` letar en pal som bär samma önskade passiver men har
+     rätt kön (renast vinner). Går det inte flaggas steget med `genderOk: false` i stället för
+     att tigas ihjäl. `maxJunk`-argumentet skiljer två frågor åt: för att paret ska kunna avla
+     duger vilken ersättare som helst, men för att räkna könet som *gratis* måste bytet vara
+     likvärdigt — annars smyger sig skräp in i poolen utan att synas i oddsen.
+  3. **Roten väljs på HELA planen, inte på fas 1.** Olika ihopslagningar landar i olika arter,
+     och fas 2 kostar väldigt olika mycket därifrån. I Kens box: den parvisa vägen kostar 15
+     ägg i fas 1 men landar i Smokie (50 ägg till Anubis) = 65, medan en dyrare ordning kostar
+     16,7 men landar i Prunelia = 56,7 totalt. Sökningen sparar därför den billigaste noden
+     **per landningsart** i stället för att slå ihop dem, och provar de `ROOT_CANDIDATES`
+     billigaste mot artkedjan. När den vinnande ordningen inte är billigast i fas 1 sätts
+     `mergeDetour` så gränssnittet kan förklara omvägen — annars ser den ut som ett misstag.
+  4. **`carrierInfo.chosen` sätts om efter att trädet valts.** Set-covern väljer bärare enbart
+     på passiver, så `resolvePair` kan ha bytt ut en individ — och då pekade bärarkorten på en
+     pal planen aldrig rör. `plan.carriersUsed` är facit.
+  Vad sökningen med flit **inte** gör: den väljer inte om vilka bärare som ska användas. Det
+  gör set-covern ovanför, som minimerar antal bärare. Två andra pals som tillsammans bär precis
+  de önskade kan ändå vara billigare — det är vad `altRoutes.ts` letar efter.
 - **Parent selection is purity-first, then IV** (`ParentPrefs`/`compareParents` in `breeding.ts`).
   Once passives are picked, every *other* passive a parent carries lands in the inheritance pool
   and tanks the odds — with 4 wanted passives, a single junk one drops 10 % → 2 % (~10 → ~50 eggs).
@@ -456,6 +547,33 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   linjen en unge man kläcker tills den har de önskade, och antas då ren — samma antagande som
   resten av planen vilar på. Poolen är alltid **unionen av mängder**, aldrig summan av antal:
   bär både linjen och partnern samma skräp-passiv ligger den bara en gång i poolen.
+- **`PassiveDef.fx` beskriver bara sex effekter – resten står som noll** (`UNMODELLED` i
+  `purpose.ts`). Attack, arbete, rörelse, HP, element och försvar finns; **uthållighet, simfart,
+  hopp i sadeln, SAN-dropp, hungerdropp och nedkylning gör det inte**. Eftersom
+  `recommendPassives` poängsätter ur `fx` fick alla de passiverna noll och föll ur varje
+  rekommendation: Eternal Engine (+75 % uthållighet) fanns inte bland riddjursförslagen alls.
+  `UNMODELLED` lägger på dem med spelets procent och en egen vikt. Tre saker som medvetet står
+  utanför tabellen — lägg inte till dem:
+  - **Tempest Fury** ger 0 % i nuvarande version och går inte att få tag på. Tom `fx` är rätt.
+  - **Healing Coach, Wellness Watcher, Reload Master, Noble** buffar spelaren, inte palen –
+    samma familj som `Trainer*` (se `PLAYER_BUFF_PREFIX`).
+  - **Vampiric, Heavily Armored, Babysitter** har verkliga effekter men ingen siffra som gick
+    att belägga. Hellre utanför än gissad.
+- **Sex elementboostar följer inte `ElementBoost_<Element>_<n>_PAL`** (`NAMED_BOOSTS` i
+  `purpose.ts`): `EternalFlame` (eld + el), `Invader` (mörker + drake), `Salvation` (neutral),
+  `Witch` (mörker), `Nushi`/`MiniNushi` = Lunker/Whopper (vatten + is). De föll utanför mönstret
+  och räknades därför som element-**neutrala** — Necromus (Dark) fick Eternal Flame i tre av
+  fyra platser i sin attackuppsättning. Flera boostar **två** element, så matchningen är en
+  mängd, inte ett värde. Och elementfaktorn gäller **bara `fx.ele`**, inte hela passiven:
+  Lunker ger +20 % försvar som inte är elementbundet, och nollar man allt försvinner den delen.
+- **`idealLoadout` ska visa rollens bästa, inte bara det du äger.** Den läste `picks` ur
+  `recommendPassives`, som filtrerar bort allt utan bärare i boxen – följden var att Dimensional
+  Leap aldrig kunde föreslås. Använd `all`. Att passiven saknas syns på `carriers: 0` i kortet,
+  som redan renderar det. Riddjur får dessutom en **reserverad uthållighetsplats** på samma sätt
+  som anfallare får en elementplats (`isStamina`): de fyra bästa på ren fart är Dimensional Leap,
+  Swift, Runner och Legend, men en mount utan uthållighet går ner i gånghastighet när mätaren tar
+  slut. `Stamina_Up_1` är Infinite Stamina (+50 %) och `Stamina_Up_3` är Eternal Engine (+75 %) —
+  **suffixet säger inget om styrkan**, sortera aldrig på id:t.
 - **Tier ensamt räcker inte för att avgöra vad som ska sparas** (`scoring.ts` + `purpose.ts`).
   Två spara-regler finns för att skydda pals man använder som **avelsstam**, och båda missades
   av de rena tier-reglerna:
@@ -501,6 +619,23 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
      låga numren (Celaray 7, Croajiro 9, Herbil 10), så Foxparks har `29` och inte `5`.
      Jämför aldrig mot en lanseringslista när du felsöker — regenerera hellre den statiska
      halvan ur `palworld-save-pal`.
+- **⚠️ `STAR_COST` är PRE-1.0 och behöver rättas.** 4+16+32+64 = 116 var kostnaden före
+  Palworld 1.0. **1.0 sänkte full kondensering till 48 pals totalt**, men Pocketpair har inte
+  publicerat fördelningen per stjärna, och uppdateringen gjorde om arbetslämpligheten i grunden
+  i stället för att skala ner den gamla kurvan — att halvera de gamla talen vore en gissning.
+  Rätt siffror står i spelets Condenser-ruta. Allt på `/rekommendationer` räknas ur den enda
+  arrayen i `constants.ts`, så det är en rad att ändra plus facit i `tests/condense.test.ts`.
+  Sidan säger tills vidare uttryckligen att siffrorna är pre-1.0.
+- **Kondensering höjer arbetslämpligheten, inte bara stats.** Varje rang lyfter *en* av palens
+  befintliga sysslor ett steg, och full rang lyfter alla. **Taket i 1.0 är nivå 10**, medan den
+  naturliga rostern toppar på 8 — resten kommer från kondensering, Applied Technique-böcker
+  (+1 permanent per syssla, säljs av Medal Merchant) och **arbetsauror** (en bärare ger +1 i en
+  syssla till alla *andra* pals i basen; bäraren själv får inget och dubbletter stackar inte).
+  Inget av det finns i datasetet, så `Species.ws` är artens *grundnivå* — inte vad en
+  investerad pal faktiskt presterar. Skriv aldrig "bäst på X" som om grundnivån vore slutgiltig.
+- **Partner-skills avgör ofta vem som är bäst, och de finns inte i datan.** Anubis + Sekhmet slår
+  arter med högre grundnivå i Handiwork tack vare sina partner-skills. Rankningarna i
+  `best.ts`/`condense.ts` går enbart på `ws` och är därför en grov approximation.
 - **Stjärnkostnaderna är kumulativa, inte en total** (`condense.ts`). 4 → 1★, sedan 16 **till**
   för 2★, 32 för 3★, 64 för 4★. "20 dubbletter" betyder därför två stjärnor från noll men
   ingenting alls från 2★, där nästa steg ensamt kostar 32 — och det gick inte att se på den
@@ -509,9 +644,83 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   Spara-reglerna släpper dessutom igenom exemplar man ändå inte vill mata: en ensam guldpassiv
   utan hög IV, och en enda 100:a i en stat — den senare är byggsten i `planPerfectLine`, inte
   mat. Därför `notes` på varje plan; ta inte bort dem för att korten ser renare ut utan.
+  **Och stjärnan är inte svaret på "varför?"** — `condenseGain` kör `displayStats` på samma pal
+  före och efter, så vinsten står i HP/attack/försvar. "+2★" kräver att läsaren själv räknar om
+  5 % per stjärna, och då syns aldrig att hoppet ibland är för litet för de tjugo exemplar man
+  matar bort.
+- **Ranchen är den enda sysslan där nivån inte avgör värdet** (`palUses` i `condense.ts`,
+  `BASE_WORK_TYPES` och `ranchGuide` i `best.ts`). Varje
+  art lägger sin **egen** vara i ranchen — ull, ägg, honung, tyg — och `MonsterFarm`-nivån styr
+  bara takten. "Bäst i boxen på Farming" krönte därför den med högst siffra (Dumud Gild 4) som
+  om den vore oumbärlig, fast frågan är om man vill ha just den varan. Ranchen visas alltid för
+  en art som har den (att behålla *ett* exemplar är hela poängen med en ranchpal) men får aldrig
+  `best`, och `caveat` bär förklaringen. Samma sorts lögn i liten skala fanns i vanliga sysslor:
+  boxens "bästa" gruvarbetare kan vara en Cattiva på nivå 1. Det är `only` — **enda i boxen** —
+  och inte samma sak som bäst. Förbehållet renderas som egen rad under brickorna, inte inuti
+  dem: `.couse` bryter inte rad och en hel mening därinne spränger kortet i sidled.
+  Samma regel styr `/bast-for`: ranchen är **inte** en av sysslorna basgänget ska täcka
+  (`BASE_WORK_TYPES`), annars tog den med högst Farming-siffra en lagplats. I stället finns
+  `ranchGuide`, som grupperar arterna på **varan** — och varorna står i `RANCH_DROPS`
+  (`constants.ts`), handkurerad precis som `FISHING_PALS` eftersom datasetet inte har någon
+  ranch-vara alls. **Gissa aldrig dit en vara.** En art utan rad visas som "vara okänd", vilket
+  är ärligt; en påhittad vara ser precis lika trovärdig ut som en riktig och skickar någon till
+  ranchen med fel pal — det märks först timmar senare. 16 av arterna saknar rad i skrivande
+  stund (2026-08).
+- **Greedy-lag måste städas efteråt** (`pruneRedundant` i `best.ts`). `pickBaseCrew` väljer den
+  som ger mest just nu och tittar aldrig tillbaka: Whalaska (Watering 5 + Cool 6) var rätt val
+  när laget var tomt, men efter Neptilius (Watering 7) och Frostallion (Cool 7) toppade den
+  ingenting — och satt kvar och såg ut som ett råd. Efter greedyn tas därför alla bort som inte
+  är bäst på minst en syssla. Städningen går **bakifrån och räknar mot den kvarvarande listan**:
+  tar man beslutet för alla samtidigt kan två pals med *samma* toppnivå båda se sig som
+  ersättliga, och då tappar laget täckningen helt.
+- **Avelstakten är additiv och uppmätt, inte gissad** (`breedRate.ts`). Ett ägg tar 300 s i
+  grunduppställning. `takt = 1 + 1 per förälder med Philanthropist + Bralohas bonus`
+  (20/26/32/38/50 % per stjärna, stackar inte med fler Braloha), och `tid = 300 / takt`.
+  Modellen faller ut ur communityns mätvärden: 201 s med 4★ Braloha, 150 s med en
+  Philanthropist, 100 s med båda, 85 s med båda + 4★ (300/1,5 / 300/2 / 300/3 / 300/3,5).
+  Taket är alltså **3,5×** — mer än de flesta omvägar planeraren räknar fram, vilket är
+  varför äggsiffrorna också visas som tid. Tre saker modellen med flit **inte** gör:
+  1. **Insomnia räknas inte in i takten.** Att paret inte pausar på natten är upptid, inte
+     hastighet, och vi har ingen mätning. Raden finns, siffran gör inte det — en påhittad
+     procent hade sett precis lika trovärdig ut som de fyra riktiga.
+  2. **Philanthropist räknas aldrig som "har".** Passiven måste sitta på just de två pals man
+     parar; 23 bärare i boxen är råmaterial. Annars lovar appen en takt användaren inte har.
+  3. **Arbetshastighet gör ingenting** — Artisan, Work Slave, Serious, Lucky, Statue of Power
+     och kondensering av *föräldrarna* snabbar upp hantverk, aldrig avelstimern. Enda
+     kondenseringen som räknas är Bralohas egen, för dess partnerskill. Det står i klartext i
+     gränssnittet eftersom allt i listan ser ut som att det borde hjälpa.
+  Arterna slås upp på `code` (`Plesiosaur`, `SakuraSaurus`, `SakuraSaurus_Water`), aldrig på
+  index eller namn — samma fälla som `breedingPrefs.ts` är byggd runt. Partnerskills finns
+  inte i datasetet, så procenten är handkurerade som `FISHING_PALS`; ändras de i spelet är det
+  tabellen högst upp i filen som ska uppdateras, inget annat.
 - **Passiv-banners renderas som `<span>`, inte `<div>`** (`PassiveRow.tsx`). CSS ger dem
   `display: flex/grid` ändå, och rader som ska gå att klicka på är `<button>` — en `<div>` inuti
   en knapp är ogiltig HTML. Byt inte tillbaka.
+- **`fx` är poängunderlag, inte en beskrivning** (`passiveText.ts`). Hover-rutan över en banner
+  visar spelets egen text, översatt för hand, och det är med flit: **två tredjedelar av
+  passiverna har inga fx alls** (Lightfooted, Philanthropist, Insomnia, Heart of the Immovable
+  King …), och för flera som har det är fx *ofullständig* — Serenity sänker laddningstiden 30 %
+  men bär bara `atk: 10`, Lunker är `ele: 40` där spelet säger 20 % vatten + 20 % is, och Lucky
+  saknar sitt försvar. Att generera rutan ur fx hade alltså mest upprepat bannerns namn. Tre
+  saker som hör ihop med det:
+  1. **Tabellen ligger i `src/lib`, inte i `pal-data.json`.** Den statiska halvan genereras
+     utanför repot, så allt man lägger i bundlen försvinner nästa gång den regenereras.
+  2. **`npm run passive-text` är täckningskollen** — hämtar uppströms-l10n:en, listar id:n utan
+     svensk text (med den engelska originaltexten färdig att klistra in) och texter vars passiv
+     försvunnit. Samma koll finns som test, utan nät. Kör den när den statiska halvan förnyas:
+     annars märks en ny passiv först när någon hovrar och får "ingen beskrivning".
+  3. **Hitta inte på procent.** Där spelets text saknar en siffra (Tempest Fury anger 0 %) står
+     ingen. Rutan är det enda stället användaren får veta vad passiven gör, och en påhittad
+     siffra ser precis lika trovärdig ut som en riktig.
+- **En banner som ska gå att hovra får `data-passive={id}`, inget mer** (`PassiveTip.tsx`).
+  Värden ligger i layouten och lyssnar på hela dokumentet; nya ställen behöver bara attributet.
+  Två fällor:
+  1. **Avstängda alternativ är `aria-disabled`, inte `disabled`.** En `disabled` knapp får inga
+     pekarhändelser alls i Chrome/Edge, och då går den inte att hovra — precis när man vill veta
+     vad passiven gör (fyran är full, eller ingen i boxen bär den). Klickhanteraren måste därför
+     själv strunta i klicket, och CSS matchar `[aria-disabled="true"]`.
+  2. **Ta bort `title` på samma element.** Webbläsarens egen ruta dyker upp ovanpå och krockar;
+     det som stod där ska antingen in i beskrivningen eller bli ett `aria-label`.
 - `displayStats` approximates in-game stats (HP/Atk/Def formulas + passives + souls·3 % +
   stars·5 %); Work Speed base is 70. Values land within a few % of the game — good enough,
   also labeled "≈".

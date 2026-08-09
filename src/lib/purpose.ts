@@ -6,9 +6,10 @@
 import type { FreeSolveResult } from "./breeding";
 import { isReachable } from "./breeding";
 import { FISHING_PALS } from "./constants";
+import { describeEffects, type FxKey } from "./passiveText";
 import type { AppData, ElementType, PassiveDef, Species, WorkType } from "./types";
 
-export type FxKey = "atk" | "craft" | "move" | "hp" | "ele" | "def";
+export type { FxKey };
 export type PurposeId = "attack" | "tank" | "work" | "mount" | "fishing";
 
 export interface Purpose {
@@ -64,11 +65,61 @@ const ELEMENT_TOKEN: Record<ElementType, string> = {
   Ice: "Ice", Earth: "Earth", Dark: "Dark", Dragon: "Dragon", Normal: "Normal",
 };
 
-const elementBoostToken = (id: string): string | undefined =>
-  /^ElementBoost_(\w+?)_\d+_PAL$/.exec(id)?.[1];
+/**
+ * Elementboostar vars id INTE följer `ElementBoost_<Element>_<n>_PAL`.
+ *
+ * Det här var en riktig bugg: eftersom de föll utanför mönstret räknades de som
+ * element-**neutrala** och fick full poäng för varenda art. Necromus (Dark) fick
+ * Eternal Flame (eld och el) i tre av fyra platser i sin attackuppsättning.
+ *
+ * Flera boostar två element. Effekterna är kontrollerade mot palworld.wiki.gg
+ * (augusti 2026); Lunker är +20 % vatten, +20 % is och +20 % försvar, alltså
+ * ingen allmän elementskada trots att datasetets `fx.ele` bara säger 40.
+ */
+const NAMED_BOOSTS: Record<string, ElementType[]> = {
+  EternalFlame: ["Fire", "Electricity"],  // Eternal Flame
+  Invader: ["Dark", "Dragon"],            // Invader
+  Salvation: ["Normal"],                  // Savior
+  Witch: ["Dark"],                        // Siren of the Void
+  Nushi: ["Water", "Ice"],                // Lunker
+  MiniNushi: ["Water", "Ice"],            // Whopper
+};
+
+/** Elementen passiven boostar, eller undefined när den inte är en elementboost. */
+function boostTokens(id: string): Set<string> | undefined {
+  const named = NAMED_BOOSTS[id];
+  if (named) return new Set(named.map((e) => ELEMENT_TOKEN[e]));
+  const token = /^ElementBoost_(\w+?)_\d+_PAL$/.exec(id)?.[1];
+  return token === undefined ? undefined : new Set([token]);
+}
 
 /** Passiver som höjer skadan för ett visst element (Ice Emperor, Lord of the Underworld…). */
-export const isElementBoost = (id: string): boolean => elementBoostToken(id) !== undefined;
+export const isElementBoost = (id: string): boolean => boostTokens(id) !== undefined;
+
+const TOKEN_ELEMENT = new Map(
+  (Object.entries(ELEMENT_TOKEN) as [ElementType, string][]).map(([e, t]) => [t, e]),
+);
+
+/**
+ * Elementen boosten gäller, i klartext – bara för beskrivningen. Matchningen går
+ * via `boostTokens`: ett okänt element i en framtida patch ska aldrig kunna
+ * göra en boost element-neutral igen, och därför slås aldrig den här listan upp
+ * för att avgöra om passiven passar.
+ */
+export function boostElements(id: string): ElementType[] {
+  const named = NAMED_BOOSTS[id];
+  if (named) return named;
+  const token = /^ElementBoost_(\w+?)_\d+_PAL$/.exec(id)?.[1];
+  const el = token === undefined ? undefined : TOKEN_ELEMENT.get(token);
+  return el ? [el] : [];
+}
+
+/**
+ * Uthållighetspassiverna: Eternal Engine, Infinite Stamina, Fit as a Fiddle.
+ * Suffixet säger inget om styrkan – `Stamina_Up_1` är Infinite Stamina (+50 %)
+ * och `Stamina_Up_3` är Eternal Engine (+75 %). Sortera aldrig på id:t.
+ */
+export const isStamina = (id: string): boolean => /^Stamina_Up_\d+$/.test(id);
 
 /**
  * Passiver som bara sitter på rustning/accessoarer – de kan aldrig ärvas.
@@ -89,9 +140,69 @@ export function elementTokens(species: Species | null): Set<string> {
 }
 
 /**
+ * Effekter som datasetet inte beskriver.
+ *
+ * `PassiveDef.fx` har sex fält: attack, arbete, rörelse, HP, element, försvar.
+ * Allt utanför dem — **uthållighet, simfart, hopp i sadeln, SAN-dropp,
+ * hungerdropp, nedkylning** — står som noll i datan, och då gav `purposeScore`
+ * dem noll poäng och de föll bort ur varje rekommendation. Följden var att
+ * Eternal Engine (+75 % uthållighet) inte fanns bland riddjursförslagen alls,
+ * trots att den står i praktiskt taget varje community-guide.
+ *
+ * Procenten är spelets (palworld.wiki.gg och palworld.tools, kontrollerade
+ * augusti 2026). **Poängen är vår vikt**, i samma skala som `purposeScore`
+ * (≈ procent på syftets huvudstat), och är en bedömning snarare än datamining:
+ * +75 % uthållighet är inte värt lika mycket som +75 % fart — uthålligheten tar
+ * bara slut långsammare. Vikterna är satta så att topp fyra för riddjur blir
+ * Dimensional Leap, Swift, Runner och Legend (samma uppsättning guiderna kallar
+ * endgame) med Eternal Engine som femte, uttalade alternativet.
+ *
+ * Tre saker som medvetet INTE står här:
+ * 1. **Tempest Fury** ger 0 % i nuvarande version och går inte att få tag på —
+ *    datasetets tomma `fx` är alltså korrekt. Ge den inte poäng.
+ * 2. **Healing Coach, Wellness Watcher, Reload Master, Noble** buffar spelaren,
+ *    inte palen (spelarens HP-regen, uthållighet, omladdning, säljpris) — samma
+ *    familj som `Trainer*`, se PLAYER_BUFF_PREFIX.
+ * 3. **Vampiric, Heavily Armored, Babysitter** har verkliga effekter men ingen
+ *    siffra jag kunde belägga. Hellre utanför än gissad.
+ */
+interface Unmodelled {
+  /** Spelets effekttext, kort. Visas som `why` i förslagen. */
+  why: string;
+  /** Vår vikt per syfte, i samma skala som `purposeScore`. */
+  score: Partial<Record<PurposeId, number>>;
+  /** Bara meningsfull för arter med något av de här elementen (simfart). */
+  requires?: ElementType[];
+}
+
+const UNMODELLED: Record<string, Unmodelled> = {
+  // Uthållighet – gäller bara ridbara pals, enligt spelets egen effekttext.
+  Stamina_Up_3: { why: "Uthållighet +75 % (bara ridbara)", score: { mount: 15 } },
+  Stamina_Up_1: { why: "Uthållighet +50 % (bara ridbara)", score: { mount: 10 } },
+  Stamina_Up_2: { why: "Uthållighet +25 % (bara ridbara)", score: { mount: 5 } },
+  // Simfart – värdelös på en flygare, så den kräver rätt element.
+  SwimSpeed_up_3: { why: "Simfart +50 %", score: { mount: 25 }, requires: ["Water"] },
+  SwimSpeed_up_2: { why: "Simfart +40 %", score: { mount: 20 }, requires: ["Water"] },
+  SwimSpeed_up_1: { why: "Simfart +30 %", score: { mount: 15 }, requires: ["Water"] },
+  // Hopp i sadeln – rörlighet, inte fart.
+  RideJumpCount_Increase2: { why: "+2 hopp när du rider", score: { mount: 8 } },
+  RideJumpCount_Increase1: { why: "+1 hopp när du rider", score: { mount: 4 } },
+  // SAN och hunger: en arbetare som slipper pauser producerar mer än en snabb
+  // som står stilla. Under Serious (+20 % arbete) med flit – guidernas
+  // endgame-uppsättning är ren arbetshastighet.
+  PAL_Sanity_Down_3: { why: "SAN sjunker 20 % långsammare – längre pass", score: { work: 18 } },
+  PAL_Sanity_Down_2: { why: "SAN sjunker 15 % långsammare", score: { work: 13 } },
+  PAL_FullStomach_Down_3: { why: "Hunger sjunker 20 % långsammare", score: { work: 11 } },
+  PAL_FullStomach_Down_2: { why: "Hunger sjunker 15 % långsammare", score: { work: 8 } },
+  // Nedkylning läggs OVANPÅ fx: Serenity har redan +10 % attack i datan.
+  CoolTimeReduction_Up_1: { why: "Nedkylning −30 % på färdigheter", score: { attack: 20 } },
+  CoolTimeReduction_Up_2: { why: "Nedkylning −15 % på färdigheter", score: { attack: 10 } },
+};
+
+/**
  * Hur mycket en passiv bidrar till ett syfte. En elementboost för fel element är
  * värdelös (0); utan valt mål vet vi inte vilket element det gäller, så den får
- * halva vikten.
+ * halva vikten. Effekter datasetet saknar läggs på ur `UNMODELLED`.
  */
 export function purposeScore(
   def: PassiveDef,
@@ -100,12 +211,36 @@ export function purposeScore(
   tokens: ReadonlySet<string>,
   hasTarget: boolean,
 ): number {
-  const token = elementBoostToken(id);
-  const factor = token === undefined ? 1 : tokens.has(token) ? 1 : hasTarget ? 0 : 0.5;
-  if (factor === 0) return 0;
-  return (Object.entries(purpose.weights) as [FxKey, number][])
-    .reduce((sum, [k, w]) => sum + (def.fx?.[k] ?? 0) * w, 0) * factor;
+  const boost = boostTokens(id);
+  const factor = boost === undefined ? 1
+    : [...boost].some((t) => tokens.has(t)) ? 1
+      : hasTarget ? 0 : 0.5;
+  /* Faktorn gäller BARA elementskadan, inte hela passiven. Lunker är
+     "+20 % vatten, +20 % is, +20 % försvar" – försvaret är inte elementbundet,
+     så en Lunker på en mörkerpal är fortfarande värd något som tålig. Nollar
+     man hela passiven försvinner den delen tyst. */
+  const fx = (Object.entries(purpose.weights) as [FxKey, number][])
+    .reduce((sum, [k, w]) => sum + (def.fx?.[k] ?? 0) * w * (k === "ele" ? factor : 1), 0);
+  return fx + unmodelledScore(id, purpose.id, tokens, hasTarget);
 }
+
+/** Bidraget ur `UNMODELLED`, med samma elementregel som elementboostarna. */
+function unmodelledScore(
+  id: string, purpose: PurposeId, tokens: ReadonlySet<string>, hasTarget: boolean,
+): number {
+  const extra = UNMODELLED[id];
+  const base = extra?.score[purpose] ?? 0;
+  if (base === 0 || !extra?.requires) return base;
+  const ok = extra.requires.some((e) => tokens.has(ELEMENT_TOKEN[e]));
+  return ok ? base : hasTarget ? 0 : base * 0.5;
+}
+
+/** Effekttexten för en passiv datasetet inte beskriver, om vi känner till den. */
+export const unmodelledWhy = (id: string): string | undefined => UNMODELLED[id]?.why;
+
+/** Har passiven någon känd effekt alls – i datan eller i vår egen tabell? */
+export const hasKnownEffect = (def: PassiveDef, id: string): boolean =>
+  (def.fx !== undefined && Object.values(def.fx).some((v) => v !== 0)) || id in UNMODELLED;
 
 /**
  * Minsta bidrag för att en passiv ska räknas som att den "drar åt samma håll" –
@@ -143,27 +278,25 @@ export function speciesRoles(species: Species): PurposeId[] {
   return roles;
 }
 
-/** Har passiven några effekter datasetet faktiskt beskriver? */
-const hasEffects = (def: PassiveDef): boolean =>
-  def.fx !== undefined && Object.values(def.fx).some((v) => v !== 0);
-
 /**
  * Gör passiven någon nytta på just den här arten?
  *
  * Svaret är med flit försiktigt – vi säger nej bara när det går att **visa**:
  *
- * 1. En passiv utan `fx` (Heart of the Immovable King, Lightfooted, arbetsrang-
- *    passiverna) har effekter datasetet inte beskriver. Den kan vi inte döma,
- *    och att kalla den värdelös vore att slänga bort riktiga toppassiver.
+ * 1. En passiv vars effekt varken står i `fx` eller i `UNMODELLED` (Vampiric,
+ *    Babysitter, arbetsrang-passiverna) kan vi inte döma, och att kalla den
+ *    värdelös vore att slänga bort riktiga toppassiver.
  * 2. En art utan tydlig roll (Lamball: ingen arbetslämplighet, låga scalings)
  *    går inte att jämföra mot – då duger vilken passiv som helst som avelsstam.
  *
  * Kvar blir fallet som faktiskt går att avgöra: Lunker ger elementskada och
- * försvar, Gildra är arbetare, alltså nej.
+ * försvar, Gildra är arbetare, alltså nej. Sedan `UNMODELLED` finns gäller det
+ * också Eternal Engine på en pal man inte kan rida – spelets egen effekttext
+ * säger uttryckligen "bara ridbara".
  */
 export function passiveFitsSpecies(def: PassiveDef, id: string, species: Species): boolean {
   const roles = speciesRoles(species);
-  if (roles.length === 0 || !hasEffects(def)) return true;
+  if (roles.length === 0 || !hasKnownEffect(def, id)) return true;
   const tokens = elementTokens(species);
   return PURPOSES.some((p) => roles.includes(p.id) && (
     p.fixed
@@ -209,21 +342,6 @@ export function passiveSynergy(
   return best !== null && best.ids.length >= SYNERGY_MIN ? best : null;
 }
 
-const FX_LABEL: Record<FxKey, string> = {
-  atk: "Attack", craft: "Arbetshastighet", move: "Rörelse",
-  hp: "HP", ele: "Elementskada", def: "Försvar",
-};
-
-/** "Attack +20 % · Arbete −50 %" – bara de effekter som faktiskt finns. */
-function describe(fx: PassiveDef["fx"]): string {
-  if (!fx) return "";
-  return (Object.keys(FX_LABEL) as FxKey[])
-    .map((k) => [k, fx[k] ?? 0] as const)
-    .filter(([, v]) => v !== 0)
-    .map(([k, v]) => `${FX_LABEL[k]} ${v > 0 ? "+" : "−"}${Math.abs(v)} %`)
-    .join(" · ");
-}
-
 export interface PassiveRec {
   id: string;
   name: string;
@@ -239,6 +357,13 @@ export interface Recommendation {
   picks: PassiveRec[];
   /** Ännu bättre, men ingen i boxen bär dem – visas som "saknas". */
   missing: PassiveRec[];
+  /**
+   * Hela den poängsatta listan, bäst först, oavsett om du har bärare.
+   * `idealLoadout` måste utgå från den: uppsättningen ska visa vad rollen
+   * *ska* ha, och Dimensional Leap är rätt svar även den dagen ingen pal i
+   * boxen bär den.
+   */
+  all: PassiveRec[];
 }
 
 /**
@@ -282,7 +407,13 @@ export function recommendPassives(
     if (isEquipmentOnly(id) || def.r < 0) continue;
 
     let score: number;
-    let why = describe(def.fx);
+    // Datasetets fx först; saknas den helt får vår egen effekttext ta över,
+    // annars står en tom rad där effekten borde stå.
+    let why = describeEffects(def.fx) || unmodelledWhy(id) || "";
+    // "Elementskada +60 %" säger inte VILKET element – och det är hela skälet
+    // till att passiven föreslås just den här arten.
+    const boostEls = boostElements(id);
+    if (boostEls.length > 0 && why) why = `${why} (${boostEls.join(", ")})`;
     if (purpose.fixed) {
       if (!purpose.fixed.includes(id)) continue;
       score = 100;
@@ -306,7 +437,7 @@ export function recommendPassives(
   const picks = scored.filter((r) => r.carriers > 0).slice(0, limit);
   const cutoff = picks[picks.length - 1]?.score ?? 0;
   const missing = scored.filter((r) => r.carriers === 0 && r.score > cutoff).slice(0, 3);
-  return { picks, missing };
+  return { picks, missing, all: scored };
 }
 
 /** Hur du kommer åt arten: redan i boxen, avlas fram på N parningar, eller måste fångas. */

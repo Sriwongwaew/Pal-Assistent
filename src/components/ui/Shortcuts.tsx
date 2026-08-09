@@ -1,7 +1,7 @@
 /* Dumb: kompakt ruta med "fånga det här i stället" – medvetet kort, den ska
    inte äta höjd från planen den kommenterar. */
 import type { Shortcut } from "@/lib/shortcuts";
-import { SpeciesIcon } from "./PalBits";
+import { DeckNo, ElementIcons, SpeciesIcon } from "./PalBits";
 
 export function Shortcuts({ items }: { items: Shortcut[] }) {
   if (!items.length) return null;
@@ -15,6 +15,12 @@ export function Shortcuts({ items }: { items: Shortcut[] }) {
             <b>
               Fånga en {s.gender === "M" ? "hane" : s.gender === "F" ? "hona" : ""} {s.species.name}
               {" "}utan passiver
+              {/* Nästa steg efter "fånga en" är att ta reda på VAR – och det
+                  börjar med att slå upp arten i Paldecket. */}
+              <span className="scid">
+                <ElementIcons sp={s.species} size={13} />
+                <DeckNo sp={s.species} />
+              </span>
             </b>
             <span>{s.why} {s.easy ? "Vanlig art – finns i vilt tillstånd." : "Sällsynt, men vinsten är värd jakten."}</span>
           </div>

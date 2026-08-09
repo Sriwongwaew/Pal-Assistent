@@ -7,7 +7,7 @@
    bock, resten står som de är – de döljs eller tonas aldrig ned. */
 import type { ScoredPal, Species } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
-import { GenderSymbol, SpeciesIcon } from "./PalBits";
+import { DeckNo, ElementIcons, GenderSymbol, SpeciesIcon } from "./PalBits";
 import { passiveVisual } from "./PassiveRow";
 
 /** Palboxen visar 30 pals per låda (6 × 5). Stämmer inte det i din version är
@@ -44,7 +44,15 @@ export function PalIdent({ pal, species, wanted = [], nameOf, tierOf, label }: P
       <div className="pihd">
         <SpeciesIcon sp={species} size={34} radius={11} />
         <div className="pin">
-          <b>{species.name} <GenderSymbol g={pal.g} /></b>
+          {/* Element och Paldeck-nummer hör hemma just här: kortet finns för att
+              man ska hitta rätt individ i spelet, och det börjar med att hitta
+              rätt art i Paldecket. */}
+          <b>
+            {species.name}
+            <GenderSymbol g={pal.g} />
+            <ElementIcons sp={species} size={14} />
+            <DeckNo sp={species} />
+          </b>
           <span>Lv {pal.lv} · IV {pal.iv.join("/")}{pal.stars > 0 && ` · ${"★".repeat(pal.stars)}`}</span>
         </div>
       </div>
@@ -57,9 +65,9 @@ export function PalIdent({ pal, species, wanted = [], nameOf, tierOf, label }: P
           const { cls, color, rank } = passiveVisual(tierOf(id));
           const want = wanted.includes(id);
           return (
-            <div key={id} className={`prow sm ${cls}`}>
+            <div key={id} className={`prow sm ${cls}`} data-passive={id}>
               <span className="nm">{nameOf(id)}</span>
-              {want && <span className="tick" title="en av dem du vill ha">✓</span>}
+              {want && <span className="tick" aria-label="en av dem du vill ha">✓</span>}
               <span className="arr">
                 <MaskIcon name={`rank_${rank}`} color={color} width={20} height={18} />
               </span>

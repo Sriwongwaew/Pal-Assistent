@@ -259,6 +259,13 @@ a { color: inherit; }
 .sfsave .meta { margin: 0; font-size: 11px; }
 .sfsave:hover { border-color: var(--line2); }
 .sfsave.on { background: var(--acc-soft); border-color: var(--acc); }
+/* Sista utvägen när två världar heter likadant: hela sökvägen. Bryts mitt i
+   ordet – GUID:er har inga mellanslag att bryta vid, och en rad som sticker ut
+   ur panelen skulle skjuta sönder hela listan. */
+.sfsave .sfpath {
+  font-size: 9.5px; color: var(--muted); line-height: 1.35; word-break: break-all;
+  font-family: "Zen Kaku Gothic New";
+}
 .sflive { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .sftoggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; }
 .sftoggle input { accent-color: var(--acc); width: 15px; height: 15px; cursor: pointer; }
@@ -571,6 +578,31 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .prow .cnt { color: inherit; opacity: .65; font-size: 10.5px; font-weight: 700; margin-left: 8px; white-space: nowrap; }
 .prow.sm { height: 29px; padding: 0 6px 0 10px; font-size: 12px; }
 
+/* Hover-rutan: vad passiven faktiskt gör (PassiveTip). Till skillnad från
+   bannern är den en del av gränssnittet, inte av spelet, så den följer temat.
+   z-index måste ligga över Base Info-modalen (50) – banners finns även där.
+   pointer-events: none, annars kan rutan hamna under muspekaren och skymma
+   bannern den beskriver. */
+.ptip {
+  position: fixed; z-index: 100; width: max-content; max-width: min(330px, calc(100vw - 16px));
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2);
+  padding: 9px 12px 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
+  backdrop-filter: blur(8px); pointer-events: none;
+  opacity: 0; transition: opacity .11s ease;
+}
+/* Sätts först när rutan mätts och placerats – utan det syns ett hopp från 0,0. */
+.ptip.on { opacity: 1; }
+.ptip .pthd { display: flex; align-items: baseline; gap: 9px; margin-bottom: 3px; }
+.ptip .pthd b { font-size: 13.5px; font-weight: 800; }
+.ptip .pttier { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-left: auto; }
+.ptip .ptbody { font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
+.ptip .ptnote { font-size: 12px; line-height: 1.4; color: var(--ink2); margin-top: 5px; }
+.ptip .ptmeta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+/* Passivnamn i löptext. Prickad understrykning för att det ska synas att raden
+   går att hovra – en banner ser klickbar ut av sig själv, ett namn i en mening
+   gör det inte. */
+.pname { text-decoration: underline dotted var(--line2); text-underline-offset: 3px; cursor: help; }
+
 /* ============================================================
    BREEDING
    ============================================================ */
@@ -677,7 +709,7 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .recmiss { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 9px; }
 .recmiss .k { display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .recmiss .missrow { display: contents; }
-.recmiss .prow.opt:disabled { opacity: .45; }
+.recmiss .prow.opt[aria-disabled="true"] { opacity: .45; }
 
 /* väljare: art-rutnät + passiv-banners i stället för dropdowns */
 .picker { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 10px 11px; }
@@ -719,8 +751,11 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .prow.opt { width: 100%; font-family: inherit; text-align: left; cursor: pointer; }
 .prow.opt .cnt { margin-left: auto; padding-right: 6px; }
 .prow.opt .arr { margin-left: 0; }
-.prow.opt:hover:not(:disabled) { filter: brightness(1.18); }
-.prow.opt:disabled { opacity: .32; cursor: default; }
+/* Nedtonad, men INTE `disabled`: en disabled knapp får inga pekarhändelser alls
+   i Chrome/Edge, och då går den inte att hovra för att se vad passiven gör – och
+   det är precis då man vill veta det, när fyran är full eller ingen bär den. */
+.prow.opt:hover:not([aria-disabled="true"]) { filter: brightness(1.18); }
+.prow.opt[aria-disabled="true"] { opacity: .32; cursor: default; }
 .prow.opt.on { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* Radet över väljarna: säger att valen ligger kvar och ger vägen ur dem igen. */
 .planhd {
@@ -728,6 +763,143 @@ button.ghost:disabled { opacity: .45; cursor: default; }
   flex-wrap: wrap; margin-bottom: 10px;
 }
 .planhd .meta { font-size: 12px; }
+
+/* ---------- avelsbasen (hopfälld ovanför planeraren) ----------
+   Prefixet "bs" är inte kosmetiskt: klassnamnen i det här enda stilarket delas
+   med <Tag kind="…">-strängar, och en generisk `.eff`/`.row` här hade kunnat
+   träffa en badge någon annanstans. Allt utom summary-raden scopas dessutom
+   under .bsetup. */
+.bsetup {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r3); padding: 10px 16px; margin-bottom: 14px;
+}
+.bsetup[open] { padding-bottom: 16px; }
+/* Rubriken är en egen list med ram och botten, inte bara text. Den första
+   versionen hade en 11 px pil i --muted och inget annat, och den lästes inte som
+   "det finns mer här" – sektionen är hopfälld som standard, så missar man
+   greppet finns hela avelsbasen inte. */
+.bsetup > summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  cursor: pointer; list-style: none;
+  padding: 7px 12px; border: 1px solid var(--line);
+  border-radius: var(--r2); background: var(--panel2);
+  transition: border-color .15s ease;
+}
+.bsetup[open] > summary { margin-bottom: 2px; }
+/* Hopfälld är sektionen EN list, inte en ruta i en ruta: den yttre panelen
+   backar undan så det bara finns en ram att läsa, och listen lyfts till
+   panelnivå så den ser ut som något man klickar på och inte som en urgröpning. */
+.bsetup:not([open]) { background: none; border-color: transparent; padding: 0; }
+.bsetup:not([open]) > summary { background: var(--panel); padding: 11px 14px; }
+.bsetup > summary:hover { border-color: var(--acc); }
+.bsetup > summary::-webkit-details-marker { display: none; }
+/* Egen pil i en rund knapp: den vänder med [open], sitter kvar även när raden
+   radbryts, och accenten gör den till det första ögat hittar på raden. */
+.bsetup > summary::before {
+  content: "▸"; flex: none;
+  width: 20px; height: 20px; border-radius: 999px;
+  display: grid; place-items: center; font-size: 10px; line-height: 1;
+  color: var(--acc); background: var(--acc-soft);
+  border: 1px solid var(--acc-soft);
+  transition: transform .15s ease;
+}
+.bsetup[open] > summary::before { transform: rotate(90deg); }
+/* Ordet efter taggen säger vad klicket gör. Utan det får man gissa att raden
+   går att klicka på alls. */
+.bsetup > summary::after {
+  content: "Visa"; flex: none;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--acc);
+}
+.bsetup[open] > summary::after { content: "Dölj"; }
+.bsetup > summary .ttl { font-weight: 800; font-size: 14.5px; }
+.bsetup > summary .num {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-size: 17px; color: var(--acc); font-variant-numeric: tabular-nums;
+}
+.bsetup > summary .meta { font-size: 12px; color: var(--muted); }
+.bsetup > summary .tag { margin-left: auto; }
+
+/* Takten mot spelets tak. Underlaget (u) är vad Bralohas kondensering ensam
+   skulle ge – skillnaden mellan de två staplarna är det man kan ta i dag,
+   utan att avla in någonting. */
+.bsetup .bsmeter { margin: 10px 0 4px; }
+.bsetup .bsmeter .bar {
+  position: relative; height: 8px; border-radius: 4px;
+  background: var(--panel2); border: 1px solid var(--line); overflow: hidden;
+}
+.bsetup .bsmeter .bar i,
+.bsetup .bsmeter .bar u {
+  position: absolute; inset: 0 auto 0 0; display: block; border-radius: 4px;
+}
+.bsetup .bsmeter .bar i { background: var(--acc); z-index: 1; }
+.bsetup .bsmeter .bar u {
+  background: color-mix(in srgb, var(--acc) 30%, transparent);
+  text-decoration: none;
+}
+
+.bsetup .bsgrp {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin: 14px 0 6px;
+}
+/* Ledtexten under en gruppsrubrik: vem passiverna sitter på. Den behövs eftersom
+   raderna under "på de två du parar" annars läses som en fortsättning på
+   Braloha-raden ovanför – och "Braloha med Philanthropist" är ett recept på
+   ingenting: passiven gör bara något på de två som faktiskt parar sig. */
+.bsetup .bslead { margin: -1px 0 7px; }
+.bsetup .bslead b { color: var(--ink2); }
+/* Elementets färg bär raden, precis som på brickorna i Boxen. Passiv-raderna
+   (.pv) har ingen art och därför ingen ton – deras banner bär färgen i stället. */
+.bsetup .bsrow {
+  background: var(--panel2); border: 1px solid var(--line);
+  border-left: 3px solid var(--elc, var(--line));
+  border-radius: var(--r2); padding: 9px 13px; margin-bottom: 7px;
+}
+.bsetup .bsrow.pv { border-left-color: var(--line); }
+.bsetup .bshit {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap; width: 100%;
+  background: none; border: none; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left;
+}
+.bsetup button.bshit { cursor: pointer; }
+.bsetup button.bshit:hover .nm { color: var(--acc); }
+.bsetup .bshit .nm {
+  display: flex; align-items: center; gap: 6px; font-weight: 800; min-width: 0;
+}
+/* Siffran hamnar längst ut och tappar aldrig sin plats till en lång arttitel. */
+.bsetup .eff {
+  margin-left: auto; flex: none;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-size: 14px; color: var(--acc); font-variant-numeric: tabular-nums;
+}
+.bsetup .eff.txt {
+  font-family: inherit; font-weight: 700; font-size: 12px; color: var(--muted);
+}
+.bsetup .bsrow.pv .prow { max-width: 260px; }
+.bsetup .bsrow.pv { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.bsetup .bsrow.pv .hint { flex: 1 0 100%; margin-top: 2px; }
+/* En VILLKORLIG rad: den köper takt med odds, till skillnad från allt annat i
+   panelen som bara kostar en boxplats. Streckad ram och ingen egen botten säger
+   "väg det här" i stället för "beta av det här".
+   Namnet är inte .cond med flit – <Tag kind="cond"> renderar den klassen, och en
+   layoutregel som råkar matcha en badge-variant har redan spräckt sidan en gång
+   (se varningen om klassnamnskollisioner högre upp).
+   Opacitet vore fel verktyg: den hade dämpat passiv-bannern också, och bannern
+   är spelets egen och ska se ut som i spelet även på en nedtonad rad. */
+.bsetup .bsrow.bsopt { background: none; border-style: dashed; }
+/* En verklig effekt som ligger UTANFÖR takten (Dynamoffs kläckningstid). Siffran
+   får stå kvar men tappar accenten, annars läses den som en del av
+   multiplikatorn i rubriken. */
+.bsetup .eff.off { color: var(--ink2); }
+/* Dämpar med opacitet, inte med --muted: raden står både i en grön .okbox och
+   mot panelbotten, och en grå ton hade sett ut som ett fel i den gröna. */
+.bsdim { opacity: .72; }
+
+.bsetup .bswarn {
+  margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px;
+  font-size: 12px; color: var(--muted);
+}
+.bsetup .bswarn b { color: var(--ink2); }
 /* min(430px, 100%): utan det får spåret 430 px även på en 420 px-skärm och sidan
    börjar scrolla i sidled. */
 .pickrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr)); gap: 14px; align-items: start; }
@@ -928,9 +1100,11 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
   text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
 }
 .scrow { display: flex; align-items: center; gap: 9px; padding: 4px 0; }
-.scrow img { border-radius: 8px !important; flex: none; }
+/* Direkt barn – annars rundas elementikonerna i texten till 8 px också. */
+.scrow > img { border-radius: 8px !important; flex: none; }
 .scmain { flex: 1; min-width: 0; }
 .scmain b { display: block; font-size: 12.5px; }
+.scid { display: inline-flex; align-items: center; gap: 4px; margin-left: 7px; vertical-align: middle; }
 .scmain span { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
 .scwin {
   flex: none; font-weight: 900; font-size: 12px; border-radius: 999px; padding: 2px 10px;
@@ -1018,9 +1192,13 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .pibody { display: flex; gap: 14px; align-items: flex-start; }
 .piinfo { flex: none; min-width: 172px; }
 .pihd { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
-.pihd img { border-radius: 11px !important; flex: none; }
+/* Direkt barn – annars får elementikonerna i namnraden 11 px radie. */
+.pihd > img { border-radius: 11px !important; flex: none; }
 .pin { min-width: 0; }
-.pin b { display: block; font-size: 13px; }
+/* Flex, inte block: namn, kön, element och Paldeck-nummer ska ligga på rad och
+   brytas snyggt när kortet blir smalt. */
+.pin b { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 13px; }
+.pin b .el { display: inline-flex; }
 .pin span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* Platsen är det som gör palen sökbar i spelet – ge den vikt. */
 .piloc {
@@ -1336,6 +1514,176 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .pd-iv b { color: var(--ink); } .pd-iv.max b { color: var(--green); }
 .pd-reasons { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
 .boxright .pd-cols { flex-wrap: wrap; }
+
+/* Var lagets exemplar faktiskt står. Laget väljer artens bästa individ, och den
+   ligger oftast kvar i boxen även när en sämre redan är utplacerad – utan raden
+   ser förslaget ut som att det redan är gjort. */
+.tp .tpwhere { display: block; margin-top: 2px; font-size: 9.5px; color: var(--muted); font-weight: 700; }
+/* Luckan i ranch-tabellen: en anmärkning, inte ett fel – den ska synas utan att
+   se ut som att sidan är trasig. */
+.ranchgap { margin-top: 10px; line-height: 1.5; }
+.ranchgap b { color: var(--ink2); }
+
+/* ============================================================
+   REKOMMENDATIONER – varning, spara-lista och kondenseringskö
+
+   Klassnamnen är prefixade (rs = delat innehåll, rq = kön och varningen) just
+   för att inget `kind`- eller variantvärde ska kunna råka matcha en
+   layoutklass – se varningen om .tag/.cond längre upp i filen.
+   ============================================================ */
+
+/* ---------- delat innehåll ---------- */
+/* Varför man kondenserar – både vinsten och priset, för det är priset som gör
+   valet svårt. Låg ton: den ska gå att läsa en gång och sedan hoppa över. */
+.rswhy {
+  background: var(--inset); border-radius: var(--r2); padding: 11px 14px; margin-bottom: 12px;
+  font-size: 12.5px; line-height: 1.6; color: var(--ink2); max-width: 940px;
+}
+.rswhy b { color: var(--ink); font-weight: 800; }
+.rswhy i { font-style: italic; }
+.rswhy .rsladder { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+
+.rsk {
+  display: block; font-size: 8.5px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+}
+
+/* Vinsten i spelets egna siffror. Grönt bara på efter-värdet: det är det enda
+   som är nytt, och två färgade tal bredvid varandra läser man som en jämförelse
+   mellan dem, inte som en förändring. */
+.rsgain { display: flex; gap: 6px; flex-wrap: wrap; }
+.rsgain .g {
+  display: inline-flex; align-items: baseline; gap: 5px; background: var(--panel2);
+  border-radius: var(--r1); padding: 4px 10px; font-size: 12px;
+}
+.rsgain .g .k { font-size: 8.5px; letter-spacing: .1em; color: var(--muted); font-weight: 800; }
+.rsgain .g .a, .rsgain .g .b {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+}
+.rsgain .g .a { color: var(--muted); }
+.rsgain .g .ar { color: var(--ink2); font-size: 10px; }
+.rsgain .g .b { color: var(--green); font-weight: 900; }
+
+/* Varningarna som prickar där texten inte får plats – färgerna är samma som
+   .conote, så en orange prick och en orange ruta betyder samma sak. */
+.rswarn { display: inline-flex; align-items: center; gap: 3px; }
+.rswarn .d { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+.rswarn .d.n-iv { background: var(--blue); }
+.rswarn .d.n-better { background: var(--violet); }
+.rswarn b {
+  margin-left: 2px; font-size: 10.5px; color: var(--muted); font-weight: 800;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+}
+.rswarn.none { color: var(--line2); font-size: 11px; }
+.conote.inl { margin-top: 6px; padding: 6px 10px; font-size: 11px; }
+
+/* "Enda i boxen" är inte "bäst i boxen": nivå 1 i en syssla ingen annan har är
+   ingen merit. Och ranchen får ingen av dem alls – varan sitter i arten. */
+.couse.only { background: var(--panel2); border-color: var(--line2); }
+.couse em.w { color: var(--muted); }
+/* Egen rad, inte inuti brickan: brickorna bryter inte rad, så en hel mening
+   därinne sprängde kortet i sidled. */
+.rscav { flex: 1 0 100%; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+
+/* Knappen runt "du behåller"-raden – en knapp, men får inte se ut som en. */
+.rqkeep {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer;
+}
+.rqkeep:hover .ivt { color: var(--acc); }
+.rquses { margin-top: 8px; }
+
+/* ---------- varningen ----------
+   Alltid utfälld, aldrig en `details`: en varning man måste klicka fram är
+   ingen varning. Färgen är däremot dämpad – rött över hela sidans bredd gör
+   att man slutar läsa den efter tredje besöket, och då är den värdelös ändå.
+   Bara rubriken bär färgen; brödtexten är vanlig text i --ink2. */
+.rqwarn {
+  border: 1px solid color-mix(in srgb, var(--red) 34%, transparent);
+  background: color-mix(in srgb, var(--red) 7%, transparent);
+  border-radius: var(--r2); padding: 12px 16px; margin-bottom: 14px; max-width: 940px;
+}
+.rqwarn .h {
+  display: block; margin-bottom: 5px; font-size: 13px; font-weight: 800; color: var(--red);
+}
+.rqwarn p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink2); }
+.rqwarn p b { color: var(--ink); font-weight: 800; }
+/* Ansvarsfriskrivningen är underordnad varningen – den ska finnas, inte ropa. */
+.rqwarn .dis { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+
+/* Spara-listan ligger före kön, så dess hopfällda grupper är tätare än
+   `details.dgroup` är annars – tio rader i normalhöjd sköt ner kön en hel
+   skärm, och kön är det man faktiskt kom för att göra. */
+.rqkeeps details.dgroup { margin: 6px 0; padding: 9px 15px; }
+
+/* ---------- kön ---------- */
+.rqband {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--acc);
+  border-radius: var(--r2); padding: 12px 16px; margin-bottom: 14px;
+}
+.rqband .k {
+  font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800;
+}
+.rqband .v { font-size: 14px; color: var(--ink2); }
+.rqband .v b {
+  color: var(--ink); font-size: 17px; font-weight: 900;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+}
+.rqband .s { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+
+.rqwhy {
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2);
+  padding: 8px 13px; margin-bottom: 12px;
+}
+.rqwhy > summary { cursor: pointer; font-size: 12.5px; font-weight: 800; color: var(--ink2); }
+.rqwhy .rswhy { margin: 9px 0 2px; background: none; padding: 0; }
+
+.rqhead, .rqrow > summary {
+  display: grid; align-items: center; gap: 10px;
+  grid-template-columns: 22px 28px minmax(110px, 1fr) 96px 54px 54px 46px 16px;
+}
+.rqhead {
+  padding: 2px 12px 6px; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); font-weight: 800;
+}
+.rqlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.rqrow {
+  background: var(--panel2); border: 1px solid transparent; border-left: 3px solid var(--elc);
+  border-radius: var(--r1);
+}
+.rqrow[open] { background: var(--panel); border-color: var(--line); }
+/* Egen pil (.cv) i stället för webbläsarens triangel – den ligger till vänster
+   och skulle förskjuta hela rutnätet. */
+.rqrow > summary { padding: 7px 12px; cursor: pointer; list-style: none; }
+.rqrow > summary::-webkit-details-marker { display: none; }
+.rqrow > summary:hover .nm { color: var(--acc); }
+.rqrow .n, .rqrow .fd, .rqrow .sl, .rqrow .jm {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+}
+.rqrow .n { font-size: 11px; color: var(--muted); font-weight: 800; text-align: center; }
+.rqrow .nm {
+  font-weight: 800; font-size: 13.5px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rqrow .jm { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.rqrow .jm b { color: var(--gold); font-size: 15px; font-weight: 900; }
+.rqrow .jm i { font-style: normal; color: var(--ink2); margin: 0 3px; }
+.rqrow .fd { font-size: 12.5px; color: var(--ink); font-weight: 800; }
+.rqrow .sl { font-size: 12.5px; color: var(--green); font-weight: 900; }
+.rqrow .cv { color: var(--muted); font-size: 10px; text-align: center; }
+.rqrow[open] .cv { color: var(--acc); }
+.rqbody {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+  gap: 16px; padding: 2px 14px 13px 44px;
+}
+.rqfact { margin: 8px 0 0; font-size: 12px; color: var(--ink2); }
+@media (max-width: 860px) {
+  .rqhead { display: none; }
+  .rqrow > summary { grid-template-columns: 22px 28px minmax(90px, 1fr) 86px 46px; }
+  .rqrow > summary .sl, .rqrow > summary .cv { display: none; }
+  .rqbody { padding-left: 14px; }
+}
 
 /* ============================================================
    SIDFOT

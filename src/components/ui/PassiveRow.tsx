@@ -8,6 +8,9 @@ export interface PassiveRowProps {
   /** Tier: 1 = grå (spelets vanligaste), 2–3 guld, 4 = legendarisk, 5 = world
    *  tree/rainbow, negativ = dålig. */
   tier: number;
+  /** Passiv-id. Ger bannern hover-rutan med vad passiven gör (`PassiveTipHost`)
+   *  – utelämnas bara för rader som inte är en riktig passiv (teckenförklaringen). */
+  id?: string;
   suffix?: ReactNode;
 }
 
@@ -35,10 +38,10 @@ export function passiveVisual(tier: number) {
 /* Banners renderas som <span> (CSS ger dem display:flex/grid ändå). Det är
    ingen kosmetisk detalj: rader som ska gå att klicka på blir <button>, och en
    <div> inuti en knapp är ogiltig HTML. */
-export function PassiveRow({ name, tier, suffix }: PassiveRowProps) {
+export function PassiveRow({ name, tier, id, suffix }: PassiveRowProps) {
   const { cls, color, rank } = passiveVisual(tier);
   return (
-    <span className={`prow sm ${cls}`}>
+    <span className={`prow sm ${cls}`} data-passive={id}>
       <span className="nm">{name}</span>
       {suffix}
       <span className="arr">
@@ -69,10 +72,35 @@ export function PassiveChips({
       {label && <span className="pcl">{label}</span>}
       <div className="pcrow">
         {ids.map((id) => (
-          <PassiveRow key={id} name={nameOf(id)} tier={tierOf(id)} />
+          <PassiveRow key={id} id={id} name={nameOf(id)} tier={tierOf(id)} />
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Passivnamn i löptext ("Onödigt i rollen: Vanguard, Wellness Watcher").
+ *
+ * Finns för att en uppräkning i en mening är precis där man **inte** vet vad
+ * namnet betyder – bannern intill visar åtminstone tier och färg, den här raden
+ * visar ingenting. `data-passive` ger den samma hover-ruta som bannerna.
+ */
+export function PassiveNames({
+  items, sep = ", ",
+}: {
+  items: readonly { id: string; name: string }[];
+  sep?: string;
+}) {
+  return (
+    <>
+      {items.map((p, i) => (
+        <span key={p.id}>
+          {i > 0 && sep}
+          <span className="pname" data-passive={p.id}>{p.name}</span>
+        </span>
+      ))}
+    </>
   );
 }
 
@@ -80,7 +108,7 @@ export function PassiveList({ items }: { items: { id: string; name: string; tier
   return (
     <span className="prows">
       {items.length ? (
-        items.map((p) => <PassiveRow key={p.id} name={p.name} tier={p.tier} />)
+        items.map((p) => <PassiveRow key={p.id} id={p.id} name={p.name} tier={p.tier} />)
       ) : (
         <span className="prow sm empty"><span className="nm">Inga passiver</span><span className="arr" /></span>
       )}
