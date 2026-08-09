@@ -16,7 +16,7 @@
 # som blir rött av en nätverkshicka i choco på en CSS-ändring lär bara upp en att
 # ignorera rött. Vill du ändå ha det på allt: ta bort paths-blocket.
 
-name: Paket
+name: Package
 
 on:
   workflow_call:
@@ -53,41 +53,42 @@ permissions:
 
 # Avbryt aldrig: körningen kan vara den som en release väntar på.
 concurrency:
-  group: paket-${{ github.ref }}
+  group: package-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  bygg:
+  build:
     # Installern byggs med Inno Setup, launchern kompileras med csc.exe ur
     # .NET Framework, och palsave.exe är en Windows-binär.
     runs-on: windows-latest
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: tools/requirements.txt
 
-      - name: Installera beroenden
+      - name: Install dependencies
         run: |
           npm ci
           python -m pip install --disable-pip-version-check pyinstaller
           pip install -r tools/requirements.txt
 
-      - name: Installera Inno Setup
+      - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
-      - name: Kontrollera koden
+      - name: Check the code
         run: |
           npm run typecheck
           npm test
@@ -102,7 +103,7 @@ jobs:
       # Varning, aldrig throw: en fork som inte vill ha någon donationslänk är
       # ett giltigt läge, och att be om pengar i någon annans namn är värre än
       # att inte be alls.
-      - name: Varna om donationslänken tappats
+      - name: Warn if the donation link was dropped
         shell: pwsh
         env:
           PA_DONATE: ${{ vars.PA_DONATE }}
@@ -111,14 +112,14 @@ jobs:
           $declared = (Test-Path $funding) -and
             (Select-String -Path $funding -Pattern '^\s*ko_fi:\s*\S' -Quiet)
           if ($declared -and -not $env:PA_DONATE) {
-            Write-Host ("::warning title=PA_DONATE saknas::FUNDING.yml deklarerar en " +
+            Write-Host ("::warning title=PA_DONATE is not set::FUNDING.yml deklarerar en " +
               "Ko-fi-mottagare, men repo-variabeln PA_DONATE ar tom. Appen byggs utan " +
               "donationslank. Sätt den under Settings > Secrets and variables > Actions > Variables.")
           } else {
             Write-Host "Donationslanken: $(if ($env:PA_DONATE) { 'satt' } else { 'inte deklarerad' })"
           }
 
-      - name: Bygg paketet
+      - name: Build the package
         shell: pwsh
         env:
           # github.repository är "owner/namn" – exakt det uppdateringskollen vill
@@ -137,11 +138,11 @@ jobs:
             # Annoteringar är enradiga: %0A är radbrytning, och % måste escapas först.
             $tail = (Get-Content package.log -Tail 30) -join "`n"
             $esc = $tail -replace '%', '%25' -replace "`r", '' -replace "`n", '%0A'
-            Write-Host "::error title=Paketbygget foll ($code)::$esc"
+            Write-Host "::error title=Package build failed ($code)::$esc"
             exit $code
           }
 
-      - name: Kontrollera att paketet inte bär någons box
+      - name: Verify the package carries nobody's box
         shell: pwsh
         run: |
           # Sista spärren mot att en utvecklares egen save följer med ut. Bygget
@@ -177,7 +178,7 @@ jobs:
       # att blinka: saknad `static/` ger en ostylad sida, saknade spelikoner ger
       # tomma rutor, och hittas inte palsave.exe faller servern tillbaka på Python
       # – som mottagaren inte har. Alla tre har hänt under utvecklingen.
-      - name: Provinstallera och starta appen
+      - name: Install and start the app
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -247,7 +248,7 @@ jobs:
 
       # Artefakten är både det release.yml publicerar och det du laddar ner när du
       # vill prova ett bygge utan att göra en utgåva av det.
-      - name: Spara installern
+      - name: Upload the installer
         uses: actions/upload-artifact@v4
         with:
           name: PalAssistent-Setup

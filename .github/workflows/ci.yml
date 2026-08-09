@@ -31,13 +31,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  kontroll:
+  checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -45,18 +46,18 @@ jobs:
       # Först, och före npm ci: kollen använder bara Nodes egna moduler och tar
       # ett par sekunder. En trasig bildlänk i README syns inte i något annat
       # steg – och README är det enda de flesta någonsin läser av projektet.
-      - name: Bilder i dokumentationen
+      - name: Documentation images
         run: npm run docs-images
 
       - run: npm ci
 
-      - name: Typer
+      - name: Types
         run: npm run typecheck
 
       # Sannolikhetsmatematiken. En felräknad chans ser precis lika trovärdig ut
       # som en riktig, och varken bygget, typecheck eller lint fångar den – det
       # är därför testerna finns och därför de aldrig får hoppas över.
-      - name: Tester
+      - name: Tests
         run: npm test
 
       - name: Lint
@@ -64,5 +65,5 @@ jobs:
 
       # Bygget fångar sådant som typecheck missar: en klientkomponent som råkat
       # importera serverkod, en sida som kraschar under prerendering.
-      - name: Bygge
+      - name: Build
         run: npm run build

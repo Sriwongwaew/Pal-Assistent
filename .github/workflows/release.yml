@@ -18,7 +18,7 @@
 # ingenting. Därför gör den här filen hela kedjan själv – och slipper en
 # långlivad personlig token som hade behövts annars.
 
-name: Utgåva
+name: Release
 
 on:
   push:
@@ -30,8 +30,8 @@ on:
     - cron: "0 17 * * 0"
   workflow_dispatch:
     inputs:
-      steg:
-        description: "Versionssteg (tomt = läs markören i CHANGELOG.md)"
+      step:
+        description: "Version step (empty = read the marker in CHANGELOG.md)"
         type: choice
         options: ["", patch, minor, major]
         default: ""
@@ -47,41 +47,43 @@ concurrency:
 
 jobs:
   # Avgör om det finns något att släppa, och skapar i så fall taggen.
-  forbered:
+  prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     outputs:
-      slapp: ${{ steps.beslut.outputs.slapp }}
-      tagg: ${{ steps.beslut.outputs.tagg }}
+      release: ${{ steps.decide.outputs.release }}
+      tag: ${{ steps.decide.outputs.tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 
-      - id: beslut
+      - name: Decide whether to release
+        id: decide
         env:
-          VALT_STEG: ${{ inputs.steg }}
+          SELECTED_STEP: ${{ inputs.step }}
         run: |
           set -euo pipefail
 
           # Kom vi hit via en tagg är beslutet redan fattat.
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "Utlöst av taggen $GITHUB_REF_NAME."
-            echo "slapp=true"           >> "$GITHUB_OUTPUT"
-            echo "tagg=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "release=true"        >> "$GITHUB_OUTPUT"
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          steg="${VALT_STEG:-$(node scripts/changelog.mjs bump)}"
+          steg="${SELECTED_STEP:-$(node scripts/changelog.mjs bump)}"
           if [[ "$steg" == "none" ]]; then
             echo "Inget under '## Unreleased' – ingen utgåva den här gången."
-            echo "slapp=false" >> "$GITHUB_OUTPUT"
+            echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "Släpper som $steg."
@@ -100,32 +102,33 @@ jobs:
           git push origin HEAD:main
           git push origin "$tagg"
 
-          echo "slapp=true"     >> "$GITHUB_OUTPUT"
-          echo "tagg=$tagg"     >> "$GITHUB_OUTPUT"
+          echo "release=true"   >> "$GITHUB_OUTPUT"
+          echo "tag=$tagg"      >> "$GITHUB_OUTPUT"
 
   # Bygger installern ur taggen och provinstallerar den. Publiceras aldrig något
   # som inte klarat det här.
-  paket:
-    needs: forbered
-    if: needs.forbered.outputs.slapp == 'true'
+  package:
+    needs: prepare
+    if: needs.prepare.outputs.release == 'true'
     uses: ./.github/workflows/package.yml
     with:
-      ref: ${{ needs.forbered.outputs.tagg }}
+      ref: ${{ needs.prepare.outputs.tag }}
 
-  publicera:
-    needs: [forbered, paket]
-    if: needs.forbered.outputs.slapp == 'true'
+  publish:
+    needs: [prepare, package]
+    if: needs.prepare.outputs.release == 'true'
     # Publiceringen är filhantering och ett API-anrop – ingen anledning att
     # betala för en Windows-runner till det.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
       # Måste vara taggen: CHANGELOG.md ska vara den stämplade versionen.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.forbered.outputs.tagg }}
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -135,20 +138,20 @@ jobs:
       # Utgåvans text kommer ur CHANGELOG.md, inte ur commit-rubrikerna. Samma
       # text visas i appen när den säger att en uppdatering finns, så den är
       # skriven för den som använder appen.
-      - name: Hämta noteringar ur CHANGELOG.md
-        run: node scripts/changelog.mjs notes "${{ needs.forbered.outputs.tagg }}" > release-notes.md
+      - name: Read the notes from CHANGELOG.md
+        run: node scripts/changelog.mjs notes "${{ needs.prepare.outputs.tag }}" > release-notes.md
 
-      - name: Kontrollera att kontrollsumman stämmer
+      - name: Verify the checksum
         run: |
           # Appens uppdateringsfunktion vägrar installera när hashen inte matchar,
           # så en felaktig SHA256SUMS.txt gör utgåvan oanvändbar för alla som
           # redan kör programmet – utan att något syns i bygget.
           cd dist && sha256sum --check SHA256SUMS.txt
 
-      - name: Publicera utgåvan
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.forbered.outputs.tagg }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
             dist/PalAssistent-Setup.exe
             dist/SHA256SUMS.txt
