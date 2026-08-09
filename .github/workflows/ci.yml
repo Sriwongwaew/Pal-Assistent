@@ -42,6 +42,12 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Först, och före npm ci: kollen använder bara Nodes egna moduler och tar
+      # ett par sekunder. En trasig bildlänk i README syns inte i något annat
+      # steg – och README är det enda de flesta någonsin läser av projektet.
+      - name: Bilder i dokumentationen
+        run: npm run docs-images
+
       - run: npm ci
 
       - name: Typer

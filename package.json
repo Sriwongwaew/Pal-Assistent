@@ -12,6 +12,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "passive-text": "node scripts/passive-text.mjs",
+    "docs-images": "node scripts/docs-images.mjs",
     "preversion": "node scripts/changelog.mjs check",
     "version": "node scripts/changelog.mjs stamp && git add CHANGELOG.md",
     "prepackage": "node scripts/ensure-data.mjs",

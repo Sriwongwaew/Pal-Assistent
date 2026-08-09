@@ -11,7 +11,7 @@ uploaded anywhere.
 > **Note:** the app's interface is currently in Swedish. An English translation is planned — see
 > [issues](../../issues) if you'd like to help.
 
-![Overview](docs/img/oversikt.png)
+![Overview](docs/img/overview.png)
 
 ## Download
 
@@ -51,7 +51,7 @@ Your whole box as tiles with level, IVs and passives. Search, filter and sort �
 own Base Info view for the selected pal, with condense stars, status bars and the work suitability
 strip.
 
-![The box](docs/img/boxen.png)
+![The box](docs/img/box.png)
 
 ### Recommendations
 
@@ -59,7 +59,7 @@ What to condense **now**, ranked by biggest gain: the star jump you get, how man
 consumes, how many box slots it frees — and what the one you keep is actually good at, so you
 don't feed away your best miner by accident.
 
-![Recommendations](docs/img/rekommendationer.png)
+![Recommendations](docs/img/recommendations.png)
 
 ### Best for…
 
@@ -67,7 +67,7 @@ Attack team, base dream team, best workers per work type (both from your own box
 fishing pals and fastest mounts. Click a species you don't own and you land straight in a breeding
 plan for it.
 
-![Best for](docs/img/bast-for.png)
+![Best for](docs/img/best-for.png)
 
 ### Live mode
 
@@ -80,7 +80,7 @@ folder, a copy — point the app at that folder under **Mapp**.
 
 ### Light and dark, three palettes
 
-![Light mode](docs/img/oversikt-ljust.png)
+![Light mode](docs/img/overview-light.png)
 
 ## Is it safe?
 

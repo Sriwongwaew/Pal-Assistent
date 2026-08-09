@@ -71,6 +71,7 @@ npm run build      # must stay green – always run before delivering
 npm run typecheck  # tsc --noEmit (strict, noUncheckedIndexedAccess)
 npm test           # node:test över src/lib – inga beroenden, kompilerar till tests-dist/
 npm run passive-text  # täckningskoll: har varje passiv i datasetet en svensk beskrivning?
+npm run docs-images   # finns varje bild dokumentationen pekar på? (CI kör den först)
 ```
 
 `npm test` täcker sannolikhetsmatematiken (`perfectPlan`, `inheritOdds`, `condenseReach`) med
@@ -78,8 +79,12 @@ npm run passive-text  # täckningskoll: har varje passiv i datasetet en svensk b
 sannolikhet ser precis lika trovärdig ut som en riktig, och varken bygge, typecheck eller lint
 fångar den. Testerna hittade t.ex. att två pals i samma tillstånd dominerade bort varandra.
 
-```bash
-```
+**Skärmdumparna i `docs/img/` är README:s enda innehåll utöver texten**, och filnamnen är
+engelska som dokumentationen (`overview`, `box`, `recommendations`, `best-for`, `breeding`,
+`overview-light`). Ändras en vy synbart ska bilden bytas ut i samma veva — README är för de
+flesta hela projektet. `npm run docs-images` fångar en referens som pekar på en fil som inte
+finns (det var så en omdöpning till engelska tog död på fem av sex bilder utan att någon
+märkte det), men den kan inte se om en bild är *gammal*. Det är fortfarande ett mänskligt jobb.
 
 **Never run `npm run build` while `npm run dev` is running.** They share `.next/`, and the build
 overwrites the manifests and chunks the dev server holds in memory. The running page then dies with
