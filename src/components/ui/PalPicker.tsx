@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Species } from "@/lib/types";
-import { elementBg, SpeciesIcon } from "./PalBits";
+import { DeckNo, ElementIcons, elementBg, SpeciesIcon } from "./PalBits";
 
 export interface PalPickerProps {
   species: Species[];
@@ -31,7 +31,13 @@ export function PalPicker({
       .map((sp, i) => ({ sp, i }))
       .filter(({ sp, i }) => {
         if (restrict && !owned.has(i)) return false;
-        return !q || sp.name.toLowerCase().includes(q) || sp.code.toLowerCase().includes(q);
+        if (!q) return true;
+        // Sök också på element ("fire") och Paldeck-nummer ("134") – det är så
+        // man letar när man vet vad man vill ha men inte vad den heter.
+        return sp.name.toLowerCase().includes(q)
+          || sp.code.toLowerCase().includes(q)
+          || sp.elements.some((e) => e.toLowerCase().includes(q))
+          || (sp.deck > 0 && String(sp.deck) === q);
       })
       // Ägda först – det är dem man planerar med – sedan bokstavsordning.
       .sort((a, b) => {
@@ -81,7 +87,7 @@ export function PalPicker({
         <input
           type="text"
           className="grow"
-          placeholder="Sök art…"
+          placeholder="Sök art, element eller No.…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -105,6 +111,8 @@ export function PalPicker({
           >
             <SpeciesIcon sp={selected} size={20} radius={6} />
             <b>{selected.name}</b>
+            <ElementIcons sp={selected} size={14} />
+            <DeckNo sp={selected} />
           </button>
         ) : (
           <span className="meta">{rows.length} arter</span>
@@ -134,8 +142,10 @@ export function PalPicker({
             <span className="circ" style={{ background: elementBg(sp) }}>
               <SpeciesIcon sp={sp} size={52} radius={26} />
               {owned.has(i) && <span className="mk owned" title="Du äger arten" />}
+              <span className="els"><ElementIcons sp={sp} size={14} /></span>
             </span>
             <span className="nm">{sp.name}</span>
+            <DeckNo sp={sp} />
           </button>
         ))}
         {rows.length === 0 && <div className="meta pad">Ingen art matchar sökningen.</div>}

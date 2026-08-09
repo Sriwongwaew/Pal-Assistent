@@ -24,17 +24,33 @@ export function GenderSymbol({ g }: { g: Gender }) {
   return <span style={{ color: "var(--muted)" }}>•</span>;
 }
 
-export function ElementIcons({ sp }: { sp: Species }) {
+export function ElementIcons({ sp, size = 17 }: { sp: Species; size?: number }) {
   const els: ElementType[] = sp.elements.length ? sp.elements : ["Normal"];
   return (
     <>
       {els.map((e) => (
         <span key={e} className="el" title={e}>
-          <GameIcon name={ELEMENT_ICON[e] ?? "neutral"} size={17} />
+          <GameIcon name={ELEMENT_ICON[e] ?? "neutral"} size={size} />
         </span>
       ))}
     </>
   );
+}
+
+/**
+ * Paldeck-numret, så man hittar arten i spelets Paldeck.
+ *
+ * Två saker datasetet gör som gränssnittet måste respektera:
+ * 1. **Varianter delar basartens nummer** (Wumpo och Wumpo Botan är båda 134).
+ *    Spelet skiljer dem med en bokstav – "134B" – men suffixet finns inte i
+ *    datasetet, så vi visar basnumret. Det leder till rätt uppslag ändå.
+ * 2. **0 och −1 betyder "inget index"** (platshållarna, och Lamball som saknar
+ *    nummer i exporten). Skriv aldrig ut "No.0" – då ser en dataset-lucka ut
+ *    som ett riktigt nummer.
+ */
+export function DeckNo({ sp }: { sp: Species }) {
+  if (sp.deck <= 0) return null;
+  return <span className="deckno" title={`Paldeck No.${sp.deck}`}>No.{sp.deck}</span>;
 }
 
 export type TagKind = "alpha" | "lucky" | "keep" | "cond" | "info";

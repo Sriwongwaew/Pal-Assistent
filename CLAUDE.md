@@ -28,6 +28,10 @@ Features by route:
   sätter arten som mål. Under mål-väljaren sitter **Målbild** (`GoalCard`): porträttet av arten
   med de önskade passiverna som banners och tomma platser upp till fyra, IV-målet och
   arbetsremsan. Planen under är steg och odds – den visar aldrig hur *resultatet* ser ut.
+  **Varje art i planeraren bär sina element och sitt Paldeck-nummer** (`SpeciesMini`, art-rutnätet,
+  artförslagen, målbilden) — stegen nämner arter man inte äger, och nästa steg är att slå upp dem
+  i spelets Paldeck. Art-sökningen matchar därför också element ("fire") och nummer ("134").
+  Se `Species.deck` under "Domain gotchas" innan du visar numret någon ny plats.
   Also direct combos, shortest-path "fritt läge" tree, `?target=<speciesIdx>` deep-links
   (used by Bäst för…). Alla val **sparas** (`pa-breeding` i localStorage) så planen finns kvar
   när man varit inne på Boxen; **Rensa allt** överst nollar dem.
@@ -485,6 +489,18 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   sparad pal bär, även när passiven inte passar arten (`soleCarrier`, eget skäl och egen grupp
   i gränssnittet). Utan det föreslog sidan att mata bort boxens enda Demon God, och passiver
   går bara att ärva. Ta inte bort det när du pillar på passform-reglerna.
+- **`Species.deck` är Paldeck-numret – men inte utan hål** (`DeckNo` i `PalBits`). Tre saker
+  som gör att det aldrig får skrivas ut rakt av:
+  1. **Varianter delar basartens nummer.** Wumpo och Wumpo Botan är båda `134`, Jormuntide och
+     Jormuntide Ignis båda `121`. Spelet skiljer dem åt med en bokstav ("134B") men suffixet
+     finns inte i datasetet. Basnumret leder till rätt uppslag ändå — varianten står bredvid.
+  2. **0 och −1 betyder "inget index"**, inte "nummer noll". Fyra arter har det: de tre
+     `Unidentified Pal`-platshållarna och **Lamball**, som i spelet är No.001. `DeckNo`
+     returnerar `null` för `deck <= 0` — annars ser en dataset-lucka ut som ett riktigt nummer.
+  3. **Numreringen är den nuvarande, inte lanseringens.** Nya arter ligger inskjutna bland de
+     låga numren (Celaray 7, Croajiro 9, Herbil 10), så Foxparks har `29` och inte `5`.
+     Jämför aldrig mot en lanseringslista när du felsöker — regenerera hellre den statiska
+     halvan ur `palworld-save-pal`.
 - **Stjärnkostnaderna är kumulativa, inte en total** (`condense.ts`). 4 → 1★, sedan 16 **till**
   för 2★, 32 för 3★, 64 för 4★. "20 dubbletter" betyder därför två stjärnor från noll men
   ingenting alls från 2★, där nästa steg ensamt kostar 32 — och det gick inte att se på den

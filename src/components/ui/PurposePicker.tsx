@@ -10,7 +10,7 @@ import type { Species, WorkType } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
 import { passiveVisual } from "./PassiveRow";
 import { WorkIcon } from "./WorkIcon";
-import { SpeciesIcon, Tag } from "./PalBits";
+import { DeckNo, ElementIcons, SpeciesIcon, Tag } from "./PalBits";
 
 export interface PurposePickerProps {
   value: PurposeId | null;
@@ -137,6 +137,8 @@ export function PurposePicker({
               >
                 <SpeciesIcon sp={speciesOf(r.s)} size={36} radius={11} />
                 <span className="nm">{r.name}{r.noct ? " 🌙" : ""}</span>
+                <ElementIcons sp={speciesOf(r.s)} size={14} />
+                <DeckNo sp={speciesOf(r.s)} />
                 <span className="lvl">{r.level}</span>
                 <ReachTag reach={r.reach} />
               </button>

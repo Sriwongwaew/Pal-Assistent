@@ -72,7 +72,9 @@ export function GoalCard({ species, wanted, slots, ivGoal, owned, done, work }: 
                     <GameIcon name={ELEMENT_ICON[e] ?? "neutral"} size={14} />{e}
                   </span>
                 ))}
-                <span className="chip">No.{species.deck}</span>
+                {/* Datasetet har 0 för arter utan index (Lamball, platshållarna).
+                    "No.0" ser ut som ett riktigt nummer – hellre ingen chip alls. */}
+                {species.deck > 0 && <span className="chip">No.{species.deck}</span>}
               </>
             )}
           </div>
