@@ -249,7 +249,7 @@ jobs:
       # Artefakten är både det release.yml publicerar och det du laddar ner när du
       # vill prova ett bygge utan att göra en utgåva av det.
       - name: Upload the installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PalAssistent-Setup
           path: |
