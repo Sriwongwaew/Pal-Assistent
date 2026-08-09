@@ -171,8 +171,6 @@ export const sv: Catalogue = {
   "purpose.work.hint": "Jobbar snabbt i basen – välj syssla för artförslag",
   "purpose.mount": "Riddjur",
   "purpose.mount.hint": "Tar dig fram fort – rörelsehastighet",
-  "purpose.fishing": "Fiske",
-  "purpose.fishing.hint": "Större fångster (Palworld 1.0)",
 
   // ── Effekter datasetet inte modellerar (UNMODELLED i purpose.ts) ──────────
   "fx.stamina75": "Uthållighet +75 % (bara ridbara)",
@@ -189,7 +187,6 @@ export const sv: Catalogue = {
   "fx.hunger15": "Hunger sjunker 15 % långsammare",
   "fx.cooldown30": "Nedkylning −30 % på färdigheter",
   "fx.cooldown15": "Nedkylning −15 % på färdigheter",
-  "fx.biggerCatch": "Större fångst vid fiske",
   "fx.workRank": "Höjer arbetsrangen ett steg",
 
   // ── Syftesväljaren ────────────────────────────────────────────────────────
@@ -308,9 +305,8 @@ export const sv: Catalogue = {
   "reco.why.workBody":
     "varje rang lyfter {one} av palens befintliga sysslor ett steg, och full rang lyfter alla. Det är vägen från nivå 8 till spelets tak på 10 – tillsammans med Applied Technique-böckerna (+1 permanent, en per syssla) och arbetsauror.",
   "reco.why.cost": "Kostnad per stjärna: {ladder} – kumulativt, inte en total.",
-  "reco.why.preOne": "OBS: de siffrorna är pre-1.0.",
-  "reco.why.preOneBody":
-    "Palworld 1.0 sänkte full kondensering till 48 pals totalt, men fördelningen per stjärna är inte publicerad. Din Condenser visar den exakta siffran för nästa rang – säg till så rättas den här sidan.",
+  "reco.why.costSource":
+    "48 pals för full kondensering, enligt Palworld 1.0. Pocketpair har inte publicerat fördelningen per stjärna, så visar din Condenser något annat är det spelet som gäller – skriv en issue.",
 
   "condense.noteGold":
     "{n} bär en guld- eller rainbow-passiv – passiver går bara att ärva, aldrig slumpa fram.",

@@ -193,8 +193,6 @@ export const en = {
   "purpose.work.hint": "Works fast at the base — pick a task for species suggestions",
   "purpose.mount": "Mount",
   "purpose.mount.hint": "Gets you around fast — movement speed",
-  "purpose.fishing": "Fishing",
-  "purpose.fishing.hint": "Bigger catches (Palworld 1.0)",
 
   // ── Effects the dataset does not model (UNMODELLED in purpose.ts) ─────────
   "fx.stamina75": "Stamina +75 % (mounts only)",
@@ -211,7 +209,6 @@ export const en = {
   "fx.hunger15": "Hunger drops 15 % slower",
   "fx.cooldown30": "Skill cooldown −30 %",
   "fx.cooldown15": "Skill cooldown −15 %",
-  "fx.biggerCatch": "Bigger catch when fishing",
   "fx.workRank": "Raises the work rank one step",
 
   // ── Purpose picker ────────────────────────────────────────────────────────
@@ -332,9 +329,8 @@ export const en = {
   "reco.why.workBody":
     "every rank lifts {one} of the pal's existing tasks one step, and full rank lifts them all. That is the road from level 8 to the game's cap of 10 — together with the Applied Technique books (+1 permanent, one per task) and work auras.",
   "reco.why.cost": "Cost per star: {ladder} — cumulative, not a total.",
-  "reco.why.preOne": "NOTE: those figures are pre-1.0.",
-  "reco.why.preOneBody":
-    "Palworld 1.0 lowered full condensing to 48 pals in total, but the split per star has not been published. Your Condenser shows the exact figure for the next rank — say the word and this page gets corrected.",
+  "reco.why.costSource":
+    "48 pals for full condensing, as of Palworld 1.0. Pocketpair has not published the split per star, so if your Condenser shows something else, trust the game and open an issue.",
 
   "condense.noteGold":
     "{n} carry a gold or rainbow passive — passives can only be inherited, never rolled.",

@@ -20,10 +20,8 @@ export interface Purpose {
   label: MessageKey;
   /** Kort förklaring under chippet. */
   hint: MessageKey;
-  /** Vikt per fx-nyckel. Tomt objekt = styrs av `fixed` i stället. */
+  /** Vikt per fx-nyckel. */
   weights: Partial<Record<FxKey, number>>;
-  /** Passiver som inte syns i fx alls (fiskestorlek), listade för hand. */
-  fixed?: string[];
 }
 
 /** Attack-vikterna speglar `scorePal`: elementboost räknas som 0,7 attack. */
@@ -52,15 +50,30 @@ export const PURPOSES: Purpose[] = [
     hint: "purpose.mount.hint",
     weights: { move: 1, hp: 0.1 },
   },
-  {
-    id: "fishing",
-    label: "purpose.fishing",
-    hint: "purpose.fishing.hint",
-    weights: {},
-    // Lunker och Whopper påverkar fiskestorlek och har ingen fx i datasetet.
-    fixed: ["Nushi", "MiniNushi"],
-  },
 ];
+
+/* Fiske är med flit INTE ett syfte, och det ska inte läggas tillbaka.
+ *
+ * Här stod tidigare ett femte syfte som rekommenderade Lunker (`Nushi`) och
+ * Whopper (`MiniNushi`) med motiveringen "större fångst vid fiske". Det är fel:
+ * spelets egen text för båda — den som ligger i `passiveTextEn.ts`, genererad ur
+ * uppströms, och den handöversatta i `passiveText.ts` — säger vattenskada,
+ * isskada och försvar, ingenting om fiske. `NAMED_BOOSTS` ovan behandlar dem
+ * också korrekt som vatten/is-boostar, så filen motsade sig själv.
+ *
+ * Felkällan är värd att känna igen: Lunker är *garanterad på vissa pals man får
+ * genom fiske*. Passiven fås alltså AV fiske, den hjälper inte fisket — och
+ * namnen ("lunker", "whopper" = stor fisk) gör missförståndet lätt att göra om.
+ *
+ * Det finns ingen passiv som påverkar fisket. Fiskeförmågan sitter i artens
+ * partnerfärdighet (Gloopie bromsar fångstmätaren, Jelliette ger fler föremål),
+ * och den listan är `FISHING_PALS` — handkurerad, visad på Bäst för…. Att avla
+ * fram en bättre fiskare går alltså inte, och ett syfte som bara kan svara
+ * "ingenting" hör inte hemma bland de fyra som ger riktiga passivförslag.
+ *
+ * Rollen `"fishing"` finns kvar i `speciesRoles`: den är sann och används av
+ * `palUses`. Den får bara aldrig avgöra om en passiv passar — se
+ * `passiveFitsSpecies`, som filtrerar bort roller utan syfte. */
 
 /** Datasetets elementnamn i passiv-id:n skiljer sig från `ElementType`. */
 const ELEMENT_TOKEN: Record<ElementType, string> = {
@@ -298,14 +311,17 @@ export function speciesRoles(species: Species): PurposeId[] {
  * säger uttryckligen "bara ridbara".
  */
 export function passiveFitsSpecies(def: PassiveDef, id: string, species: Species): boolean {
-  const roles = speciesRoles(species);
+  /* Bara roller som har ett syfte går att döma emot. `"fishing"` är en äkta roll
+     men saknar syfte (se PURPOSES), och Gloopie, Jelliette och Jellroy har den
+     som ENDA roll — utan filtret blir `some` falskt för varenda passiv med känd
+     effekt, alltså "ingen passiv passar", och spara-reglerna föreslår att mata
+     bort boxens fiskare med Legend och allt. Filtret går via PURPOSES i stället
+     för en egen lista, så ett framtida syfte kopplas på av sig självt. */
+  const roles = speciesRoles(species).filter((r) => PURPOSES.some((p) => p.id === r));
   if (roles.length === 0 || !hasKnownEffect(def, id)) return true;
   const tokens = elementTokens(species);
-  return PURPOSES.some((p) => roles.includes(p.id) && (
-    p.fixed
-      ? p.fixed.includes(id)
-      : purposeScore(def, id, p, tokens, true) >= MIN_FIT
-  ));
+  return PURPOSES.some((p) => roles.includes(p.id)
+    && purposeScore(def, id, p, tokens, true) >= MIN_FIT);
 }
 
 export interface PassiveSynergy {
@@ -331,8 +347,6 @@ export function passiveSynergy(
   const roles = species ? speciesRoles(species) : [];
   let best: PassiveSynergy | null = null;
   for (const purpose of PURPOSES) {
-    // Fiske poängsätts inte ur fx alls – där finns inget "drar åt samma håll".
-    if (purpose.fixed) continue;
     // Tre arbetspassiver på en pal som inte kan arbeta är ingen uppsättning.
     if (roles.length > 0 && !roles.includes(purpose.id)) continue;
     const fit = ids.filter((id) => {
@@ -415,7 +429,6 @@ export function recommendPassives(
   for (const [id, def] of Object.entries(data.passives)) {
     if (isEquipmentOnly(id) || def.r < 0) continue;
 
-    let score: number;
     // Datasetets fx först; saknas den helt får vår egen effekttext ta över,
     // annars står en tom rad där effekten borde stå.
     const unmodelled = unmodelledWhy(id);
@@ -424,21 +437,15 @@ export function recommendPassives(
     // till att passiven föreslås just den här arten.
     const boostEls = boostElements(id);
     if (boostEls.length > 0 && why) why = `${why} (${boostEls.join(", ")})`;
-    if (purpose.fixed) {
-      if (!purpose.fixed.includes(id)) continue;
-      score = 100;
-      why = say("fx.biggerCatch");
-    } else {
-      score = purposeScore(def, id, purpose, targetElements, target !== null);
-      // En höjd arbetsrang är värd mer än någon procentsats – men bara för rätt syssla.
-      if (work && workRankFor(id) === work) {
-        score += 60;
-        why = say("fx.workRank");
-      }
-      if (score <= 0) continue;
-      // Liten knuff så en högre tier vinner vid lika effekt.
-      score += Math.max(0, def.r) * 0.5;
+    let score = purposeScore(def, id, purpose, targetElements, target !== null);
+    // En höjd arbetsrang är värd mer än någon procentsats – men bara för rätt syssla.
+    if (work && workRankFor(id) === work) {
+      score += 60;
+      why = say("fx.workRank");
     }
+    if (score <= 0) continue;
+    // Liten knuff så en högre tier vinner vid lika effekt.
+    score += Math.max(0, def.r) * 0.5;
 
     scored.push({ id, name: def.n, tier: def.r, carriers: counts.get(id) ?? 0, score, why });
   }

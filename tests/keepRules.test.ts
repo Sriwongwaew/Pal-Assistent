@@ -54,6 +54,10 @@ const data = {
     species("Azurobe Cryst", ["Ice", "Dragon"]),
     species("Gildra", ["Earth"], { ws: { Handcraft: 5 } as Species["ws"], sc: [105, 120, 105], spr: 720 }),
     species("Necromus", ["Dark"], { sc: [130, 145, 120], spr: 1900 }),
+    /* Gloopie står med i FISHING_PALS och får därför rollen "fiske". Allt annat
+       är standardvärden, alltså under varje ROLE_FLOOR – den har fiske som ENDA
+       roll, precis som Jelliette och Jellroy. */
+    species("Gloopie", ["Water"]),
   ],
   pair: [], gendered: [], uniques: [], passives, pals: [], player: "T", exported: "", palExp: [],
 } as unknown as AppData;
@@ -146,7 +150,7 @@ describe("ren bärare av en toppassiv", () => {
    för den". Gildra ligger under 90:e percentilen i attack (120), HP+försvar
    (210) och sprint (720) men har Handiwork 5 – alltså arbetare, och då gör
    elementskada + försvar ingen nytta. */
-const GILDRA = 2, NECROMUS = 3;
+const GILDRA = 2, NECROMUS = 3, GLOOPIE = 4;
 
 describe("passiven måste göra nytta på arten", () => {
   it("Lunker på en arbetare är ingen anledning att spara den", () => {
@@ -184,6 +188,19 @@ describe("passiven måste göra nytta på arten", () => {
   it("en art utan tydlig roll går inte att jämföra mot – då duger allt", () => {
     const [filler] = keepOf([owned(["Nushi"], { s: 0 })]);
     assert.deepEqual(filler?.cleanCarrier.map((c) => c.name), ["Lunker"]);
+  });
+
+  /* Fiske är en roll utan syfte: ingen passiv i spelet påverkar fisket, det
+     sitter i artens partnerfärdighet. Rollen får därför aldrig döma passiver —
+     gör den det blir svaret "ingen passiv passar" för Gloopie, Jelliette och
+     Jellroy, som inte har någon annan roll, och sidan föreslår att mata bort
+     boxens fiskare med Legend och allt. */
+  it("en fiskare döms inte på sina passiver – fiske är en roll utan syfte", () => {
+    const [gloopie] = keepOf([
+      owned(["Legend"], { s: GLOOPIE }),
+      owned(["Legend"], { s: NECROMUS }),  // så skyddsnätet inte räddar fiskaren
+    ]);
+    assert.deepEqual(gloopie?.cleanCarrier.map((c) => c.name), ["Legend"]);
   });
 
   it("tre arbetspassiver på en stridspal är ingen uppsättning", () => {
