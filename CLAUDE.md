@@ -390,7 +390,7 @@ Next i `output: "standalone"`, `palsave.exe` (PyInstaller `--onedir`), maskinens
 `node.exe` (MIT, fri att distribuera) och `packaging/palassistent.iss` (Inno Setup).
 Byggberoenden på **din** maskin: `pip install pyinstaller` + `winget install JRSoftware.InnoSetup`.
 
-Tretton saker som är inlärda med möda – ändra inte tillbaka:
+Fjorton saker som är inlärda med möda – ändra inte tillbaka:
 
 1. **`PA_PACKAGE=1` ger både standalone och egen `distDir`.** Paketbygget skriver till
    `.next-package/`, aldrig `.next/`. Det är därför du kan paketera medan dev-servern kör –
@@ -441,6 +441,20 @@ Tretton saker som är inlärda med möda – ändra inte tillbaka:
     Adblock Plus, som öppnar sitt "tack för att du använder …" i ett eget fönster och utlöser
     punkt 12. Därför `--disable-extensions` (+ `--disable-sync`). Ett tillägg har ingenting
     att göra på en lokal sida ändå; det kan lika gärna blockera appens egna resurser.
+14. **`build.ps1` får inte lita på modulladdning.** `npm run package` startar det i Windows
+    PowerShell 5.1, och på CI är anroparen PowerShell 7 – då svarar 5.1 att `Get-FileHash`
+    inte finns, fast `ConvertFrom-Json` och `Copy-Item` i samma skript fungerar. Bygget gick
+    igenom Next, PyInstaller, launchern och Inno Setup och dog på **sista raden**,
+    kontrollsummorna. Det såg ut som ett paketeringsfel men var ett miljöfel, och eftersom det
+    aldrig hände lokalt låg det kvar: `v2.1.0` blev en tagg utan utgåva, och repot hade noll
+    utgåvor tills det hittades. SHA-256 räknas därför med .NET. Behöver du något ur en modul
+    här: anropa .NET i stället, eller kontrollera att det finns innan du använder det.
+
+    Att felet gick att **hitta** är en egen läxa: byggloggen kräver inloggning, så ett fallet
+    paketbygge är bara "Process completed with exit code 1" för den som felsöker utifrån.
+    Paketsteget skriver därför sitt fel som en `::error::`-annotering, och **annoteringar går
+    att läsa utan konto**. Ta inte bort det – det var det som gav svaret på första försöket
+    efter tre blinda körningar.
 
 Installern är **osignerad**, så SmartScreen säger "Windows skyddade din dator" första gången.
 Det står i `packaging/LÄS-MIG.txt`; ett certifikat kostar tusenlappar per år och en hårdvarutoken.
