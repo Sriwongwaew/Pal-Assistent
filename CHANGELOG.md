@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 2.1.0 – 2026-08-09
+
 - **The planner now tells you what you can skip breeding.** 26 passives exist as implants for the
   Pal Surgery Table, and one you implant afterwards never enters the inheritance pool — so it costs
   nothing. Since the odds are steeply convex in pool size, implanting one of four wanted passives
