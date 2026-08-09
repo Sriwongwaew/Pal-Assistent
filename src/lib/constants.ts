@@ -7,21 +7,29 @@ export const TIER_WEIGHTS: Record<number, number> = {
 };
 
 /**
- * Antal pals som krävs per kondenserings-stjärna (1★–4★).
+ * Antal pals som krävs per kondenserings-stjärna (1★–4★). Kumulativt, inte en
+ * total: 4 för första stjärnan, sedan 8 TILL för den andra, och så vidare.
  *
- * ⚠️ **De här siffrorna är PRE-1.0 och alltså föråldrade.** 4+16+32+64 = 116,
- * vilket var kostnaden före 1.0. Palworld 1.0 sänkte full kondensering till
- * **48 pals totalt** — men Pocketpair har inte publicerat någon fördelning per
- * stjärna, och 1.0 gjorde om arbetslämpligheten i grunden i stället för att
- * skala ner den gamla kurvan. Att halvera 4/16/32/64 vore alltså en gissning.
+ * Siffrorna är Palworld 1.0. Här stod tidigare 4/16/32/64 = 116, som var
+ * kostnaden **före** 1.0 — patchen sänkte full kondensering till 48 pals, och
+ * den gamla arrayen fick sidan att kräva mer än dubbelt så många dubbletter som
+ * spelet faktiskt gör. Följden var värre än ett fel tal: "Nästan där" räknade
+ * bort arter som redan var framme, och rekommendationerna sköt upp
+ * kondenseringar man kunde gjort direkt.
  *
- * Rätt siffror står i spelets egen Condenser-ruta, som visar exakt hur många
- * dubbletter nästa rang kostar i den patch man kör. Byt hit dem när du har
- * dem — allt på rekommendationssidan räknas ur den här arrayen, så det är den
- * enda rad som behöver ändras. Uppdatera testerna i `tests/condense.test.ts`
- * samtidigt: de har handräknat facit mot just de här värdena.
+ * Fördelningen är inte publicerad av Pocketpair. 4/8/12/24 kommer från
+ * [palworld.wiki.gg](https://palworld.wiki.gg/wiki/Pal_Essence_Condenser) och
+ * stöds av community-guiderna, och den summerar till exakt de 48 som är den
+ * kända totalen — det är därför den duger, inte för att en enskild sida säger
+ * det. Samma källa som avelsoddsen och passiveffekterna vilar på.
+ *
+ * Facit står ändå i spelets egen Condenser-ruta, som visar exakt vad nästa rang
+ * kostar i den patch man kör. Ändras det här är det den enda raden som behöver
+ * röras — allt på rekommendationssidan räknas ur arrayen — men uppdatera
+ * `tests/condense.test.ts` i samma veva: det har handräknat facit mot just de
+ * här värdena, och en felräknad tröskel ser precis lika trovärdig ut som en rätt.
  */
-export const STAR_COST = [4, 16, 32, 64] as const;
+export const STAR_COST = [4, 8, 12, 24] as const;
 
 export const ELEMENT_META: Record<ElementType, { color: string; emoji: string }> = {
   Fire: { color: "#ff6b4a", emoji: "🔥" },

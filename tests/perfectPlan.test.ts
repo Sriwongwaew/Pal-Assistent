@@ -203,17 +203,17 @@ describe("planPerfectLine – kortaste vägen", () => {
   });
 });
 
-describe("condenseReach – stjärnkostnaden 4/16/32/64", () => {
+describe("condenseReach – stjärnkostnaden 4/8/12/24", () => {
   it("fyra foder ger första stjärnan", () => {
-    assert.deepEqual(condenseReach(0, 4), { reach: 1, left: 0, nextCost: 16 });
+    assert.deepEqual(condenseReach(0, 4), { reach: 1, left: 0, nextCost: 8 });
   });
 
   it("tre foder räcker inte", () => {
     assert.deepEqual(condenseReach(0, 3), { reach: 0, left: 3, nextCost: 4 });
   });
 
-  it("allt på en gång: 4+16+32+64 = 116 ger fyra stjärnor", () => {
-    assert.deepEqual(condenseReach(0, 116), { reach: 4, left: 0, nextCost: 0 });
+  it("allt på en gång: 4+8+12+24 = 48 ger fyra stjärnor", () => {
+    assert.deepEqual(condenseReach(0, 48), { reach: 4, left: 0, nextCost: 0 });
   });
 
   it("redan maxad art kan inte gå längre", () => {

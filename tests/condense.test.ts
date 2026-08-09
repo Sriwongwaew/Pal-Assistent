@@ -49,28 +49,42 @@ function box(stars: number, dupes: number, s = 0) {
 const data = makeData([species("Relaxaurus"), species("Rushoar")]);
 
 describe("planCondense – vad går att göra nu", () => {
-  it("20 dubbletter från 0★ räcker till 2★ (4 + 16) och lämnar inget kvar", () => {
-    const { pals, bestOf } = box(0, 20);
+  it("12 dubbletter från 0★ räcker till 2★ (4 + 8) och lämnar inget kvar", () => {
+    const { pals, bestOf } = box(0, 12);
     const [p] = planCondense(data, pals, bestOf);
     assert.ok(p);
     assert.equal(p.verdict, "now");
     assert.equal(p.reach, 2);
-    assert.equal(p.feed, 20);
+    assert.equal(p.feed, 12);
     assert.equal(p.leftover, 0);
-    // Nästa stjärna kostar 32 och man börjar om från noll sparade.
-    assert.equal(p.nextCost, 32);
-    assert.equal(p.missing, 32);
+    // Nästa stjärna kostar 12 och man börjar om från noll sparade.
+    assert.equal(p.nextCost, 12);
+    assert.equal(p.missing, 12);
   });
 
-  it("samma 20 dubbletter från 2★ räcker inte till någonting", () => {
-    const { pals, bestOf } = box(2, 20);
+  /* Hela poängen med kumulativa kostnader: samma antal dubbletter är värt helt
+     olika mycket beroende på var arten står. Fem ger en stjärna från noll, men
+     ingenting alls från 2★ – där kostar nästa steg 12 ensamt. */
+  it("5 dubbletter från 2★ räcker inte till någonting", () => {
+    const { pals, bestOf } = box(2, 5);
     const [p] = planCondense(data, pals, bestOf);
     assert.ok(p);
     assert.equal(p.verdict, "hold");
     assert.equal(p.reach, 2);
     assert.equal(p.feed, 0);
-    assert.equal(p.leftover, 20);
-    assert.equal(p.missing, 12); // 32 − 20
+    assert.equal(p.leftover, 5);
+    assert.equal(p.missing, 7); // 12 − 5
+  });
+
+  it("samma 5 dubbletter från 0★ ger däremot en stjärna", () => {
+    const { pals, bestOf } = box(0, 5);
+    const [p] = planCondense(data, pals, bestOf);
+    assert.ok(p);
+    assert.equal(p.verdict, "now");
+    assert.equal(p.reach, 1);
+    assert.equal(p.feed, 4);
+    assert.equal(p.leftover, 1);
+    assert.equal(p.missing, 7); // 8 − 1 sparad
   });
 
   it("3 dubbletter från 0★ är 'nästan där' – en enda till ger 1★", () => {
@@ -91,14 +105,14 @@ describe("planCondense – vad går att göra nu", () => {
     assert.equal(p.missing, 0);
   });
 
-  it("21 dubbletter ger samma två stjärnor som 20 – men en blir över", () => {
-    const { pals, bestOf } = box(0, 21);
+  it("13 dubbletter ger samma två stjärnor som 12 – men en blir över", () => {
+    const { pals, bestOf } = box(0, 13);
     const [p] = planCondense(data, pals, bestOf);
     assert.ok(p);
     assert.equal(p.reach, 2);
-    assert.equal(p.feed, 20);
+    assert.equal(p.feed, 12);
     assert.equal(p.leftover, 1);
-    assert.equal(p.missing, 31); // 32 − 1 sparad
+    assert.equal(p.missing, 11); // 12 − 1 sparad
   });
 
   it("en art utan dubbletter får ingen plan alls", () => {
@@ -109,8 +123,8 @@ describe("planCondense – vad går att göra nu", () => {
 
 describe("planCondense – ordning och summering", () => {
   it("störst stjärnvinst först, sedan flest frigjorda platser", () => {
-    const two = box(0, 20, 0);   // 0★ → 2★
-    const one = box(0, 12, 1);   // 0★ → 1★, matar 4
+    const two = box(0, 12, 0);   // 0★ → 2★
+    const one = box(0, 5, 1);    // 0★ → 1★, matar 4
     const plans = planCondense(
       makeData([species("A"), species("B")]),
       [...one.pals, ...two.pals],
@@ -120,14 +134,14 @@ describe("planCondense – ordning och summering", () => {
   });
 
   it("summeringen räknar bara det som går att göra nu", () => {
-    const now = box(0, 20, 0);   // 2 stjärnor, 20 matade
+    const now = box(0, 12, 0);   // 2 stjärnor, 12 matade
     const wait = box(2, 5, 1);   // ingenting
     const sum = summarizeCondense(planCondense(
       makeData([species("A"), species("B")]),
       [...now.pals, ...wait.pals],
       new Map([[0, now.keeper], [1, wait.keeper]]),
     ));
-    assert.deepEqual(sum, { species: 1, feed: 20, stars: 2 });
+    assert.deepEqual(sum, { species: 1, feed: 12, stars: 2 });
   });
 });
 
@@ -177,13 +191,13 @@ describe("planCondense – varningar", () => {
 
 describe("condenseGain – vad stjärnorna är värda", () => {
   it("0★ → 2★ är +10 % på HP, attack och försvar", () => {
-    const { pals, bestOf } = box(0, 20);
+    const { pals, bestOf } = box(0, 12);
     const [p] = planCondense(data, pals, bestOf);
     assert.ok(p);
     const g = condenseGain(data, p);
     assert.equal(g.stars, 2);
     assert.equal(g.pct, 10);
-    assert.equal(g.slots, 20);
+    assert.equal(g.slots, 12);
     /* Handräknat med spelets formel för en art med scaling 100/100/100,
        level 50 och IV 50: 500 + 5·50 + 100·0,5·50·1,15 = 3625 HP utan
        stjärnor, och 3625 · 1,10 = 3987,5 → 3987 med två. */
@@ -192,7 +206,7 @@ describe("condenseGain – vad stjärnorna är värda", () => {
   });
 
   it("en art som inte kan kondenseras nu vinner ingenting", () => {
-    const { pals, bestOf } = box(2, 20);
+    const { pals, bestOf } = box(2, 5);
     const [p] = planCondense(data, pals, bestOf);
     assert.ok(p);
     const g = condenseGain(data, p);

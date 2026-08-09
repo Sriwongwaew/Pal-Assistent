@@ -136,16 +136,18 @@ describe("planBreedSetup – vad boxen faktiskt ger", () => {
     assert.equal(s.speed, 1.38);
   });
 
-  it("25 st 0★ Braloha räcker till 2★: 4 + 16 = 20 av 24 matarpals", () => {
-    // Nästa stjärna kostar 32 – 4 kvar räcker inte, precis som på Rekommendationer.
+  it("25 st 0★ Braloha räcker till 3★: 4 + 8 + 12 = 24 matarpals", () => {
+    // En behålls, 24 matas – och de går jämnt upp i tre stjärnor. Fjärde
+    // stjärnan kostar 24 till, alltså ingenting kvar, precis som på
+    // Rekommendationer.
     const pals = Array.from({ length: 25 }, (_, i) =>
       pal(BRALOHA, { c: i === 0 ? "Bas/övrigt 2" : "Palbox" }));
     const s = planBreedSetup(data, pals);
     assert.equal(s.braloha.owned, 25);
     assert.equal(s.braloha.stars, 0);
-    assert.equal(s.braloha.reach, 2);
+    assert.equal(s.braloha.reach, 3);
     assert.equal(s.speed, 1.2);
-    assert.equal(s.reachRate, 1.32);
+    assert.equal(s.reachRate, 1.38);
   });
 
   it("en ensam Braloha kan inte kondenseras och lovar därför ingen vinst", () => {

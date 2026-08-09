@@ -824,13 +824,18 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
      låga numren (Celaray 7, Croajiro 9, Herbil 10), så Foxparks har `29` och inte `5`.
      Jämför aldrig mot en lanseringslista när du felsöker — regenerera hellre den statiska
      halvan ur `palworld-save-pal`.
-- **⚠️ `STAR_COST` är PRE-1.0 och behöver rättas.** 4+16+32+64 = 116 var kostnaden före
-  Palworld 1.0. **1.0 sänkte full kondensering till 48 pals totalt**, men Pocketpair har inte
-  publicerat fördelningen per stjärna, och uppdateringen gjorde om arbetslämpligheten i grunden
-  i stället för att skala ner den gamla kurvan — att halvera de gamla talen vore en gissning.
-  Rätt siffror står i spelets Condenser-ruta. Allt på `/recommendations` räknas ur den enda
-  arrayen i `constants.ts`, så det är en rad att ändra plus facit i `tests/condense.test.ts`.
-  Sidan säger tills vidare uttryckligen att siffrorna är pre-1.0.
+- **`STAR_COST` är 4/8/12/24 och det är Palworld 1.0.** Här stod 4+16+32+64 = 116 långt efter att
+  det slutat gälla: 1.0 sänkte full kondensering till **48 pals totalt**, så sidan krävde mer än
+  dubbelt så många dubbletter som spelet. Följden var värre än ett fel tal — "Nästan där" räknade
+  bort arter som redan var framme, och rekommendationerna sköt upp kondenseringar man kunde gjort
+  direkt. Fördelningen per stjärna är fortfarande inte publicerad av Pocketpair; 4/8/12/24 kommer
+  från [wikin](https://palworld.wiki.gg/wiki/Pal_Essence_Condenser) och summerar till exakt de 48
+  som är den kända totalen — det är därför den duger, inte för att en sida säger det. Facit står
+  ändå i spelets Condenser-ruta. Allt på `/recommendations` räknas ur den enda arrayen i
+  `constants.ts`, så det är en rad att ändra — men handfacit finns i **tre** filer
+  (`tests/condense.test.ts`, `tests/perfectPlan.test.ts` för `condenseReach` och
+  `tests/breedRate.test.ts` för Braloha), och de faller alla när talen ändras. Det är meningen:
+  ett kumulativt tal som ändras tyst gör varje tröskel på sidan fel utan att något ser trasigt ut.
 - **Kondensering höjer arbetslämpligheten, inte bara stats.** Varje rang lyfter *en* av palens
   befintliga sysslor ett steg, och full rang lyfter alla. **Taket i 1.0 är nivå 10**, medan den
   naturliga rostern toppar på 8 — resten kommer från kondensering, Applied Technique-böcker

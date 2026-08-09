@@ -98,9 +98,12 @@ export function WhyCondense() {
           saknades helt i texten. */}
       <b>{t("reco.why.work")}</b>{" "}
       {rich("reco.why.workBody", { one: <i>{t("reco.why.one")}</i> })}
+      {/* Siffrorna är 1.0 (4/8/12/24 = 48). Fördelningen per stjärna är inte
+          publicerad av Pocketpair, så raden pekar vidare till Condenser-rutan
+          i stället för att låta som ett löfte. */}
       <span className="rsladder">
         {t("reco.why.cost", { ladder: STAR_LADDER })}{" "}
-        <b>{t("reco.why.preOne")}</b> {t("reco.why.preOneBody")}
+        {t("reco.why.costSource")}
       </span>
     </div>
   );
