@@ -94,12 +94,27 @@ jobs:
           npm run lint
 
       - name: Bygg paketet
+        shell: pwsh
         env:
           # github.repository är "owner/namn" – exakt det uppdateringskollen vill
           # ha. Det är också strömbrytaren för hela uppdateringsfunktionen.
           PA_REPO: ${{ github.repository }}
           PA_DONATE: ${{ vars.PA_DONATE }}
-        run: npm run package
+        run: |
+          # Byggloggen kräver inloggning för att läsas; annoteringar gör det inte.
+          # Utan det här är ett fallet paketbygge bara "Process completed with exit
+          # code 1" för den som felsöker utifrån – och build.ps1 kastar med tydliga
+          # meddelanden som då aldrig når fram. Det kostade en kväll en gång.
+          $ErrorActionPreference = 'Continue'
+          npm run package *>&1 | Tee-Object -FilePath package.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # Annoteringar är enradiga: %0A är radbrytning, och % måste escapas först.
+            $tail = (Get-Content package.log -Tail 30) -join "`n"
+            $esc = $tail -replace '%', '%25' -replace "`r", '' -replace "`n", '%0A'
+            Write-Host "::error title=Paketbygget foll ($code)::$esc"
+            exit $code
+          }
 
       - name: Kontrollera att paketet inte bär någons box
         shell: pwsh
