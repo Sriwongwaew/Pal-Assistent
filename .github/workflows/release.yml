@@ -80,7 +80,11 @@ jobs:
           }
           Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
 
+      # Utan tagg finns ingen utgåva att publicera. En manuell körning ska ändå
+      # gå att göra – då blir installern en artefakt att ladda ner från körningen
+      # i stället för att hela jobbet faller på sista steget.
       - name: Publicera utgåvan
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -88,3 +92,12 @@ jobs:
             dist/SHA256SUMS.txt
           generate_release_notes: true
           draft: false
+
+      - name: Spara bygget som artefakt (manuell körning)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: PalAssistent-Setup
+          path: |
+            dist/PalAssistent-Setup.exe
+            dist/SHA256SUMS.txt

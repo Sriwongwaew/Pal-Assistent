@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "prepackage": "node scripts/ensure-data.mjs",
     "package": "powershell -NoProfile -ExecutionPolicy Bypass -File packaging/build.ps1",
     "test": "tsc -p tsconfig.test.json && node --test \"tests-dist/tests/*.test.js\""
   },
