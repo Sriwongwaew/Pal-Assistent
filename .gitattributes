@@ -1,0 +1,17 @@
+# Radslut. Normalt LF i repot, men de filer som körs av Windows egna verktyg
+# checkas ut med CRLF – PowerShell, csc och Inno Setup är kinkiga nog ändå
+# (de kräver dessutom BOM för att läsa svenska tecken rätt, se CLAUDE.md).
+* text=auto eol=lf
+
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+*.iss   text eol=crlf
+*.cs    text eol=crlf
+*.txt   text eol=crlf
+
+# Binärt – rör dem inte.
+*.ico   binary
+*.webp  binary
+*.dll   binary
+*.png   binary

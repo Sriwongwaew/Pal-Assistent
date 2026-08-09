@@ -1,0 +1,9 @@
+# Donationsknappen på repots startsida.
+#
+# FYLL I ditt Ko-fi-användarnamn nedan (bara namnet, inte hela adressen) och ta
+# bort raden helt om du inte vill ha knappen. Sätt samma adress som repo-variabel
+# PA_DONATE under Settings → Secrets and variables → Actions → Variables, så får
+# även appen sin länk vid nästa utgåva. Utan den variabeln visas ingen länk i
+# appen alls.
+ko_fi: DITT-KOFI-NAMN
+# github: [DITT-GITHUB-NAMN]   # avkommentera när GitHub Sponsors är godkänt

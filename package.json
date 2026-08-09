@@ -1,0 +1,35 @@
+{
+  "name": "palassistent",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Palworld-assistent byggd från Level.sav – box, breeding-planerare och rekommendationer",
+  "scripts": {
+    "predev": "node scripts/ensure-data.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/ensure-data.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "package": "powershell -NoProfile -ExecutionPolicy Bypass -File packaging/build.ps1",
+    "test": "tsc -p tsconfig.test.json && node --test \"tests-dist/tests/*.test.js\""
+  },
+  "dependencies": {
+    "@fontsource/m-plus-rounded-1c": "^5.3.0",
+    "@fontsource/noto-sans-jp": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
+    "@fontsource/zen-kaku-gothic-new": "^5.3.0",
+    "next": "^15.4.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "^15.4.5",
+    "typescript": "^5.8.0"
+  }
+}

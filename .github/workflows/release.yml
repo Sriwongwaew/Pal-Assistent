@@ -1,0 +1,90 @@
+# Bygger installern och publicerar den som en GitHub-utgåva.
+#
+# Körs när en tagg som `v2.1.0` pushas:
+#
+#     npm version minor        # uppdaterar package.json och taggar
+#     git push --follow-tags
+#
+# Resultatet blir en utgåva med två filer, och båda namnen är stabila med flit:
+#
+#     PalAssistent-Setup.exe   installationsfilen
+#     SHA256SUMS.txt           kontrollsumman som appen verifierar mot
+#
+# Den senaste versionen har därmed alltid samma adress, och det är den man
+# länkar till från README:
+#
+#     https://github.com/<owner>/<repo>/releases/latest/download/PalAssistent-Setup.exe
+#
+# PA_REPO bakas in i bygget här. Det är vad som slår PÅ uppdateringsfunktionen –
+# ett bygge från källkoden har den tom och erbjuder därför aldrig uppdateringar.
+
+name: Utgåva
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # Måste vara Windows: installern byggs med Inno Setup, launchern kompileras
+    # med csc.exe ur .NET Framework, och palsave.exe är en Windows-binär.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installera beroenden
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check pyinstaller
+          pip install -r tools/requirements.txt
+
+      - name: Installera Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Kontrollera koden
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Bygg paketet
+        env:
+          # github.repository är "owner/namn" – exakt det uppdateringskollen vill ha.
+          PA_REPO: ${{ github.repository }}
+          PA_DONATE: ${{ vars.PA_DONATE }}
+        run: npm run package
+
+      - name: Kontrollera att utgåvan inte bär någons box
+        shell: pwsh
+        run: |
+          # Sista spärren mot att en utvecklares egen save följer med ut. Bygget
+          # ska alltid utgå från data/pal-data.base.json, men den här filen är
+          # 1,7 MB JSON och ett misstag syns inte i en diff.
+          $data = Get-Content 'packaging/build/payload/public/data/pal-data.json' -Raw | ConvertFrom-Json
+          if ($data.pals.Count -ne 0 -or $data.player -ne '') {
+            throw "Nyttolasten innehåller $($data.pals.Count) pals och spelaren '$($data.player)'."
+          }
+          Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
+
+      - name: Publicera utgåvan
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/PalAssistent-Setup.exe
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          draft: false

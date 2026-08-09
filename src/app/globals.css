@@ -1,0 +1,1322 @@
+/* ============================================================
+   PalAssistent – tema "Habitat"
+   Palworld som värld, inte som meny: rundade kort, vertikal
+   navigation och elementets färg som informationsbärare.
+   Bakgrunden ritas i canvas (BgTexture), inte som gradient.
+
+   Tre paletter väljs med data-pal på <html>: basalt (standard),
+   nattskog, djupvatten. Ljust/mörkt styrs av data-theme med
+   systeminställningen som fallback. Ordningen nedan är viktig:
+     1. :root                          = ljusa tokens
+     2. @media (prefers-color-scheme)  = system-mörkt, men bara om
+        användaren inte uttryckligen valt ljust
+     3. :root[data-theme="dark"]       = uttryckligt mörkt vinner
+   Färger sätts ALDRIG direkt i en media-fråga – bara tokens, annars
+   får ena temat den andras text på sin botten.
+
+   Den gamla in-game-repliken ligger kvar i tools/backup/globals.ingame.css.
+   ============================================================ */
+
+/* ---------- palett: BASALT (standard) ---------- */
+:root, :root[data-pal="basalt"] {
+  --bg: #e7e6e3; --panel: rgba(255, 255, 255, .94); --panel2: rgba(255, 255, 255, .66);
+  --inset: rgba(0, 0, 0, .045); --strip: rgba(255, 255, 255, .72);
+  --line: rgba(0, 0, 0, .10); --line2: rgba(0, 0, 0, .18);
+  --ink: #16181b; --ink2: #4c525a; --muted: #7d838c;
+  --acc: #5b46d8; --acc-soft: rgba(91, 70, 216, .13);
+  --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
+  --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
+}
+:root[data-pal="nattskog"] {
+  --bg: #e4e9e4; --panel: rgba(255, 255, 255, .92); --panel2: rgba(255, 255, 255, .62);
+  --inset: rgba(20, 60, 44, .05); --strip: rgba(255, 255, 255, .7);
+  --line: rgba(20, 60, 44, .13); --line2: rgba(20, 60, 44, .24);
+  --ink: #12211a; --ink2: #3d5a4c; --muted: #6f8779;
+  --acc: #1f8a45; --acc-soft: rgba(31, 138, 69, .14);
+}
+:root[data-pal="djupvatten"] {
+  --bg: #e1eaee; --panel: rgba(255, 255, 255, .93); --panel2: rgba(255, 255, 255, .62);
+  --inset: rgba(10, 60, 80, .05); --strip: rgba(255, 255, 255, .7);
+  --line: rgba(10, 60, 80, .12); --line2: rgba(10, 60, 80, .22);
+  --ink: #0d1e26; --ink2: #3a5b68; --muted: #6d8894;
+  --acc: #1668c0; --acc-soft: rgba(22, 104, 192, .13);
+}
+
+/* ---------- systemets mörka läge (om inget uttryckligt ljusval) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101215; --panel: rgba(26, 29, 34, .88); --panel2: rgba(40, 44, 51, .72);
+    --inset: rgba(0, 0, 0, .3); --strip: rgba(40, 44, 51, .6);
+    --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
+    --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
+    --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
+    --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
+    --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
+  }
+  :root:not([data-theme="light"])[data-pal="nattskog"] {
+    --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
+    --inset: rgba(0, 0, 0, .28); --strip: rgba(32, 54, 45, .6);
+    --line: rgba(160, 220, 195, .14); --line2: rgba(160, 220, 195, .26);
+    --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
+    --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
+  }
+  :root:not([data-theme="light"])[data-pal="djupvatten"] {
+    --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
+    --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
+    --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
+    --ink: #e3f0f6; --ink2: #98b8c6; --muted: #69889a;
+    --acc: #4aa8ff; --acc-soft: rgba(74, 168, 255, .16);
+  }
+}
+
+/* ---------- uttryckligt mörkt läge (vinner över systemet) ---------- */
+:root[data-theme="dark"] {
+  --bg: #101215; --panel: rgba(26, 29, 34, .88); --panel2: rgba(40, 44, 51, .72);
+  --inset: rgba(0, 0, 0, .3); --strip: rgba(40, 44, 51, .6);
+  --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
+  --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
+  --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
+  --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
+  --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
+}
+:root[data-theme="dark"][data-pal="nattskog"] {
+  --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
+  --inset: rgba(0, 0, 0, .28); --strip: rgba(32, 54, 45, .6);
+  --line: rgba(160, 220, 195, .14); --line2: rgba(160, 220, 195, .26);
+  --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
+  --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
+}
+:root[data-theme="dark"][data-pal="djupvatten"] {
+  --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
+  --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
+  --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
+  --ink: #e3f0f6; --ink2: #98b8c6; --muted: #69889a;
+  --acc: #4aa8ff; --acc-soft: rgba(74, 168, 255, .16);
+}
+
+/* Radier – Habitat är rundat, men inte bubbligt.
+   --elc sätts per kort från React och tonar ytan efter palens element. */
+:root { --r1: 10px; --r2: 14px; --r3: 18px; --r4: 22px; --elc: var(--acc); }
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; color: var(--ink); background: var(--bg);
+  font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.55; font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+/* Siffror sätts i Zen Kaku – det rundade typsnittet gör data gulligt. */
+.tile .v, .hstat .v, .iv .n, .cohead .cnt .v, .coverdict .jump, .pd-lvbox .v, .pd-statrow b, .ivbar .n {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-variant-numeric: tabular-nums;
+}
+h1, h2, h3 { font-weight: 800; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: 4px; }
+
+/* bakgrundsstruktur (canvas) – bakom allt, fångar inga klick */
+.bgtex { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* ============================================================
+   SKALET: vertikal navigation + innehåll
+   ============================================================ */
+.shell { position: relative; z-index: 1; display: flex; min-height: 100vh; align-items: flex-start; }
+
+.rail {
+  position: sticky; top: 0; z-index: 5; width: 210px; flex: none; height: 100vh;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 22px 14px 16px; border-right: 1px solid var(--line);
+}
+.rail .brand { font-weight: 800; font-size: 25px; letter-spacing: -.02em; padding: 0 12px; margin-bottom: 18px; }
+.rail .brand em { font-style: normal; color: var(--acc); }
+.rail a.ri {
+  display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: var(--r2);
+  font-size: 13.5px; font-weight: 800; color: var(--muted); text-decoration: none;
+}
+.rail a.ri .d { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .45; flex: none; }
+.rail a.ri:hover { color: var(--ink); background: var(--panel2); }
+.rail a.ri.on { background: var(--acc-soft); color: var(--ink); }
+.rail a.ri.on .d { background: var(--acc); opacity: 1; box-shadow: 0 0 0 4px var(--acc-soft); }
+.rail .railfoot { margin-top: auto; display: flex; flex-direction: column; gap: 9px; }
+.rail .who { padding: 10px 13px; border-radius: var(--r2); background: var(--panel2); }
+.rail .who .k { display: block; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.rail .who b { font-size: 15px; display: block; }
+.rail .who .sm { font-size: 10.5px; color: var(--muted); }
+/* Donationslänken: syns, men underordnad spelarrutan. Ett verktyg som tigger
+   högre än det informerar blir ett annat sorts program. */
+.rail .donate {
+  display: block; text-align: center; padding: 8px 10px; border-radius: var(--r2);
+  font: 800 11.5px inherit; color: var(--muted); text-decoration: none;
+  border: 1px solid var(--line2);
+}
+.rail .donate:hover { color: var(--acc); border-color: var(--acc); }
+
+.content { flex: 1; min-width: 0; padding: 22px 26px 40px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+.aurora, .notch { display: none; }
+
+/* ---------- uppdateringsnotisen ----------
+   Ligger överst i innehållet, ovanför rubriken. Accentfärgad men låg: det är
+   information, inte ett fel, och den ska gå att ignorera utan att sidan känns
+   trasig. Syns bara i den installerade appen och bara när GitHub har en nyare
+   version. Klassnamnen är egna (updbar/updtxt/updlink/updgo) just för att inget
+   `kind`- eller variantvärde ska kunna råka matcha dem – se Design rules 5. */
+.updbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 10px 14px;
+  border-radius: var(--r2);
+  background: var(--acc-soft);
+  border: 1px solid color-mix(in srgb, var(--acc) 32%, transparent);
+  font-size: 13px; color: var(--ink2);
+}
+.updbar .updtxt { flex: 1; min-width: 220px; }
+.updbar .updtxt b { color: var(--ink); }
+.updbar .updlink { color: var(--acc); font-weight: 800; text-decoration: none; font-size: 12.5px; }
+.updbar .updlink:hover { text-decoration: underline; }
+.updbar button.ghost { background: var(--panel); flex: none; }
+.updbar button.ghost.updgo { border-color: var(--acc); color: var(--acc); }
+
+/* ---------- topprad i innehållet ---------- */
+.headrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.headrow h1 { font-size: 22px; }
+.headrow h1 em { font-style: normal; color: var(--acc); }
+.meta { color: var(--muted); font-size: 12px; }
+.saveimport {
+  position: relative; margin-left: auto;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+}
+.saveimport .okbox, .saveimport .warnbox { margin: 0; max-width: 460px; }
+.saveimport button.ghost:disabled { opacity: .55; cursor: default; }
+.sibar { display: flex; align-items: center; gap: 8px; }
+.sibar button.ghost.sfbtn { padding: 9px 15px; }
+.sibar button.ghost.sfbtn.on { border-color: var(--acc); color: var(--ink); }
+
+/* Live-lampan: grön prick som andas medan bevakningen är på och lyser fast
+   under själva inläsningen. Enda animationen i skalet – den betyder något. */
+.livedot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 800 11px inherit; letter-spacing: .06em; text-transform: uppercase; color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-radius: 999px; padding: 5px 11px;
+}
+.livedot i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: livepulse 2s ease-in-out infinite; }
+.livedot.on i { animation-duration: .7s; }
+@keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .livedot i { animation: none; } }
+
+/* ---------- panelen "Mapp" ---------- */
+.savefolder {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; width: min(440px, 90vw);
+  text-align: left; background: var(--panel); border: 1px solid var(--line2);
+  border-radius: var(--r3); padding: 14px 16px 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .18); backdrop-filter: blur(6px);
+}
+.savefolder .meta { margin: 0 0 10px; line-height: 1.45; }
+.savefolder .warnbox { margin: 0 0 10px; }
+.sfhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sfhead b { font-size: 14px; }
+.sfclose {
+  border: none; background: none; cursor: pointer; color: var(--muted);
+  font: 500 20px/1 inherit; padding: 0 4px;
+}
+.sfclose:hover { color: var(--ink); }
+.sfrow { display: flex; gap: 8px; margin-bottom: 10px; }
+.sfrow input[type=text] { flex: 1; min-width: 0; font-size: 12px; padding: 8px 13px; }
+.sfrow button.ghost { padding: 8px 16px; flex: none; }
+.sflist {
+  display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px;
+  max-height: 260px; overflow-y: auto;
+}
+.sfsave {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
+  background: var(--panel2); border: 1px solid transparent; border-radius: var(--r2);
+  padding: 8px 12px; font: 500 13px inherit; color: var(--ink);
+}
+.sfsave b { font-size: 13px; }
+.sfsave .meta { margin: 0; font-size: 11px; }
+.sfsave:hover { border-color: var(--line2); }
+.sfsave.on { background: var(--acc-soft); border-color: var(--acc); }
+.sflive { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.sftoggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; }
+.sftoggle input { accent-color: var(--acc); width: 15px; height: 15px; cursor: pointer; }
+.savefolder .seg { display: inline-flex; background: var(--panel2); border-radius: 999px; padding: 3px; gap: 2px; }
+.savefolder .seg button {
+  border: none; background: none; cursor: pointer; font: 800 11px/1 inherit; color: var(--muted);
+  padding: 6px 10px; border-radius: 999px;
+}
+.savefolder .seg button:hover:not(:disabled) { color: var(--ink); }
+.savefolder .seg button[aria-pressed="true"] { background: var(--acc); color: var(--bg); }
+.savefolder .seg button:disabled { opacity: .4; cursor: default; }
+.savefolder code {
+  font-size: 11px; background: var(--inset); border-radius: 5px; padding: 1px 5px;
+  word-break: break-all;
+}
+
+/* ---------- tema- och palettväxlare ---------- */
+.tctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tctl .seg { display: inline-flex; background: var(--panel2); border-radius: 999px; padding: 3px; gap: 2px; }
+.tctl .seg button {
+  border: none; background: none; cursor: pointer; font: 800 11px/1 inherit; color: var(--muted);
+  padding: 7px 11px; border-radius: 999px;
+}
+.tctl .seg button:hover { color: var(--ink); }
+.tctl .seg button[aria-pressed="true"] { background: var(--acc); color: var(--bg); }
+.tctl .pals { display: inline-flex; gap: 5px; }
+.tctl .swatch {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line2); cursor: pointer;
+  padding: 0; flex: none;
+}
+.tctl .swatch[aria-pressed="true"] { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+
+/* ============================================================
+   YTOR: paneler och sektioner
+   ============================================================ */
+.panel, .gpanel {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r3); padding: 16px 18px; margin-bottom: 14px;
+}
+.panel::before, .gpanel::after { content: none; }
+h2 { font-size: 18px; font-weight: 800; margin: 0 0 2px; border: none; padding: 0; }
+h3.phase { font-size: 13px; margin: 16px 0 6px; font-weight: 800; color: var(--acc); }
+.sub { color: var(--muted); font-size: 12.5px; margin: 4px 0 14px; }
+
+/* ---------- nyckeltal ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 9px; margin-bottom: 16px; }
+.tile {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r2); padding: 10px 16px 12px; overflow: hidden;
+}
+.tile::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 100% 0%, var(--tint, transparent), transparent 70%);
+}
+.tile > * { position: relative; z-index: 1; }
+.tile .v { font-size: 27px; line-height: 1.15; }
+.tile .l { color: var(--ink2); font-size: 11.5px; font-weight: 800; }
+.tile .s { color: var(--muted); font-size: 11px; }
+
+/* ---------- kontroller ---------- */
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+input[type=text], select {
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line2);
+  padding: 9px 14px; font: 500 13px inherit; border-radius: 999px;
+}
+input[type=text]:focus, select:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+input[type=text] { min-width: 220px; }
+.fchip {
+  background: var(--panel2); border: 1px solid transparent; border-radius: 999px; padding: 7px 15px;
+  font: 800 12px inherit; color: var(--muted); cursor: pointer; user-select: none;
+}
+.fchip:hover { color: var(--ink); }
+.fchip.on { background: var(--acc); color: var(--bg); }
+button.ghost {
+  background: var(--panel2); border: 1px solid var(--line2); border-radius: 999px; color: var(--ink2);
+  font: 800 13px inherit; padding: 9px 20px; cursor: pointer;
+}
+button.ghost:hover:not(:disabled) { border-color: var(--acc); color: var(--ink); }
+button.ghost.sm { padding: 7px 15px; font-size: 12px; }
+/* :disabled behöver egen regel – annars lyser knappen upp på hover ändå. */
+button.ghost:disabled { opacity: .45; cursor: default; }
+
+/* ============================================================
+   HERO-BAND – Översikt och Boxen
+   ============================================================ */
+.hero {
+  position: relative; display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r4);
+  padding: 18px 20px; margin-bottom: 14px;
+}
+.hero .hpor {
+  position: relative; width: 176px; height: 176px; flex: none; border-radius: var(--r4);
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--elc) 42%, transparent), transparent 70%);
+}
+.hero .hpor::after {
+  content: ""; position: absolute; inset: 14px; border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--elc) 55%, transparent);
+}
+.hero .hpor .bgel { display: none; }
+.hero .hpor img {
+  position: relative; z-index: 1; width: 136px !important; height: 136px !important;
+  border-radius: 50% !important; object-fit: cover;
+}
+.hero .hbody { flex: 1 1 300px; min-width: 0; }
+.hero .kick { font-size: 9.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--acc); }
+.hero .hname { font-size: 33px; font-weight: 800; line-height: 1.05; letter-spacing: -.02em; }
+.hero .hsub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.hero .hstats { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+.hero .hstat { background: var(--panel2); border-radius: var(--r1); padding: 5px 13px; min-width: 66px; }
+.hero .hstat .k { font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.hero .hstat .v { font-size: 18px; }
+.hero .hstat.max .v { color: var(--green); }
+.hero .hpassives { min-width: 250px; flex: 1 1 260px; max-width: 430px; }
+.hero .hside { width: 190px; flex: none; border-left: 1px solid var(--line); padding-left: 18px; }
+.hero .hside .k {
+  display: block; font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 800; margin-bottom: 8px;
+}
+.hero .hwork { display: flex; flex-wrap: wrap; gap: 5px; }
+.hero .hwork .wi {
+  position: relative; width: 28px; height: 28px; border-radius: 9px; background: var(--panel2);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.hero .hwork .wi b {
+  position: absolute; right: -2px; bottom: -3px; font-size: 10px; color: var(--ink);
+  font-family: "Zen Kaku Gothic New"; font-weight: 900;
+}
+
+/* elementbrickor */
+.chips { display: flex; gap: 5px; flex-wrap: wrap; margin: 4px 0 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800;
+  padding: 4px 11px; border-radius: 999px; background: var(--panel2);
+  border: 1px solid var(--line2); color: var(--ink2);
+}
+.chip.elc {
+  color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+}
+.chip.alpha {
+  color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+.chip .st { color: var(--line2); letter-spacing: 1px; }
+.chip .st .on { color: var(--gold); }
+
+/* IV som mjuka staplar */
+.ivbars { display: flex; flex-direction: column; gap: 8px; }
+.ivbar { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.ivbar .k { width: 26px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.ivbar .t { flex: 1; height: 7px; border-radius: 4px; background: var(--panel2); overflow: hidden; }
+.ivbar .t i { display: block; height: 100%; border-radius: 4px; background: var(--elc); }
+.ivbar .n { font-size: 12px; width: 24px; text-align: right; }
+.ivbar.max .t i { background: var(--green); }
+
+/* ============================================================
+   BOXEN: hyllan med habitat-brickor
+   ============================================================ */
+.boxwrap { display: block; }
+.boxleft { padding: 0; border: none; background: none; margin: 0; }
+.boxright { display: none; }
+.palgrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px; align-content: start;
+}
+.pcell {
+  position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2);
+  padding: 8px 8px 10px; cursor: pointer; font-family: inherit; color: inherit; text-align: center;
+  display: flex; flex-direction: column; transition: transform .12s ease, border-color .12s ease;
+}
+.pcell:hover { transform: translateY(-2px); border-color: var(--line2); }
+.pcell .circ {
+  position: relative; height: 66px; border-radius: var(--r2);
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--elc) 40%, transparent), transparent 72%);
+}
+/* Direkt barn: annars skalas även alfa-/lucky-märkena inuti .circ till 58px. */
+.pcell .circ > img { width: 58px; height: 58px; object-fit: cover; border-radius: 14px; }
+.pcell .circ .fb { color: var(--muted); font-weight: 800; font-size: 18px; }
+.pcell .nm { margin-top: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcell .lv {
+  margin-top: 1px; font-size: 9.5px; color: var(--muted);
+  font-family: "Zen Kaku Gothic New"; font-weight: 900; font-variant-numeric: tabular-nums;
+}
+.pcell .mk { position: absolute; font-size: 10px; line-height: 1; z-index: 2; }
+.pcell .mk.alpha { top: 2px; left: 2px; }
+.pcell .mk.lucky { top: 2px; right: 2px; }
+.pcell .mk.stars { top: 50px; right: 6px; color: var(--gold); font-weight: 800; font-size: 9px; }
+.pcell.sel { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+.pcell.sel .nm { color: var(--acc); }
+.boxmore { text-align: center; padding: 14px 0 4px; }
+
+/* ============================================================
+   HÖJDPUNKTSKORT – habitat-kort, inte samlarkort
+   ============================================================ */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; }
+.pcard {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r3); overflow: hidden; transition: transform .12s ease, border-color .12s ease;
+}
+.pcard.clickable { cursor: pointer; }
+.pcard.clickable:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--elc) 55%, var(--line)); }
+.pcard.leg, .pcard.epic, .pcard.rare, .pcard.com { border-top: 1px solid var(--line); }
+.pcin { padding: 12px 13px 13px; }
+.phd { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border: none; padding: 0; }
+.plv {
+  font-weight: 800; font-size: 10.5px; color: var(--ink2); background: var(--panel2);
+  border: none; border-radius: 999px; padding: 3px 10px; flex: none;
+}
+.pname { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pstars { font-size: 11px; letter-spacing: 2px; color: var(--line2); margin: 0 0 7px; }
+.pstars .on { color: var(--gold); }
+.part {
+  position: relative; height: 118px; overflow: hidden; margin-bottom: 9px; border: none;
+  display: flex; align-items: center; justify-content: center; border-radius: var(--r2);
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--elc) 38%, transparent), transparent 72%);
+}
+/* Direkt barn: könssymbolen och elementmärkena ligger också i .part. */
+.part > img { width: 100px; height: 100px; object-fit: contain; }
+.part .elb { position: absolute; top: 6px; left: 8px; display: flex; gap: 4px; }
+.part .gsym { position: absolute; top: 5px; right: 9px; font-size: 14px; font-weight: 800; }
+.pcard .part::after { content: none; }
+.pmeta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.el { display: inline-flex; align-items: center; justify-content: center; }
+.gm { color: var(--blue); font-weight: 800; } .gf { color: var(--pink); font-weight: 800; }
+.stars { color: var(--gold); font-size: 12px; letter-spacing: 1px; }
+.loc { font-size: 10.5px; color: var(--muted); margin-left: auto; }
+.fb { background: var(--panel2); color: var(--muted); font-weight: 800; }
+
+/* taggar */
+.tag {
+  display: inline-block; flex: none; width: auto;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em; padding: 3px 10px;
+  white-space: nowrap; border-radius: 999px; border: 1px solid transparent;
+}
+.tag.alpha { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+.tag.lucky { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
+.tag.keep { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.tag.cond { background: color-mix(in srgb, var(--orange) 14%, transparent); color: var(--orange); }
+.tag.info { background: var(--acc-soft); color: var(--acc); }
+
+/* IV-plattor i kort */
+.ivrow { display: flex; gap: 5px; margin: 0 0 8px; }
+.iv { flex: 1; background: var(--panel2); border-radius: var(--r1); padding: 5px 9px 6px; }
+.iv .k { font-size: 8.5px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+.iv .n { font-size: 16px; line-height: 1.15; }
+.iv .bar { height: 4px; background: var(--inset); margin-top: 3px; border-radius: 3px; overflow: hidden; }
+.iv .bar i { display: block; height: 100%; border-radius: 3px; background: var(--elc); }
+.iv.max .n { color: var(--green); } .iv.max .bar i { background: var(--green); }
+
+/* ============================================================
+   PASSIVBANNERS – spelets egna, oförändrade utom rundningen
+   ============================================================ */
+.prows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 6px; }
+.prow {
+  position: relative; display: flex; align-items: center; gap: 7px; border-radius: 9px;
+  height: 31px; padding: 0 7px 0 12px; font-size: 12.5px; line-height: 1.3; font-weight: 700;
+  overflow: hidden; color: #ffd83d; background: #0e1013; border: 1.5px solid #cfae1d;
+}
+.prow .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.prow::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #fff3b8; z-index: 2; }
+.prow::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .28;
+  background: url(/icons/bg_gold.webp) left center / auto 102% repeat-x;
+}
+.prow > * { position: relative; z-index: 1; }
+.prow .arr { margin-left: auto; display: flex; align-items: center; flex: none; }
+/* tier 1 – spelets grå/silver-banner. Guld är reserverat för tier 2–3, annars
+   ser en +10 %-passiv lika stark ut som en +20 % när man jämför med spelet. */
+.prow.t1 { color: #e3e9f2; border-color: #8b95a4; }
+.prow.t1::before { background: #eef2f8; }
+.prow.t1::after { background-image: url(/icons/bg_white.webp); opacity: .17; }
+.prow.t4 { color: #68ffd8; border-color: #2fbfae; }
+.prow.t4::before { background: #c9fff1; box-shadow: 0 0 5px rgba(141, 255, 240, .45); }
+.prow.t4::after { background-image: url(/icons/bg_teal.webp); opacity: .3; }
+@keyframes rbflow { 0% { background-position: 0% 50%; } 100% { background-position: -200% 50%; } }
+@keyframes rbstripe { 0% { background-position: 0 0; } 100% { background-position: 0 -200%; } }
+.prow.t5 {
+  color: #fff; border-color: #ffffff77;
+  background: linear-gradient(90deg, #4a2482, #82245c, #82611f, #1f7a49, #1f4482, #4a2482);
+  background-size: 200% 100%; animation: rbflow 5s linear infinite;
+}
+.prow.t5::before {
+  background: linear-gradient(180deg, #a78bfa, #f472b6, #f5c542, #4ade80, #4a9df8, #a78bfa);
+  background-size: 100% 200%; animation: rbstripe 2.5s linear infinite;
+}
+.prow.t5::after { background-image: url(/icons/bg_white.webp); opacity: .14; }
+.prow.neg { color: #f7f9fd; border-color: #a83a40; }
+.prow.neg::before { background: #ff5257; }
+.prow.neg::after { background-image: url(/icons/bg_red.webp); opacity: .16; }
+.prow.empty { color: var(--muted); background: var(--panel2); border-color: var(--line); grid-column: 1 / -1; }
+.prow.empty::before { background: var(--line2); }
+.prow.empty::after { content: none; }
+.prow .cnt { color: inherit; opacity: .65; font-size: 10.5px; font-weight: 700; margin-left: 8px; white-space: nowrap; }
+.prow.sm { height: 29px; padding: 0 6px 0 10px; font-size: 12px; }
+
+/* ============================================================
+   BREEDING
+   ============================================================ */
+.okbox {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+  border-radius: var(--r2); padding: 10px 14px; color: var(--green); font-size: 13px; margin: 8px 0;
+}
+.warnbox {
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--orange) 35%, transparent);
+  border-radius: var(--r2); padding: 10px 14px; color: var(--orange); font-size: 13px; margin: 8px 0;
+}
+.warn-inline { color: var(--orange); }
+.oddbadge {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--acc-soft);
+  border: none; border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 800; color: var(--acc);
+}
+.stepcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; margin: 9px 0; }
+.stepcard .hd { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.stepcard .hint { margin-top: 7px; }
+.stepnum {
+  background: var(--acc); color: var(--bg); min-width: 24px; height: 24px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; padding: 0 9px;
+}
+.mini {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--panel2); border: none;
+  border-radius: 999px; padding: 4px 12px 4px 4px; font-weight: 800; font-size: 12.5px;
+}
+.mini img { border-radius: 50% !important; }
+.mini .o { font-size: 9.5px; color: var(--green); font-weight: 800; }
+.mini .q { font-size: 9.5px; color: var(--gold); font-weight: 800; }
+.mini .jk {
+  font-size: 9px; font-weight: 800; color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 15%, transparent);
+  border-radius: 999px; padding: 1px 7px;
+}
+.mini.step { padding-left: 12px; color: var(--acc); }
+.hint { color: var(--muted); font-size: 12px; margin-top: 5px; }
+.hint.bad { color: var(--red); }
+/* auto-fit, inte auto-fill: täcker en enda pal alla önskade blir det ETT kort,
+   och det ska då breda ut sig i stället för att stå kvar som en smal spalt. */
+.cargrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.tree { margin-left: 16px; border-left: 1px dashed var(--line2); padding-left: 12px; }
+.treecard { margin: 6px 0; }
+
+/* ---------- "vad ska den användas till?" + rekommenderade passiver ---------- */
+.purpose { margin-bottom: 12px; }
+.purposerow { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 7px; }
+.pchip {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
+  background: var(--panel2); border: 1px solid transparent; border-radius: var(--r2);
+  padding: 9px 12px; font: inherit; color: var(--ink2);
+}
+.pchip b { font-size: 13px; font-weight: 800; color: var(--ink); }
+.pchip span { font-size: 10.5px; color: var(--muted); line-height: 1.35; }
+.pchip:hover { border-color: var(--line2); }
+.pchip.on { background: var(--acc-soft); border-color: var(--acc); }
+.pchip.on b { color: var(--acc); }
+.recbox { margin-top: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 11px 12px; }
+.rechd { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.rechd .k { font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.rechd .fchip { margin-left: auto; flex: none; }
+.rechd .fchip:disabled { opacity: .5; cursor: default; }
+.recwhy { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.45; }
+/* sysslor: spelets arbetsikoner som brickor, inte en dropdown */
+.workrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wchip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font: 800 11.5px inherit;
+  background: var(--panel2); border: 1px solid transparent; border-radius: 999px;
+  padding: 6px 12px 6px 8px; color: var(--ink2);
+}
+.wchip:hover { border-color: var(--line2); color: var(--ink); }
+.wchip.on { background: var(--acc); border-color: var(--acc); color: var(--bg); }
+/* artförslag för sysslan */
+.specrecs { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 7px; }
+.specrec {
+  display: flex; align-items: center; gap: 9px; cursor: pointer; font: inherit; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 7px 10px;
+  color: inherit;
+}
+.specrec:hover { border-color: var(--line2); }
+.specrec.on { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-soft); }
+.specrec img { border-radius: 11px !important; flex: none; }
+.specrec .nm { font-weight: 800; font-size: 12.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.specrec .lvl {
+  margin-left: auto; flex: none; background: var(--acc-soft); color: var(--acc);
+  font-weight: 900; font-size: 12px; border-radius: 999px; padding: 1px 9px;
+}
+.reclist { list-style: none; margin: 9px 0 0; padding: 0; display: grid; gap: 3px; }
+.reclist li { font-size: 11.5px; color: var(--muted); }
+.reclist b { color: var(--ink2); }
+.recmiss { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 9px; }
+.recmiss .k { display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.recmiss .missrow { display: contents; }
+.recmiss .prow.opt:disabled { opacity: .45; }
+
+/* väljare: art-rutnät + passiv-banners i stället för dropdowns */
+.picker { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 10px 11px; }
+.picker-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 9px; }
+.picker-bar input[type=text] { min-width: 150px; flex: 1; }
+.picker-bar .meta { margin-left: auto; white-space: nowrap; }
+/* Vald art som bricka i raden. Rutnätet rymmer 320 px av 300 arter, så ett
+   sparat val syns nästan aldrig där – utan den här brickan ser planeraren ut
+   att ha glömt målet. Klick rullar fram cellen. */
+.picker-bar .selchip {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  max-width: 60%; padding: 3px 10px 3px 4px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--acc); box-shadow: 0 0 0 2px var(--acc-soft);
+  font-family: inherit; font-size: 11.5px; color: var(--ink);
+}
+.picker-bar .selchip > img { border-radius: 6px; }
+.picker-bar .selchip b { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-bar .selchip:hover { background: var(--acc-soft); }
+.picker-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px 6px;
+  min-height: 128px; max-height: 320px; align-content: start;
+  overflow-y: auto; padding: 2px 6px 2px 2px;
+}
+.picker-grid.opts { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 5px 6px; }
+.tierhd {
+  grid-column: 1 / -1; margin: 8px 0 1px; font-size: 10px; font-weight: 800;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.tierhd:first-child { margin-top: 0; }
+.picker-grid .pad { padding: 14px 4px; }
+.picker-grid::-webkit-scrollbar { width: 10px; }
+.picker-grid::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 5px; }
+.pcell .circ.none { color: var(--muted); font-size: 20px; font-weight: 800; background: var(--panel2); }
+.pcell .mk.owned {
+  bottom: 4px; left: 5px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--acc); border: 1.5px solid var(--panel);
+}
+.prow.opt { width: 100%; font-family: inherit; text-align: left; cursor: pointer; }
+.prow.opt .cnt { margin-left: auto; padding-right: 6px; }
+.prow.opt .arr { margin-left: 0; }
+.prow.opt:hover:not(:disabled) { filter: brightness(1.18); }
+.prow.opt:disabled { opacity: .32; cursor: default; }
+.prow.opt.on { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Radet över väljarna: säger att valen ligger kvar och ger vägen ur dem igen. */
+.planhd {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+.planhd .meta { font-size: 12px; }
+/* min(430px, 100%): utan det får spåret 430 px även på en 420 px-skärm och sidan
+   börjar scrolla i sidled. */
+.pickrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr)); gap: 14px; align-items: start; }
+.pickrow .panel { margin-bottom: 0; }
+/* Vänsterspalten är en stapel, inte ett kort: passiv-väljaren till höger är
+   dubbelt så hög, och rutnätet ska inte tänjas för att fylla tomrummet. */
+.pickcol { display: grid; gap: 14px; align-content: start; min-width: 0; }
+
+/* ---------- målbilden: arten + passiverna planen ska ge den ---------- */
+.goalcard {
+  border-radius: var(--r3); border: 1px solid var(--line); padding: 14px 15px 15px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--elc) 13%, transparent), transparent 60%),
+    var(--panel2);
+}
+.goalcard .ghead { display: flex; gap: 15px; align-items: center; }
+.goalcard .gpor {
+  position: relative; flex: none; width: 118px; height: 118px; border-radius: var(--r3);
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--elc) 42%, transparent), transparent 70%);
+}
+.goalcard .gpor::after {
+  content: ""; position: absolute; inset: 9px; border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--elc) 55%, transparent);
+}
+/* Direkt barn: element-/ikonbilder som kan hamna i samma behållare ska inte
+   skalas till porträttets storlek (samma fälla som .part img). */
+.goalcard .gpor > img {
+  position: relative; z-index: 1; width: 92px; height: 92px; border-radius: 50%; object-fit: cover;
+}
+.goalcard .gpor .q { font-size: 34px; font-weight: 800; color: var(--muted); }
+.goalcard .gwho { min-width: 0; }
+.goalcard .gname { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+.goalcard .chips { margin: 5px 0 6px; }
+.goalcard .ghint { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.goalcard .ghint b { color: var(--ink2); }
+.goalcard .gsec { margin-top: 13px; }
+.goalcard .gk {
+  display: block; font-size: 9px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+/* Tom plats är ingen banner – den ska inte se ut som en passiv man har. */
+.goalcard .prow.slot {
+  color: var(--muted); background: var(--inset); border: 1.5px dashed var(--line2);
+  font-weight: 700; font-style: italic;
+}
+.goalcard .prow.slot::before, .goalcard .prow.slot::after { content: none; }
+.goalcard .gcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 4px 16px; }
+.goalcard .gtiles { display: flex; gap: 6px; flex-wrap: wrap; }
+/* --inset, inte --panel: panel är nästan vit i ljust läge och plattorna skulle
+   försvinna i kortet. */
+.goalcard .gtile { background: var(--inset); border-radius: var(--r1); padding: 4px 12px; min-width: 58px; }
+.goalcard .gtile .k { display: block; font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.goalcard .gtile .v { font-family: "Zen Kaku Gothic New"; font-weight: 900; font-size: 17px; }
+.goalcard .gtile.max .v { color: var(--green); }
+/* 9 px, inte 5: siffran hänger utanför ikonrutan och skulle annars klistra sig
+   mot nästa ikon. */
+.goalcard .gwork { display: flex; flex-wrap: wrap; gap: 9px 10px; }
+.goalcard .gwork .wi {
+  position: relative; width: 28px; height: 28px; border-radius: 9px; background: var(--inset);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.goalcard .gwork .wi.on { background: var(--acc-soft); box-shadow: 0 0 0 1.5px var(--acc); }
+.goalcard .gwork .wi b {
+  position: absolute; right: -2px; bottom: -3px; font-size: 10px; color: var(--ink);
+  font-family: "Zen Kaku Gothic New"; font-weight: 900;
+}
+.picked { color: var(--acc); font-size: 13px; font-weight: 800; margin-left: 8px; }
+.prows.chosen { margin-bottom: 10px; }
+.prow .rm {
+  background: none; border: none; padding: 0 2px; margin-left: auto; cursor: pointer;
+  color: inherit; opacity: .7; font-family: inherit; font-size: 12px; font-weight: 900;
+}
+.prow .rm:hover { opacity: 1; color: var(--red); }
+.prows.chosen .prow .arr { margin-left: 8px; }
+.baseblock { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 9px; }
+.baseblock > summary { cursor: pointer; font-size: 12px; color: var(--ink2); font-weight: 700; }
+.baseblock > summary b { color: var(--ink); }
+.ivgoal { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ivgoal + .hint { margin-top: 6px; }
+.ivcov { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 10px 0; }
+.ivcard { background: var(--panel2); border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--r2); padding: 10px 13px; }
+.ivcard.ok { border-left-color: var(--green); }
+.ivcard.gap { border-left-color: var(--red); }
+.ivcard .k { font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ivcard .v { font-size: 15px; font-weight: 800; margin: 2px 0 3px; }
+.ivcard.gap .v { color: var(--red); }
+.ivcard .hint.bad { color: var(--red); }
+/* jämförelse etappvis vs direkt – det är hela poängen med sökningen */
+.ivsum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 9px; margin: 12px 0 8px; }
+.ivsum .col { background: var(--panel2); border-radius: var(--r2); padding: 10px 13px; }
+.ivsum .col .k { display: block; font-size: 9px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); }
+.ivsum .col b { display: block; font-size: 19px; font-weight: 900; margin: 1px 0 2px; }
+.ivsum .col .hint { margin: 0; font-size: 10.5px; }
+.ivsum .col.dim b { color: var(--muted); }
+.ivsum .col.win { background: color-mix(in srgb, var(--green) 12%, transparent); }
+.ivsum .col.win b { color: var(--green); }
+/* donatorer för en IV-lucka */
+.donors { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.donor { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.donor .k { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); width: 62px; flex: none; }
+
+/* ============================================================
+   LISTOR OCH RADER
+   ============================================================ */
+details.dgroup { border: 1px solid var(--line); border-radius: var(--r2); background: var(--panel2); padding: 12px 15px; margin: 9px 0; }
+details.dgroup summary { cursor: pointer; font-weight: 800; font-size: 13px; }
+details.dgroup summary .n { color: var(--muted); font-weight: 600; font-size: 12px; }
+/* Rubriken säger VAD gruppen är, .why säger varför de sparas. */
+details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 8px; }
+@media (max-width: 720px) { details.dgroup summary .why { display: block; margin: 2px 0 0; } }
+.rrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.rrow:last-child { border-bottom: none; }
+.rrow img { border-radius: var(--r1) !important; }
+.rrow .nm { font-weight: 800; font-size: 13px; min-width: 120px; }
+.rrow .ivt { font-size: 11.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.rowbtn {
+  background: none; border: none; border-bottom: 1px solid var(--line); width: 100%;
+  text-align: left; color: inherit; font: inherit; cursor: pointer; border-radius: var(--r1);
+}
+.rowbtn:hover { background: var(--acc-soft); }
+.grow { flex: 1; min-width: 180px; }
+.arrow-end { margin-left: auto; }
+.hbar { display: grid; grid-template-columns: 186px 1fr 34px; gap: 10px; align-items: center; margin: 5px 0; font-size: 12px; }
+.hbar .bar { height: 10px; border-radius: 6px; background: var(--acc); }
+.hbar .lab {
+  color: var(--ink2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+}
+.hbar .lab img { border-radius: var(--r1) !important; }
+.hbar .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   BÄST FÖR…
+   ============================================================ */
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; margin-top: 10px; }
+.wcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 13px; }
+.wcard .wt { font-weight: 800; font-size: 12.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.wcard .wt .em { font-size: 16px; display: inline-flex; }
+.wrow { display: flex; align-items: center; gap: 7px; padding: 4px 3px; font-size: 12.5px; border-radius: var(--r1); }
+.wrow .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.wrow .spd { color: var(--acc); font-size: 10.5px; font-weight: 800; white-space: nowrap; }
+.wrow .lvl {
+  margin-left: auto; flex: none; min-width: 22px; text-align: center;
+  background: var(--acc-soft); color: var(--acc);
+  font-weight: 900; font-size: 12px; border-radius: 999px; padding: 1px 8px;
+}
+.rank {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 900;
+  background: var(--panel2); border: none; color: var(--muted);
+}
+.rank.sm { width: 18px; height: 18px; font-size: 9.5px; }
+.rank.r1 { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
+.rank.r2 { background: var(--panel2); color: var(--ink2); }
+.rank.r3 { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
+.rank.pin { position: absolute; top: -2px; left: -2px; z-index: 2; box-shadow: 0 0 0 2px var(--panel); }
+.ava {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: var(--r1); overflow: hidden; border: none;
+}
+.ava.sm { width: 30px; height: 30px; }
+.ava img { border-radius: var(--r1) !important; }
+.statbar { flex: none; width: 92px; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; }
+.statbar i { display: block; height: 100%; border-radius: 3px; background: var(--acc); }
+.statbar.tiny { display: block; width: 56px; height: 4px; margin: 3px auto 2px; }
+.teamcard { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 15px; margin-bottom: 12px; }
+.trow { display: flex; gap: 12px; flex-wrap: wrap; }
+.tp { position: relative; text-align: center; width: 92px; }
+.tp .por {
+  position: relative; width: 74px; height: 74px; margin: 0 auto; border-radius: var(--r2); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--elc) 42%, transparent), transparent 72%);
+}
+.tp .por .bgel { display: none; }
+.tp .por img { width: 60px !important; height: 60px !important; object-fit: cover; border-radius: 14px !important; }
+.tp .nm { font-size: 11.5px; font-weight: 800; margin-top: 5px; line-height: 1.2; }
+.tp .why { font-size: 10px; color: var(--muted); }
+
+/* ---------- passiver som banners i löptext ---------- */
+.pchips { margin: 7px 0 0; }
+.pchips .pcl {
+  display: block; font-size: 8.5px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+.pcrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 4px; }
+
+/* ---------- genvägar: fånga i stället för att avla runt ---------- */
+.shortcuts {
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
+  border-radius: var(--r2); padding: 10px 13px; margin: 0 0 12px;
+}
+.shortcuts .sck {
+  display: block; font-size: 8.5px; font-weight: 800; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.scrow { display: flex; align-items: center; gap: 9px; padding: 4px 0; }
+.scrow img { border-radius: 8px !important; flex: none; }
+.scmain { flex: 1; min-width: 0; }
+.scmain b { display: block; font-size: 12.5px; }
+.scmain span { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+.scwin {
+  flex: none; font-weight: 900; font-size: 12px; border-radius: 999px; padding: 2px 10px;
+  background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green);
+  font-family: "Zen Kaku Gothic New"; font-variant-numeric: tabular-nums;
+}
+.scrow.block .scwin { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+.scfoot { display: block; margin-top: 6px; font-size: 10px; color: var(--muted); line-height: 1.45; }
+
+/* ---------- alternativ väg: "du kan också göra såhär" ----------
+   Ett TILLÄGG under planen, aldrig en ersättning – därför indraget med en
+   linje i vänsterkanten (samma grepp som .tree) i stället för ett eget kort i
+   full bredd. Färgen är alternativ-artens element via --elc, satt i React:
+   blocket ska kännas som den arten, inte som en generisk notis. Allt är
+   color-mix mot tokens, så ljust och mörkt läge klarar sig på samma regler. */
+.altwrap { margin: 4px 0 2px; }
+.altroute {
+  margin: 10px 0 0 16px; padding: 12px 15px;
+  border-left: 2px solid color-mix(in srgb, var(--elc, var(--acc)) 55%, transparent);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  background: color-mix(in srgb, var(--elc, var(--acc)) 7%, var(--panel));
+}
+.althd { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.altlbl {
+  font-size: 8.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--elc, var(--acc)) 72%, var(--ink));
+}
+.altsave {
+  font-family: "Zen Kaku Gothic New"; font-variant-numeric: tabular-nums;
+  font-weight: 900; font-size: 12px; border-radius: 999px; padding: 2px 10px;
+  background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green);
+}
+.altsum {
+  font-family: "Zen Kaku Gothic New"; font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--muted);
+}
+.altwhy { font-size: 12.5px; color: var(--ink2); line-height: 1.5; margin: 7px 0 9px; }
+.altpair { display: flex; align-items: flex-start; gap: 9px; flex-wrap: wrap; }
+.altpal {
+  flex: 1 1 210px; min-width: 0; background: var(--panel2);
+  border-radius: var(--r2); padding: 9px 11px;
+}
+.altpal .pchips { margin-top: 6px; }
+.altmeta {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 7px;
+  font-family: "Zen Kaku Gothic New"; font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--muted);
+}
+.altplus { align-self: center; color: var(--muted); font-weight: 800; flex: none; }
+/* Stegen är en <ol> men numret ritas av .stepnum-liknande markör, inte av
+   webbläsarens egen räknare – annars får vi två nummer i rad. */
+.altsteps { list-style: none; margin: 11px 0 0; padding: 0; counter-reset: altstep; }
+.altsteps li {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 0 8px 30px; position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--elc, var(--acc)) 14%, transparent);
+}
+.altsteps li::before {
+  counter-increment: altstep; content: counter(altstep);
+  position: absolute; left: 0; top: 8px;
+  min-width: 21px; height: 21px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: "Zen Kaku Gothic New"; font-size: 11px; font-weight: 900;
+  background: color-mix(in srgb, var(--elc, var(--acc)) 20%, var(--panel2));
+  color: color-mix(in srgb, var(--elc, var(--acc)) 70%, var(--ink));
+}
+.altclean {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; border-radius: 999px;
+  padding: 2px 9px; background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green);
+}
+.altjunk {
+  font-size: 9.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px;
+  background: color-mix(in srgb, var(--orange) 14%, transparent); color: var(--orange);
+}
+.altroute .hint { margin-top: 9px; }
+
+/* ---------- "det är DEN HÄR palen" – identitet + hela passivlistan ---------- */
+.palident { background: var(--panel2); border-radius: var(--r2); padding: 9px 11px; margin: 8px 0; }
+.palident .pil {
+  display: block; font-size: 8.5px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+}
+/* Passiverna i EGEN kolumn till höger om palinfon, max 2×2. Under informationen
+   blev kortet högt och smalt; bredvid utnyttjas radens bredd i stället. */
+.pibody { display: flex; gap: 14px; align-items: flex-start; }
+.piinfo { flex: none; min-width: 172px; }
+.pihd { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.pihd img { border-radius: 11px !important; flex: none; }
+.pin { min-width: 0; }
+.pin b { display: block; font-size: 13px; }
+.pin span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Platsen är det som gör palen sökbar i spelet – ge den vikt. */
+.piloc {
+  display: inline-block; font-size: 11px; font-weight: 800; color: var(--acc);
+  background: var(--acc-soft); border-radius: 999px; padding: 3px 11px; margin-bottom: 7px;
+}
+/* auto-fit: tomma spalter kollapsar så bannerna får hela bredden. Med auto-fill
+   reserveras tracks som ingen använder, och "Remarkable Craftsmanship" kapades
+   mitt i namnet – vilket gör den omöjlig att matcha mot spelet. */
+/* Två kolumner = högst 2×2 för fyra passiver, som i spelets egen ruta. */
+.pipv { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; align-content: start; }
+.pipv .prow .tick { margin-left: auto; font-weight: 900; font-size: 12px; }
+/* Anpassar sig efter kortets bredd: ett smalt bärarkort får en spalt, ett brett
+   får två. Två spalter i ett smalt kort kapade namnen till "Philanth⋯", och en
+   avkapad passiv går inte att matcha mot spelet – vilket var hela poängen. */
+@media (max-width: 720px) {
+  .pibody { flex-direction: column; gap: 8px; }
+  .piinfo { min-width: 0; }
+  .pipv { width: 100%; grid-template-columns: 1fr; }
+}
+
+/* ---------- önskad passiv-uppsättning per pal ("så här ska den se ut") ---------- */
+.loadouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 10px; margin-top: 10px; }
+.loadout { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 11px 12px; }
+.loadout.done { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.lhd { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.lhd img { border-radius: 12px !important; flex: none; }
+.ln { min-width: 0; flex: 1; }
+.ln b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ln span { font-size: 10.5px; color: var(--muted); }
+.lscore {
+  flex: none; font-weight: 900; font-size: 13px; border-radius: 999px; padding: 2px 10px;
+  background: var(--panel2); color: var(--ink2);
+  font-family: "Zen Kaku Gothic New"; font-variant-numeric: tabular-nums;
+}
+.lscore.ok { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+.lscore.bad { background: color-mix(in srgb, var(--orange) 16%, transparent); color: var(--orange); }
+.lslots { display: flex; flex-direction: column; gap: 4px; }
+/* saknad passiv: samma banner, men nedtonad så skillnaden syns direkt */
+.lslots .prow.gap { opacity: .42; filter: saturate(.5); }
+.lslots .prow .tick { font-weight: 900; font-size: 12px; margin-left: auto; }
+.lslots .prow .cnt { margin-left: auto; }
+.lnote { margin-top: 9px; font-size: 10.5px; color: var(--acc); line-height: 1.45; font-weight: 800; }
+.lalt { margin-top: 7px; font-size: 10.5px; color: var(--muted); line-height: 1.45; }
+.lalt b { color: var(--ink2); }
+.ljunk { margin-top: 7px; font-size: 10.5px; color: var(--muted); line-height: 1.45; }
+.ljunk b { color: var(--orange); }
+.lplan { margin-top: 10px; width: 100%; padding: 8px 14px; font-size: 12px; }
+.ldone { margin-top: 9px; font-size: 11px; font-weight: 800; color: var(--green); }
+
+/* ============================================================
+   KONDENSERA – korten är åtgärder, inte statistik
+
+   Klassnamnen är co-prefixade med flit. Stilmallen är global och en
+   variantsträng som "cond" eller "iv" kan råka matcha en layoutklass –
+   se varningen om .tag/.cond längre upp i filen.
+   ============================================================ */
+.cogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 11px; }
+/* Flex-kolumn så mätaren kan hakas fast i botten (.prog { margin-top: auto }).
+   Utan det blir raden lika hög som sitt högsta kort ändå, fast med ett hål
+   under de korta – vilket ser ut som att något saknas. */
+.cocard {
+  position: relative; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--elc); border-radius: var(--r2); padding: 13px 14px 14px;
+}
+/* Elementets färg som identitet, aldrig som text – en gul eltoning på vit
+   panel går inte att läsa. Kanten och hörntoningen bär färgen i stället. */
+.cocard::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--elc) 15%, transparent), transparent 62%);
+}
+.cocard > * { position: relative; z-index: 1; }
+
+.cohead { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+/* .rank.r2 är panel2-färgad och syns inte alls mot ett vitt kort. */
+.cohead .rank { background: var(--inset); color: var(--ink2); }
+.cohead .rank.r1 { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.cohead .rank.r3 { background: color-mix(in srgb, var(--orange) 20%, transparent); color: var(--orange); }
+.cotitle {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0;
+  background: none; border: none; padding: 0; margin: 0; color: inherit; font: inherit;
+  text-align: left; cursor: pointer; border-radius: var(--r1);
+}
+.cotitle:hover .nm { color: var(--acc); }
+.cotitle .nm { font-weight: 800; font-size: 14.5px; line-height: 1.25; }
+.cotitle .els { display: inline-flex; gap: 3px; }
+.cohead .cnt { display: block; margin-left: auto; text-align: right; flex: none; }
+.cohead .cnt .v { display: block; font-size: 20px; line-height: 1.1; color: var(--ink2); }
+.cohead .cnt .l { display: block; font-size: 8.5px; color: var(--muted); letter-spacing: .12em; font-weight: 800; }
+
+/* Åtgärdsraden: stjärnhoppet och platserna man får tillbaka, inget annat. */
+/* --inset, inte --panel2: panel2 är nästan vit i ljust läge och band mot kort
+   försvann helt. --inset är mörkare än ytan i BÅDA temana. */
+.coverdict {
+  display: flex; align-items: center; gap: 6px 13px; flex-wrap: wrap;
+  background: var(--inset); border-radius: var(--r1); padding: 9px 13px; margin-bottom: 4px;
+}
+.coverdict .jump { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.coverdict .jump .from { color: var(--muted); }
+.coverdict .jump .to { color: var(--gold); }
+.coverdict .jump .ar { color: var(--ink2); font-size: 13px; font-weight: 700; }
+.coverdict .txt { font-size: 12.5px; color: var(--ink2); }
+.coverdict .txt b { color: var(--ink); font-weight: 800; }
+
+.corow { display: flex; align-items: flex-start; gap: 9px; margin-top: 9px; }
+.corow > .k {
+  flex: none; width: 52px; padding-top: 4px;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.corow > .b { flex: 1; min-width: 0; display: block; }
+
+/* "Bra för…" – spelets arbetsikoner, och grönt när ingen i boxen gör det bättre. */
+.couses { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.couse {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  background: var(--panel2); border: 1px solid transparent; border-radius: 999px;
+  padding: 3px 10px 3px 8px; font-size: 11.5px; font-weight: 700; color: var(--ink2);
+}
+.couse .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.couse .em { font-size: 12px; line-height: 1; }
+.couse .lv { color: var(--ink); font-weight: 900; font-variant-numeric: tabular-nums; }
+.couse em {
+  font-style: normal; font-size: 8.5px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--green);
+}
+.couse.best {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--green) 40%, transparent); color: var(--ink);
+}
+.couse.none { color: var(--muted); font-weight: 600; }
+
+.cokeep { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 6px; }
+
+/* Passiver som inte gör något för arten. Banners är spelets egna och får inte
+   ändras (designregel 3), så mismatchen står som text under dem i stället. */
+.komiss { display: block; margin-top: 5px; font-size: 10.5px; line-height: 1.4; color: var(--muted); }
+
+/* Sakerna man ångrar efteråt. Låg ton – de ska bromsa, inte skrika. */
+.conote {
+  margin: 8px 0 0; padding: 7px 11px; border-radius: var(--r1);
+  font-size: 11.5px; line-height: 1.45;
+  color: var(--orange); background: color-mix(in srgb, var(--orange) 10%, transparent);
+}
+.conote.n-iv { color: var(--blue); background: color-mix(in srgb, var(--blue) 10%, transparent); }
+.conote.n-better { color: var(--violet); background: color-mix(in srgb, var(--violet) 10%, transparent); }
+
+.comore { margin-top: 12px; }
+.colad { margin: -6px 0 12px; }
+
+/* Arter som inte går att kondensera än – en rad räcker, ett kort vore lögn.
+   Flera spalter är inte kosmetik: fyrtio rader i en enda kolumn blev en vägg
+   av "saknar 1 till 1★" som var precis lika oläsbar som den gamla sidan. */
+.colist { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 6px; }
+.colrow {
+  display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; text-align: left;
+  background: var(--panel2); border: 1px solid transparent; border-left: 3px solid var(--elc);
+  border-radius: var(--r1); padding: 5px 11px; color: inherit; font: inherit; cursor: pointer;
+}
+.colrow:hover { border-color: var(--line2); border-left-color: var(--elc); }
+.colrow .nm {
+  font-weight: 800; font-size: 12.5px; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.colrow .need { font-size: 11.5px; color: var(--ink2); white-space: nowrap; flex: none; }
+.colrow .need b { color: var(--ink); font-weight: 900; font-variant-numeric: tabular-nums; }
+.colrow .statbar { flex: none; width: 46px; }
+
+.prog { margin-top: 11px; }
+.cocard .prog { margin-top: auto; padding-top: 11px; }
+.prog .lbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink2); margin-bottom: 5px; }
+.prog .track { height: 8px; border-radius: 5px; background: var(--panel2); overflow: hidden; }
+.prog .track i { display: block; height: 100%; border-radius: 5px; background: var(--acc); }
+
+/* ---------- spara-listan: rutnät, inte radbrytande flex ----------
+   Med 190 pals är kolumnerna hela poängen – flex-wrap gav en ojämn
+   trappa där inget gick att jämföra i sidled. */
+.kgrid { margin-top: 6px; }
+.krow {
+  display: grid; align-items: center; gap: 10px; width: 100%; text-align: left;
+  grid-template-columns: 26px minmax(130px, 1fr) 142px minmax(140px, 1fr) minmax(200px, 1.5fr);
+  background: none; border: none; border-bottom: 1px solid var(--line); border-radius: var(--r1);
+  padding: 7px 6px; color: inherit; font: inherit; cursor: pointer;
+}
+.krow:last-child { border-bottom: none; }
+.krow:hover { background: var(--acc-soft); }
+.krow .knm { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; min-width: 0; }
+.krow .knm b { font-weight: 800; }
+.krow .ivt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 1080px) {
+  .krow { grid-template-columns: 26px minmax(0, 1fr); }
+  .krow > :nth-child(n+3) { grid-column: 2; }
+}
+
+/* ============================================================
+   DETALJVY (Base Info) – spelets layout, på Habitats ytor
+   ============================================================ */
+.pd-overlay {
+  position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center;
+  padding: 4vh 16px; overflow-y: auto;
+}
+.pd {
+  position: relative; width: min(560px, 100%); background: var(--panel);
+  border: 1px solid var(--line2); border-radius: var(--r4); padding: 20px 20px 22px;
+  box-shadow: 0 24px 80px -30px rgba(0, 0, 0, .55);
+}
+.pd-close {
+  position: absolute; top: 12px; right: 14px; background: var(--panel2); border: none;
+  border-radius: 50%; color: var(--ink2); width: 32px; height: 32px; cursor: pointer; font-size: 14px; z-index: 2;
+}
+.pd-close:hover { color: var(--ink); background: var(--acc-soft); }
+.pd-head { display: flex; gap: 10px; align-items: stretch; margin-bottom: 16px; }
+.pd-lvbox { background: var(--panel2); border: none; border-radius: var(--r2); padding: 7px 16px 9px; text-align: center; }
+.pd-lvbox .k { font-size: 9px; letter-spacing: .18em; color: var(--muted); font-weight: 800; }
+.pd-lvbox .v { font-size: 32px; line-height: 1; }
+.pd-namebox { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.pd-namerow { display: flex; align-items: center; gap: 8px; padding: 0 2px 3px; border: none; background: none; }
+.pd-name { font-size: 22px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-icons { display: inline-flex; gap: 7px; align-items: center; margin-left: auto; font-size: 17px; font-weight: 800; }
+.pd-lucky { color: var(--gold); }
+.pd-nextrow { display: flex; align-items: center; gap: 8px; padding: 2px 2px 3px; }
+.pd-nextrow .nk { font-size: 10px; font-weight: 800; letter-spacing: .12em; color: var(--muted); }
+.pd-nextrow .nv { margin-left: auto; font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pd-elbadge {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--panel2);
+  border: 1.5px solid var(--line2); display: inline-flex; align-items: center; justify-content: center; flex: none;
+}
+.pd-nextbar { height: 5px; border-radius: 3px; background: var(--panel2); margin: 2px 2px 0; overflow: hidden; }
+.pd-nextbar i { display: block; height: 100%; border-radius: 3px; background: var(--acc); box-shadow: none; }
+.pd-cols { display: flex; gap: 16px; }
+.pd-left { width: 168px; flex: none; text-align: center; }
+.pd-stars { font-size: 17px; letter-spacing: 5px; color: var(--line2); margin-bottom: 6px; }
+.pd-stars .on { color: var(--gold); text-shadow: none; }
+.pd-pframe {
+  position: relative; width: 156px; height: 156px; margin: 0 auto; border: none; border-radius: var(--r4);
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--elc) 42%, transparent), transparent 70%);
+}
+.pd-pframe::after { content: none; }
+.pd-portrait {
+  position: absolute; inset: 12px; border-radius: 50%; overflow: hidden; border: none;
+  background: none; display: flex; align-items: center; justify-content: center;
+}
+.pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.pd-soul { margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 800; }
+.pd-soul b { font-size: 16px; }
+.pd-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pd-brow { display: flex; align-items: center; gap: 8px; }
+.pd-brow .bic { width: 18px; flex: none; display: inline-flex; justify-content: center; font-size: 13px; }
+.pd-brow .bic.cond { color: var(--pink); }
+.pd-brow .btrack {
+  position: relative; flex: 1; height: 18px; border-radius: 999px; background: var(--panel2);
+  border: none; overflow: hidden;
+}
+.pd-brow .btrack.pink { height: 8px; }
+.pd-brow .btrack.pink i { background: var(--pink); }
+.pd-brow .btrack.green i { background: var(--green); }
+.pd-brow .btrack.orange i { background: var(--orange); }
+.pd-brow .btrack i { display: block; height: 100%; border-radius: 999px; }
+.pd-brow .intext {
+  position: absolute; left: 10px; top: 0; bottom: 0; display: flex; align-items: center; gap: 2px;
+  font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.pd-brow .intext em { font-style: normal; font-weight: 700; opacity: .85; font-size: 11px; }
+.pd-brow .bval { font-size: 14px; font-weight: 800; min-width: 18px; text-align: right; }
+.pd-sanrow {
+  display: flex; align-items: center; justify-content: space-between; background: var(--panel2);
+  border: none; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 800; color: var(--ink2);
+}
+.pd-sanrow .sv { font-weight: 700; color: var(--muted); }
+.pd-sanrow .sv b { font-size: 15px; color: var(--ink); }
+.pd-statbox { margin-top: 8px; background: var(--panel2); border: none; border-radius: var(--r2); overflow: hidden; }
+.pd-statrow { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; font-size: 13px; color: var(--ink2); font-weight: 700; }
+.pd-statrow + .pd-statrow { border-top: 1px solid var(--line); }
+.pd-statrow b { margin-left: auto; color: var(--ink); font-size: 17px; display: inline-flex; align-items: center; gap: 2px; }
+.pd-statrow .icbox {
+  width: 28px; height: 28px; flex: none; background: var(--panel); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pd-up { color: var(--blue); font-size: 10px; } .pd-dn { color: var(--red); font-size: 10px; }
+.pd-workstrip { margin-top: 14px; background: var(--panel2); border: none; border-radius: var(--r2); overflow: hidden; }
+.wicons { display: flex; gap: 2px; justify-content: space-between; padding: 9px 12px 7px; }
+.wicons .wi { position: relative; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; }
+.wicons .wi b {
+  position: absolute; right: -3px; bottom: -4px; font-size: 10px; color: var(--ink);
+  font-family: "Zen Kaku Gothic New"; font-weight: 900; text-shadow: none;
+}
+.taskrow, .foodrow {
+  display: flex; align-items: center; justify-content: space-between; padding: 5px 13px;
+  font-size: 12.5px; font-weight: 700; color: var(--ink2); border-top: 1px solid var(--line);
+}
+.taskrow .tv { color: var(--ink); }
+.foodrow { background: none; }
+.foodrow .drums { display: inline-flex; gap: 1px; font-size: 13px; }
+.foodrow .drums span { filter: none; }
+.pd-ptitle { color: var(--acc); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin: 15px 0 7px; }
+.pd-skillrow {
+  display: flex; align-items: center; gap: 8px; background: var(--panel2); border: none;
+  border-left: 3px solid var(--elc); border-radius: var(--r1); padding: 7px 13px;
+}
+.pd-skillrow .sn { font-size: 15px; font-weight: 800; }
+.pd-skillrow .slv { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 700; }
+.pd-skillrow .slv b { font-size: 15px; color: var(--ink); margin-left: 3px; }
+.pd-descbox {
+  position: relative; margin-top: 8px; padding: 11px 14px; font-size: 12.5px; color: var(--ink2);
+  line-height: 1.6; background: var(--panel2); border-radius: var(--r2);
+}
+.pd-descbox::before { content: none; }
+.pd-pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pd-pgrid .prow { font-size: 12.5px; }
+.pd-extra { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 11px; }
+.pd-iv { background: var(--panel2); border: none; border-radius: 999px; padding: 4px 11px; font-size: 11px; color: var(--muted); font-weight: 800; }
+.pd-iv b { color: var(--ink); } .pd-iv.max b { color: var(--green); }
+.pd-reasons { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.boxright .pd-cols { flex-wrap: wrap; }
+
+/* ============================================================
+   SIDFOT
+   ============================================================ */
+footer {
+  color: var(--muted); font-size: 11.5px; max-width: 1180px; margin: 24px auto 0;
+  padding: 14px 0 20px; border-top: 1px solid var(--line);
+}
+.plegend { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 230px)); gap: 6px; margin-top: 8px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- smala skärmar: skenan blir en topprad ---------- */
+@media (max-width: 900px) {
+  .shell { flex-direction: column; }
+  .rail {
+    position: static; width: 100%; height: auto; flex-direction: row; flex-wrap: wrap;
+    align-items: center; gap: 6px; padding: 12px 14px;
+    border-right: none; border-bottom: 1px solid var(--line);
+  }
+  .rail .brand { margin: 0 10px 0 0; font-size: 20px; }
+  .rail a.ri { padding: 8px 12px; font-size: 12.5px; }
+  .rail .railfoot { margin-left: auto; flex-direction: row; align-items: center; }
+  .rail .who { display: none; }
+  .content { padding: 16px 14px 32px; }
+}
+@media (max-width: 640px) {
+  .pd-cols { flex-direction: column; }
+  .pd-left { width: 100%; }
+  .pd-pgrid, .prows { grid-template-columns: 1fr; }
+  .hero .hside { width: 100%; border-left: none; border-top: 1px solid var(--line); padding: 14px 0 0; }
+}

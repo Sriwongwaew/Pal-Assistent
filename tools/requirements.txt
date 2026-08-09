@@ -1,0 +1,3 @@
+# Krävs för "Läs in från spelet" (tools/palsave.py).
+# Oodle-avkodningen sköts av libooz.dll som redan ligger i den här mappen.
+palworld-save-tools>=0.24.0

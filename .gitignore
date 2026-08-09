@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.next-package/
+out/
+dist/
+packaging/build/
+_to_delete/
+
+# Arbetskopian av datan – DIN box. Grunddatan ligger i data/pal-data.base.json
+# och kopieras hit av scripts/ensure-data.mjs. Committa aldrig den här filen:
+# den innehåller spelarnamn och varenda pal du äger.
+public/data/pal-data.json
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+tools/backup/
+tests-dist/
