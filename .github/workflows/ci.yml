@@ -1,0 +1,58 @@
+# Kontrollerar varje push och varje pull request.
+#
+# Utgåve-workflowen kör samma grind, men först när en tagg pushas – alltså långt
+# efter att felet skrevs. Den här körs direkt, och tar ungefär en och en halv
+# minut. Poängen är att aldrig upptäcka ett trasigt bygge samma dag man tänkt
+# släppa något.
+#
+# Körs på Linux med flit: appen i sig är plattformsoberoende, och en Linux-runner
+# startar på sekunder mot Windows dryga minut. Det Windows-specifika (installern,
+# launchern, palsave.exe) byggs och testas i release.yml.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# En körning per gren. Pushar man tre gånger i rad är bara den sista intressant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kontroll:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typer
+        run: npm run typecheck
+
+      # Sannolikhetsmatematiken. En felräknad chans ser precis lika trovärdig ut
+      # som en riktig, och varken bygget, typecheck eller lint fångar den – det
+      # är därför testerna finns och därför de aldrig får hoppas över.
+      - name: Tester
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      # Bygget fångar sådant som typecheck missar: en klientkomponent som råkat
+      # importera serverkod, en sida som kraschar under prerendering.
+      - name: Bygge
+        run: npm run build
