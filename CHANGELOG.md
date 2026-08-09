@@ -13,6 +13,33 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **Condensing asked for more than twice the pals the game actually wants.** The costs were the
+  ones from before Palworld 1.0 — 4, 16, 32 and 64 duplicates, 116 for four stars. 1.0 lowered
+  that to 48 in total, and the page had never been told. It is now 4, 8, 12 and 24.
+
+  This was not just a wrong number on screen. Everything on Recommendations is counted from it, so
+  the page held back species that were already there: "Almost there" listed pals as needing a
+  dozen more duplicates when the star was waiting for you, and the work order put off condensing
+  you could have done that evening. If the page has felt pessimistic, that is why — check it again.
+
+- **Removed the "Fishing" purpose from the breeding planner, because it was wrong.** It suggested
+  breeding for Lunker and Whopper and told you they gave bigger catches. They do not: both are
+  water damage, ice damage and defence — the game's own description of them says so, and the app
+  showed you that same description one panel away. The mistake is an easy one to make, so it is
+  worth knowing: Lunker is *guaranteed on some pals you get by fishing*, which is the opposite of
+  a passive that helps you fish.
+
+  Nothing in the game improves fishing through breeding. How well a pal fishes is its partner
+  skill, so it is the species you want — and that list is still there, under **Fishing pals** on
+  *Best for…*. Your fishing pals are also no longer judged by their passives on the
+  Recommendations page: Gloopie, Jelliette and Jellroy are only ever fishers, and the page could
+  end up suggesting you feed away a perfectly good one.
+
+- **Passive descriptions no longer show the game's own markup.** Hovering some passives in English
+  printed raw tags in the middle of the sentence — Demon's Hand read "Work Speed
+  `<NumBlue_13>`+`</>`90.0". Twenty descriptions were affected, all of them in English, which is
+  the language the app starts in.
+
 ## 2.2.2 – 2026-08-09
 
 - **"Update" now actually installs the update.** Pressing it closed the app and left you on the

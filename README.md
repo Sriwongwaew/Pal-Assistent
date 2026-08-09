@@ -8,9 +8,10 @@ and Musclehead?
 Everything runs locally on your machine. The save file is opened read-only and nothing is ever
 uploaded anywhere.
 
-> **Note:** the translation is half done, and the screenshots show it honestly. Navigation, header
-> and controls speak eight languages — pick yours at the bottom of the left-hand column — while the
-> views themselves are still Swedish. Help with the rest is welcome; see [issues](../../issues).
+> **Note:** the interface is fully English, and Swedish is complete too — pick your language at the
+> bottom of the left-hand column. Six more languages (Chinese, Japanese, German, French, Spanish,
+> Portuguese) are listed but not translated yet and fall back to English rather than showing you
+> half a screen in each. Help with those is welcome; see [issues](../../issues).
 
 ![Overview](docs/img/overview.png)
 
@@ -20,8 +21,8 @@ uploaded anywhere.
 
 Windows 10/11 · about 60 MB · free
 
-Run the installer, start PalAssistent from the Start menu, and click **Läs in från spelet** ("read
-from the game"). That's it. You don't need Node, Python or anything else — it's all in the package.
+Run the installer, start PalAssistent from the Start menu, and click **Read from the game**. That's
+it. You don't need Node, Python or anything else — it's all in the package.
 
 > The first time, Windows may show *"Windows protected your PC"*. That's because the installer
 > isn't code-signed — a certificate costs hundreds of dollars a year — not because anything is
@@ -77,12 +78,12 @@ plan for it.
 
 ### Live mode
 
-Tick **Live** under **Mapp** ("folder") and the app watches for the game saving, refreshing your
-box on its own. Catch a pal, alt-tab, and it's already in the list. Between checks it only looks at
-the save file's timestamp, so it costs practically nothing until something actually happens.
+Tick **Live** under **Folder** and the app watches for the game saving, refreshing your box on its
+own. Catch a pal, alt-tab, and it's already in the list. Between checks it only looks at the save
+file's timestamp, so it costs practically nothing until something actually happens.
 
 If your save lives somewhere other than the game's own folder — a dedicated server, a cloud-synced
-folder, a copy — point the app at that folder under **Mapp**.
+folder, a copy — point the app at that folder under **Folder**.
 
 ### Light and dark, three palettes
 
@@ -104,15 +105,15 @@ it — the checksum is verified against the release before anything is run. You 
 download the installer again.
 
 Your imported box is reset by an update, because species data and the breeding table may have
-changed. One click on **Läs in från spelet** brings it back, or Live mode does it for you.
+changed. One click on **Read from the game** brings it back, or Live mode does it for you.
 
 ## FAQ
 
-**It can't find my save.** Click **Mapp** and point it at the folder. Both a folder (it searches
+**It can't find my save.** Click **Folder** and point it at the folder. Both a folder (it searches
 four levels down) and a `Level.sav` directly will work, and quotes from Explorer's "Copy as path"
 are stripped automatically.
 
-**Does it work with a dedicated server?** Yes — point it at the server's save folder under **Mapp**.
+**Does it work with a dedicated server?** Yes — point it at the server's save folder under **Folder**.
 
 **Some pals are missing.** Species added by Palworld after the latest release aren't in the species
 list yet; they're reported as skipped after importing. Open an issue and the list gets updated.

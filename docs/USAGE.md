@@ -1,7 +1,7 @@
 # Using PalAssistent
 
 This guide covers the app in depth. If you just want to get going, the [README](../README.md) is
-enough: install, click **Läs in från spelet**, done.
+enough: install, click **Read from the game**, done.
 
 > The interface is currently in Swedish. Swedish labels are given in **bold** below with a
 > translation, so you can follow along.
@@ -12,14 +12,14 @@ enough: install, click **Läs in från spelet**, done.
 
 1. Download and run the [installer](../README.md#download).
 2. Start **PalAssistent** from the Start menu.
-3. Click **Läs in från spelet** (*read from the game*) in the top right.
+3. Click **Read from the game** in the top right.
 
 The app finds your most recent save under `%LOCALAPPDATA%\Pal\Saved\SaveGames` by itself. Palworld
 may keep running — the file is opened read-only and never touched.
 
 ### If your save is somewhere else
 
-Click **Mapp** (*folder*). Leave the field empty for the game's own folder, or point it somewhere
+Click **Folder**. Leave the field empty for the game's own folder, or point it somewhere
 else:
 
 - **dedicated server** — the server's `Pal\Saved\SaveGames`
@@ -102,11 +102,14 @@ Paldeck number.
 
 ### 2. Pick what the pal is for
 
-**Strid** (*combat*), **Tålig** (*tanky*), **Bas & arbete** (*base and work*), **Riddjur**
-(*mount*) or **Fiske** (*fishing*). The choice suggests passives you can add with one click. Under
-*Bas & arbete* you also pick a work type (Mining, Kindling, …) and get species suggestions sorted by
-work level, tagged ÄGD (*owned*) / AVLAS ×n (*breed in n steps*) / FÅNGA (*catch*). One click sets
-the species as your target.
+**Combat**, **Tanky**, **Base & work** or **Mount**. The choice suggests passives you can add with
+one click. Under *Base & work* you also pick a work type (Mining, Kindling, …) and get species
+suggestions sorted by work level, tagged OWNED / BREED ×n / CATCH. One click sets the species as
+your target.
+
+There is deliberately no *fishing* purpose: no passive in the game affects fishing. How well a pal
+fishes comes from its partner skill, so it is the species that matters — see **Fishing pals** on
+*Best for…*.
 
 ### 3. Pick the passives you want
 
@@ -200,7 +203,7 @@ carries.
 **"Windows protected your PC" during installation.** The installer isn't code-signed — a certificate
 costs hundreds of dollars a year. Click **More info** → **Run anyway**.
 
-**No save found.** Click **Mapp** and point at the folder. On a dedicated server the save lives with
+**No save found.** Click **Folder** and point at the folder. On a dedicated server the save lives with
 the server, not with you.
 
 **Some pals are missing after importing.** Species Palworld added after the latest release aren't in
@@ -208,7 +211,7 @@ the species list yet; they're reported as skipped. Please open an issue. Codes l
 and `Believer_CrossBow` are humans, not pals, and are skipped on purpose.
 
 **The box is empty after an update.** That's expected — species data and the breeding table may have
-changed, so the data file is replaced. Click **Läs in från spelet**, or let Live do it at the next
+changed, so the data file is replaced. Click **Read from the game**, or let Live do it at the next
 autosave.
 
 **The app won't start.** Close any leftovers (`PalAssistent.exe` in Task Manager) and try again. The
