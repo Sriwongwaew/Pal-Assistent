@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 2.3.0 – 2026-08-09
+
 - **Condensing asked for more than twice the pals the game actually wants.** The costs were the
   ones from before Palworld 1.0 — 4, 16, 32 and 64 duplicates, 116 for four stars. 1.0 lowered
   that to 48 in total, and the page had never been told. It is now 4, 8, 12 and 24.
