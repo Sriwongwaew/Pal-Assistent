@@ -65,6 +65,27 @@ describe("passiveText", () => {
     assert.equal(passiveText("Framtida_Passiv", def, "en").text, "Attack +20 % · Work speed −50 %");
   });
 
+  /* Uppströms l10n färgar sina siffror med `<NumBlue_13>…</>`, och tjugo rader i
+     den genererade engelska tabellen bar märkningen kvar – hover-rutan skrev ut
+     den i klartext, bara på engelska, alltså standardspråket. Testet gäller hela
+     datasetet och inte de tjugo raderna: filen görs om ur uppströms, så nästa
+     omgång kan bära märkningen på helt andra rader. */
+  it("visar aldrig spelets egen märkning", () => {
+    const dirty = Object.keys(data.passives)
+      .flatMap((id) => (["en", "sv"] as const).map((l) => [id, l, passiveText(id, data.passives[id], l).text] as const))
+      .filter(([, , text]) => text !== null && /[<>]/.test(text));
+    assert.deepEqual(dirty.map(([id, l]) => `${id} (${l})`), []);
+  });
+
+  it("faller tillbaka på fx-raden när texten bara är märkning", () => {
+    // En rad som blir tom av tvätten är ingen beskrivning – då är fx bättre.
+    const def: PassiveDef = { n: "Tom märkning", r: 3, pal: true,
+      fx: { atk: 20, craft: 0, move: 0, hp: 0, ele: 0, def: 0 } };
+    const got = passiveText("Framtida_Passiv", def, "en");
+    assert.equal(got.fromGame, false);
+    assert.equal(got.text, "Attack +20 %");
+  });
+
   it("ger null när varken text eller fx säger något", () => {
     const def: PassiveDef = { n: "Tom", r: 1, pal: true };
     assert.deepEqual(passiveText("Okand", def), { text: null, fromGame: false });

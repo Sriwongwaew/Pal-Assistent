@@ -255,6 +255,22 @@ export interface PassiveText {
   fromGame: boolean;
 }
 
+/* Spelets l10n färgar sina siffror med egen märkning: `<NumBlue_13>` runt det
+   som ritas blått, `<NumRed_13>` runt det röda, `</>` som stängning. Den
+   engelska tabellen är genererad ur just den källan och tjugo rader kom med
+   märkningen kvar – hover-rutan skrev alltså ut "Work Speed <NumBlue_13>+</>90.0"
+   i klartext, och bara på engelska, som är standardspråket.
+
+   Tvätten sitter här och inte i tabellen med flit: `passiveTextEn.ts` görs om ur
+   uppströms varje gång den statiska halvan förnyas, så en handtvätt hade
+   försvunnit vid nästa omgång utan att något såg trasigt ut. Samma regex som
+   `scripts/passive-text.mjs` använder när det visar den engelska texten. */
+const GAME_MARKUP = /<[^>]*>/g;
+
+function stripMarkup(text: string): string {
+  return text.replace(GAME_MARKUP, "").replace(/\s+/g, " ").trim();
+}
+
 /** Beskrivningen av en passiv: spelets text först, fx-raden som reserv. */
 export function passiveText(
   id: string,
@@ -262,7 +278,10 @@ export function passiveText(
   locale: Locale = DEFAULT_LOCALE,
 ): PassiveText {
   const game = (GAME_TEXT[locale] ?? {})[id] ?? PASSIVE_TEXT_EN[id];
-  if (game) return { text: game, fromGame: true };
+  // Blir texten tom när märkningen tvättats bort är den inget värd som
+  // beskrivning – då är fx-raden bättre än en tom ruta.
+  const cleaned = game ? stripMarkup(game) : "";
+  if (cleaned) return { text: cleaned, fromGame: true };
   const derived = describeEffects(def?.fx, locale);
   return { text: derived || null, fromGame: false };
 }
