@@ -141,6 +141,12 @@ Att bygga installern kräver dessutom `pip install pyinstaller` och
 [Inno Setup](https://jrsoftware.org/isdl.php). Utgåvor byggs annars av GitHub Actions när en tagg
 pushas (`npm version minor && git push --follow-tags`).
 
+Utgåvans text kommer ur [CHANGELOG.md](CHANGELOG.md) – skriv under **Ej släppt** medan du jobbar,
+så flyttar `npm version` den till rätt version och GitHub-utgåvan får exakt den texten. Samma text
+visar appen under "Vad är nytt?". Kör du Claude Code i repot finns `/release`, som sköter hela
+kedjan: sammanfattar ändringarna till patch notes, kör kvalitetsgrinden, höjer versionen och
+pushar taggen.
+
 Arkitektur, designregler och alla inlärda fallgropar finns i [CLAUDE.md](CLAUDE.md).
 Djupare användarguide: [docs/ANVANDNING.md](docs/ANVANDNING.md).
 
