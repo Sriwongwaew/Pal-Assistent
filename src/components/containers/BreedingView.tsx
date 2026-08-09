@@ -24,6 +24,7 @@ import {
   parseBreedingPrefs, serializeBreedingPrefs, type BreedingPrefs,
 } from "@/lib/breedingPrefs";
 import { planBreedSetup, spanText, CAP_FREE, eggSeconds } from "@/lib/breedRate";
+import { implantAdvice } from "@/lib/implants";
 import type { AppData, BreedTree, ScoredPal, WorkType } from "@/lib/types";
 import { AltRouteBlock } from "@/components/ui/AltRouteBlock";
 import { OddsBadge, OkBox, SpeciesMini, StepCard, WarnBox } from "@/components/ui/BreedBits";
@@ -221,6 +222,61 @@ export function BreedingView() {
     <PalIdent pal={pal} species={sp(pal.s)} wanted={wanted}
       nameOf={pName} tierOf={pTier} label={label} />
   );
+
+  /**
+   * Pal Surgery Table: den billigaste optimeringen i hela planeraren, och den
+   * enda som inte handlar om vem man parar med. En önskad passiv som opereras in
+   * i efterhand ligger aldrig i arvspoolen, och `inheritOdds` är brutalt konvex
+   * där – 4 önskade är 10 % per ägg, 3 är 30 %.
+   *
+   * Rutan ligger FÖRE stegen, eftersom den ändrar vad man planerar för och inte
+   * bara hur man läser planen. Den bygger på `wanted`, inte på `plan.usable`:
+   * en operabel passiv behöver ingen bärare i boxen alls, så den ska nämnas även
+   * när planen säger att den saknas.
+   *
+   * Den säger också ifrån när INGET går att operera in. Det är inte brus – utan
+   * beskedet är antagandet "det ordnar jag med bordet sen" gratis att göra, och
+   * fel: allt med rank 4 måste avlas.
+   */
+  const ImplantBox = () => {
+    if (wanted.length < 2) return null;
+    const a = implantAdvice(wanted);
+
+    if (!a.implantable.length) {
+      return (
+        <div className="okbox">
+          <b>Inget av det här kan opereras in.</b> Pal Surgery Table har inga implantat för
+          de {wanted.length} du valt – allt på legendarisk nivå måste avlas eller fångas.
+          Planen nedan är alltså hela vägen.
+        </div>
+      );
+    }
+
+    const left = a.bred.length;
+    return (
+      <div className="okbox">
+        <b>
+          {left === 0
+            ? "Du behöver inte avla någon av dem."
+            : `Avla ${left}, operera in ${a.implantable.length === 1 ? "den sista" : "resten"}.`}
+        </b>{" "}
+        <Chips ids={a.implantable} label="finns som implantat:" />{" "}
+        {left > 0 && <Chips ids={a.bred} label="måste avlas:" />}
+        <div className="hint">
+          Sätt {a.implantable.length === 1 ? "den" : "dem"} med <b>Pal Surgery Table</b> på den{" "}
+          <b>färdiga</b> palen, efter avlingen – då hamnar {a.implantable.length === 1 ? "den" : "de"}{" "}
+          aldrig i arvspoolen. Planen krymper från {wanted.length} till {left} önskade:
+          sista steget går <b>{Math.round(a.oddsAll * 100)} %</b> →{" "}
+          <b>{Math.round(a.oddsBred * 100)} %</b> per ägg, alltså{" "}
+          <b>~{a.saving.toFixed(1).replace(".", ",")}× färre ägg</b>.{" "}
+          {left > 0 && <>Och platsen du opererar i är oftast redan upptagen av en slumpad
+            passiv – 35 % av alla ägg får en – så du ersätter skräp, inte något du vill ha.{" "}</>}
+          Bordet kräver teknologinivå 38 och varje ingrepp kostar guld, så rutan svarar på
+          om det <i>går</i> – inte på om guldet är värt det.
+        </div>
+      </div>
+    );
+  };
 
   /* ---- tunga beräkningar ligger HÄR, inte i delvyerna ----
      Delvyerna nedan definieras om vid varje render, så React ser en ny
@@ -761,6 +817,8 @@ export function BreedingView() {
             </>
           )}
         </div>
+
+        <ImplantBox />
 
         {!plan.usable.length ? (
           <WarnBox>Ingen av de önskade passiverna finns i boxen ännu.</WarnBox>

@@ -16,7 +16,7 @@ export const TIER_WEIGHTS: Record<number, number> = {
  *
  * Rätt siffror står i spelets egen Condenser-ruta, som visar exakt hur många
  * dubbletter nästa rang kostar i den patch man kör. Byt hit dem när du har
- * dem — allt på `/rekommendationer` räknas ur den här arrayen, så det är den
+ * dem — allt på rekommendationssidan räknas ur den här arrayen, så det är den
  * enda rad som behöver ändras. Uppdatera testerna i `tests/condense.test.ts`
  * samtidigt: de har handräknat facit mot just de här värdena.
  */

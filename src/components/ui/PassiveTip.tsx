@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePalData } from "@/context/PalDataContext";
+import { canImplant } from "@/lib/implants";
 import { passiveText, tierLabel } from "@/lib/passiveText";
 import { isEquipmentOnly } from "@/lib/purpose";
 
@@ -176,6 +177,11 @@ export function PassiveTipHost() {
       {anchor.note && <div className="ptnote">{anchor.note}</div>}
       <div className="ptmeta">
         {owned > 0 ? `${owned} i boxen bär den` : "Ingen i boxen bär den"}
+        {/* Står direkt efter bärarräkningen med flit: "ingen i boxen bär den ·
+            går att operera in" är hela beslutet i en rad. Utan den måste man
+            gissa, och gissningen "det ordnar bordet sen" är fel för allt på
+            legendarisk nivå – inget av det finns som implantat. */}
+        {canImplant(anchor.id) && " · går att operera in (Pal Surgery Table)"}
         {isEquipmentOnly(anchor.id) && " · sitter på utrustning, kan inte ärvas"}
         {/* Härledd text är ofullständig (se passiveText.ts) – säg det hellre än
             att låta den se ut som spelets egen. */}

@@ -13,6 +13,14 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **The planner now tells you what you can skip breeding.** 26 passives exist as implants for the
+  Pal Surgery Table, and one you implant afterwards never enters the inheritance pool — so it costs
+  nothing. Since the odds are steeply convex in pool size, implanting one of four wanted passives
+  makes the final step **~3× cheaper** (10 % → 30 % per egg), and two makes it 6× cheaper. The plan
+  now says which of your wanted passives are available as implants, which must still be bred, and
+  what the saving is. Nothing at legendary rank or above is available, so it also says so plainly
+  when the answer is "none of these" — that assumption is free to make and wrong. Every passive
+  hover box now states whether it can be implanted, right next to how many in your box carry it.
 - **Breeding base** at the top of the planner: what actually makes eggs come faster, measured
   against your own box. Braloha in the base, **Grintale** in the party — every egg you pick up has a
   50 % chance of yielding an extra one, and that extra egg is its own passive roll, so it counts in
