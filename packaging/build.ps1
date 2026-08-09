@@ -194,9 +194,25 @@ if (-not $SkipInstaller) {
 
     # Kontrollsummorna som uppdateringsfunktionen verifierar mot innan den kör
     # något. Formatet är sha256sum:s, alltså "<hash>  <filnamn>".
+    #
+    # .NET direkt i stället för Get-FileHash, och det är inte en stilfråga.
+    # Uppmätt på GitHubs runner: `npm run package` startar det här skriptet i
+    # Windows PowerShell 5.1 från ett steg som körs i PowerShell 7, och då
+    # svarar 5.1 "Get-FileHash is not recognized" – trots att resten av skriptet,
+    # inklusive ConvertFrom-Json och Copy-Item, fungerar. Något i den ärvda
+    # miljön (PSModulePath pekar på 7:ans moduler) gör att cmdletar som måste
+    # laddas vid anrop inte hittas. Bygget gick därför hela vägen igenom och dog
+    # på allra sista raden, medan samma skript alltid fungerat lokalt.
+    #
+    # Slutsatsen är inte "undvik Get-FileHash" utan **lita inte på modulladdning
+    # i det här skriptet**: det körs alltid som barnprocess till någon annans
+    # skal. .NET-anropet finns i varje PowerShell som kan starta skriptet.
     Step 'Räknar kontrollsummor'
     $setup = Join-Path $distDir 'PalAssistent-Setup.exe'
-    $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($setup)
+    try { $hash = ([BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '').ToLower() }
+    finally { $stream.Dispose(); $sha.Dispose() }
     $sums = Join-Path $distDir 'SHA256SUMS.txt'
     [System.IO.File]::WriteAllText($sums, "$hash  PalAssistent-Setup.exe`n",
         (New-Object System.Text.UTF8Encoding($false)))
