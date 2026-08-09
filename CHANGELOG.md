@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 2.2.2 – 2026-08-09
+
 - **"Update" now actually installs the update.** Pressing it closed the app and left you on the
   same version: the installer was started by the app itself, and everything the app starts is torn
   down together with it — so the installation was killed a second or two in, before it had written
