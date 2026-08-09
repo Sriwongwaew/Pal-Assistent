@@ -42,7 +42,7 @@ git diff $(git tag --sort=-v:refname | head -1)..HEAD --stat
 
 Finns ingen tagg än (första utgåvan) – använd hela historiken: `git log --oneline`.
 
-Läs sedan **vad som redan står** under `## Ej släppt` i `CHANGELOG.md`. Ken skriver ofta dit
+Läs sedan **vad som redan står** under `## Unreleased` i `CHANGELOG.md`. Ken skriver ofta dit
 löpande. Komplettera det, skriv aldrig över det, och upprepa inte något som redan står där.
 
 Titta på den faktiska diffen för de ändringar du ska beskriva, inte bara på commit-rubrikerna.
@@ -52,7 +52,7 @@ Rubriken säger vad som gjordes i koden; noteringen ska säga vad det betyder i 
 
 ## 3. Skriv noteringarna
 
-Lägg dem under `## Ej släppt` i `CHANGELOG.md`, nyast först.
+Lägg dem under `## Unreleased` i `CHANGELOG.md`, nyast först.
 
 **Skriv för någon som spelar Palworld, inte för någon som läst koden.** Det är hela skillnaden
 mellan en notering som betyder något och en som är brus.
@@ -129,9 +129,9 @@ npm version minor
 
 Det här händer automatiskt:
 
-1. `preversion` kontrollerar att `## Ej släppt` inte är tom och **avbryter annars** – före
+1. `preversion` kontrollerar att `## Unreleased` inte är tom och **avbryter annars** – före
    höjningen, så inget nummer tappas.
-2. `version` döper om `Ej släppt` till `## <version> – <datum>` och lägger filen i commiten.
+2. `version` döper om `Unreleased` till `## <version> – <datum>` och lägger filen i commiten.
 3. npm committar och taggar `v<version>`.
 
 Visa sedan exakt vad utgåvan kommer säga:

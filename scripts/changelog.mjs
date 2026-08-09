@@ -3,7 +3,7 @@
  *
  *   node scripts/changelog.mjs check          finns det något att släppa alls?
  *   node scripts/changelog.mjs bump           patch | minor | major
- *   node scripts/changelog.mjs stamp          döper om "Ej släppt" till versionen
+ *   node scripts/changelog.mjs stamp          döper om "Unreleased" till versionen
  *                                             i package.json och dagens datum
  *   node scripts/changelog.mjs notes 2.1.0    skriver ut just den versionens avsnitt
  *
@@ -27,10 +27,11 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const file = join(root, "CHANGELOG.md");
 
-const UNRELEASED = "Ej släppt";
+/** Rubriken i CHANGELOG.md. Filen är på engelska – den läses av användarna. */
+const UNRELEASED = "Unreleased";
 
 /**
- * Versionssteget skrivs som `<!-- bump: minor -->` under "Ej släppt".
+ * Versionssteget skrivs som `<!-- bump: minor -->` under "Unreleased".
  *
  * En kommentar och inte en rubrik, av två skäl: den syns inte i den renderade
  * texten som användarna möter, och den går att lämna kvar utan att någon undrar
@@ -108,7 +109,7 @@ function notes(wanted) {
 
 // ------------------------------------------------------------- check / stamp
 
-/** Hämtar "Ej släppt"-avsnittet, eller avbryter med ett begripligt besked. */
+/** Hämtar "Unreleased"-avsnittet, eller avbryter med ett begripligt besked. */
 function unreleasedOrDie(found) {
   const unreleased = found.find((s) => s.title === UNRELEASED);
   if (!unreleased) {
@@ -169,7 +170,7 @@ function stamp() {
   if (found.some((s) => versionOf(s.title) === version)) {
     console.error(
       `CHANGELOG.md har redan ett avsnitt för ${version}. ` +
-        "Flytta dina rader till \"Ej släppt\" om du menade att göra om utgåvan.",
+        "Flytta dina rader till \"Unreleased\" om du menade att göra om utgåvan.",
     );
     process.exit(1);
   }

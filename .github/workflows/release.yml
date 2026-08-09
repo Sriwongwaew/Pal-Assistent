@@ -1,6 +1,6 @@
 # Publicerar en GitHub-utgåva. Kan starta på tre sätt.
 #
-#   1. AUTOMATISKT, söndag kväll. Finns det något under "## Ej släppt" i
+#   1. AUTOMATISKT, söndag kväll. Finns det något under "## Unreleased" i
 #      CHANGELOG.md höjs versionen, taggen skapas och utgåvan publiceras.
 #      Finns det inget händer ingenting alls – en lugn vecka är inte ett fel.
 #   2. MANUELLT från Actions-fliken, med valfritt versionssteg.
@@ -80,7 +80,7 @@ jobs:
 
           steg="${VALT_STEG:-$(node scripts/changelog.mjs bump)}"
           if [[ "$steg" == "none" ]]; then
-            echo "Inget under '## Ej släppt' – ingen utgåva den här gången."
+            echo "Inget under '## Unreleased' – ingen utgåva den här gången."
             echo "slapp=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
