@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  notesToBlocks,
   parseUpdatePrefs,
   serializeUpdatePrefs,
   shouldCheck,
@@ -32,6 +33,7 @@ export function UpdateBanner() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [restarting, setRestarting] = useState(false);
+  const [openNotes, setOpenNotes] = useState(false);
 
   useEffect(() => {
     const stored = parseUpdatePrefs(localStorage.getItem(UPDATE_PREFS_KEY));
@@ -99,24 +101,58 @@ export function UpdateBanner() {
     );
   }
 
+  // Noteringarna kommer ur CHANGELOG.md via utgåvan. De visas här inne i stället
+  // för att skicka iväg användaren till GitHub – appen kör i ett eget fönster,
+  // och en extern webbläsare mitt i ett flöde är en onödig omväg.
+  const blocks = check?.notes ? notesToBlocks(check.notes) : [];
+
   return (
     <div className="updbar">
-      <span className="updtxt">
-        <b>Version {check?.latest} finns.</b> Du kör {check?.current}
-        {check?.size ? ` · ${megabytes(check.size)} att hämta` : ""}
-        {failed ? <span className="warn-inline"> · {failed}</span> : null}
-      </span>
-      {check?.page && (
-        <a className="updlink" href={check.page} target="_blank" rel="noreferrer">
-          Vad är nytt?
-        </a>
+      <div className="updhead">
+        <span className="updtxt">
+          <b>Version {check?.latest} finns.</b> Du kör {check?.current}
+          {check?.size ? ` · ${megabytes(check.size)} att hämta` : ""}
+          {failed ? <span className="warn-inline"> · {failed}</span> : null}
+        </span>
+        {blocks.length > 0 && (
+          <button
+            type="button"
+            className="updlink"
+            aria-expanded={openNotes}
+            onClick={() => setOpenNotes((open) => !open)}
+          >
+            {openNotes ? "Dölj" : "Vad är nytt?"}
+          </button>
+        )}
+        <button type="button" className="ghost sm" onClick={later} disabled={busy}>
+          Senare
+        </button>
+        <button type="button" className="ghost sm updgo" onClick={install} disabled={busy}>
+          {busy ? "Hämtar…" : "Uppdatera"}
+        </button>
+      </div>
+
+      {openNotes && blocks.length > 0 && (
+        <div className="updnotes">
+          {blocks.map((block, i) =>
+            block.kind === "punkt" ? (
+              <div key={i} className="updnote">
+                <span className="dot" />
+                {block.text}
+              </div>
+            ) : block.kind === "rubrik" ? (
+              <b key={i}>{block.text}</b>
+            ) : (
+              <p key={i}>{block.text}</p>
+            ),
+          )}
+          {check?.page && (
+            <a className="updlink" href={check.page} target="_blank" rel="noreferrer">
+              Hela utgåvan på GitHub
+            </a>
+          )}
+        </div>
       )}
-      <button type="button" className="ghost sm" onClick={later} disabled={busy}>
-        Senare
-      </button>
-      <button type="button" className="ghost sm updgo" onClick={install} disabled={busy}>
-        {busy ? "Hämtar…" : "Uppdatera"}
-      </button>
     </div>
   );
 }

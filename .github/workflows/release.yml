@@ -80,6 +80,15 @@ jobs:
           }
           Write-Host "Boxen är tom - $($data.species.Count) arter kvar."
 
+      # Utgåvans text kommer ur CHANGELOG.md, inte ur commit-rubrikerna. Samma
+      # text visas i appen när den säger att en uppdatering finns, så den är
+      # skriven för den som använder appen. Saknas avsnittet stannar bygget här –
+      # med flit: en utgåva utan noteringar är en utgåva ingen förstår.
+      - name: Hämta noteringar ur CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: node scripts/changelog.mjs notes "${GITHUB_REF_NAME}" > release-notes.md
+
       # Utan tagg finns ingen utgåva att publicera. En manuell körning ska ändå
       # gå att göra – då blir installern en artefakt att ladda ner från körningen
       # i stället för att hela jobbet faller på sista steget.
@@ -90,7 +99,7 @@ jobs:
           files: |
             dist/PalAssistent-Setup.exe
             dist/SHA256SUMS.txt
-          generate_release_notes: true
+          body_path: release-notes.md
           draft: false
 
       - name: Spara bygget som artefakt (manuell körning)

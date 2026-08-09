@@ -6,8 +6,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  CHECK_INTERVAL_MS, emptyUpdatePrefs, parseUpdatePrefs, serializeUpdatePrefs,
-  shouldCheck, shouldShow, type UpdateCheck, type UpdatePrefs,
+  CHECK_INTERVAL_MS, emptyUpdatePrefs, notesToBlocks, parseUpdatePrefs,
+  serializeUpdatePrefs, shouldCheck, shouldShow, type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
 
 const check = (over: Partial<UpdateCheck> = {}): UpdateCheck => ({
@@ -68,5 +68,47 @@ describe("shouldShow", () => {
     const skipped: UpdatePrefs = { lastCheck: 0, skipped: "2.1.0" };
     assert.equal(shouldShow(check({ latest: "2.1.0" }), skipped), false);
     assert.equal(shouldShow(check({ latest: "2.2.0" }), skipped), true);
+  });
+});
+
+describe("notesToBlocks", () => {
+  it("delar upp rubriker, punkter och stycken", () => {
+    const blocks = notesToBlocks(
+      "## Nytt\n\n- Avelsplanen räknar delade kullar\n- Snabbare boxvy\n\nTack för rapporterna!",
+    );
+    assert.deepEqual(blocks, [
+      { kind: "rubrik", text: "Nytt" },
+      { kind: "punkt", text: "Avelsplanen räknar delade kullar" },
+      { kind: "punkt", text: "Snabbare boxvy" },
+      { kind: "text", text: "Tack för rapporterna!" },
+    ]);
+  });
+
+  it("skalar bort markdown-markörer i stället för att visa dem", () => {
+    // "**Boxen** – snabbare" ska bli "Boxen – snabbare", inte behålla stjärnorna.
+    const blocks = notesToBlocks("- **Boxen** – nu med `filter` och _sortering_");
+    assert.deepEqual(blocks, [
+      { kind: "punkt", text: "Boxen – nu med filter och sortering" },
+    ]);
+  });
+
+  it("behåller länktexten men släpper adressen", () => {
+    const blocks = notesToBlocks("- Se [guiden](https://example.com/lang/url) för mer");
+    assert.deepEqual(blocks, [{ kind: "punkt", text: "Se guiden för mer" }]);
+  });
+
+  it("tål tomt och bara blanksteg", () => {
+    assert.deepEqual(notesToBlocks(""), []);
+    assert.deepEqual(notesToBlocks("\n\n   \n"), []);
+    // En rad som bara är markörer får inte bli en tom punkt.
+    assert.deepEqual(notesToBlocks("- **`_`**"), []);
+  });
+
+  it("gör okänd markdown till vanlig text i stället för att tappa den", () => {
+    const blocks = notesToBlocks("| kolumn | värde |\n> citat");
+    assert.deepEqual(blocks, [
+      { kind: "text", text: "| kolumn | värde |" },
+      { kind: "text", text: "> citat" },
+    ]);
   });
 });

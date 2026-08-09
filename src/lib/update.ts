@@ -80,3 +80,50 @@ export function shouldShow(check: UpdateCheck | null, prefs: UpdatePrefs): boole
   if (!check || !check.enabled || !check.newer || !check.latest) return false;
   return check.latest !== prefs.skipped;
 }
+
+/** En rad ur utgåvans noteringar, redo att renderas. */
+export interface NoteBlock {
+  kind: "rubrik" | "punkt" | "text";
+  text: string;
+}
+
+/**
+ * Gör utgåvans text läsbar i appen.
+ *
+ * Texten kommer från CHANGELOG.md via GitHub och är alltså Markdown, men att dra
+ * in en Markdown-renderare för fyra punktlistor vore oproportionerligt. Vi bryr
+ * oss om tre saker – rubrik, punkt, stycke – och skalar bort de tecken som annars
+ * läcker igenom som skräp: `**fet**` mitt i en mening ser trasigt ut, inte
+ * betonat.
+ *
+ * Allt vi inte känner igen blir vanlig text. Det är avsiktligt: en notering ska
+ * hellre se enkel ut än försvinna för att den råkade innehålla en tabell.
+ */
+export function notesToBlocks(notes: string): NoteBlock[] {
+  const out: NoteBlock[] = [];
+
+  for (const raw of notes.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Fet/kursiv/kod-markörer och länkar tas bort men texten behålls.
+    const clean = (text: string) =>
+      text
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/(\*\*|__|`|\*|_)/g, "")
+        .trim();
+
+    if (line.startsWith("#")) {
+      const text = clean(line.replace(/^#+\s*/, ""));
+      if (text) out.push({ kind: "rubrik", text });
+    } else if (/^[-*+]\s/.test(line)) {
+      const text = clean(line.replace(/^[-*+]\s*/, ""));
+      if (text) out.push({ kind: "punkt", text });
+    } else {
+      const text = clean(line);
+      if (text) out.push({ kind: "text", text });
+    }
+  }
+
+  return out;
+}
