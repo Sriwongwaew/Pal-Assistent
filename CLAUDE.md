@@ -488,16 +488,18 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    gång någon vill titta på boxen.
 2. **"Senare" gäller den versionen**, inte för alltid. En notis som aldrig kommer tillbaka
    missas; en som kommer vid varje start lär man sig klicka bort.
-3. **Knappen i foten** (`UpdateCheck`, `?manual=1`) är samma koll men på begäran, och skiljer sig
+3. **Knappen i skenan** (`UpdateCheck`, `?manual=1`) är samma koll men på begäran, och skiljer sig
    på fyra punkter som alla följer av att någon *frågat*: dygnsspärren hoppas över, ett tidigare
    "senare" nollas (annars vore knappen tyst för just den som tryckt bort versionen den skulle
    hitta), sextimmarscachen byts mot `MANUAL_CACHE_MS` (60 s – knappen ska kännas levande men
    inte bli en gratis linje till GitHub), och **misslyckandet syns**. `checkOutcome` håller
    `failed` skilt från `latest` med flit: "du kör den senaste" är ett löfte, och det får inte
    ges när vi inte kunde fråga. Kollen bor därför i `UpdateProvider` och inte i bandet — knappen
-   sitter i foten och bandet högst upp, och de får aldrig säga olika saker om samma version.
+   sitter i skenan och bandet högst upp, och de får aldrig säga olika saker om samma version.
    Bandet rullar fram sig när en manuell koll hittat något (`revealed`); utan det ser en lyckad
-   sökning längst ner ut som att ingenting hände.
+   sökning ut som att ingenting hände, eftersom bandet kan ligga utanför bild.
+   Svaret står under knappen, inte bredvid: skenan är smal, och skenan syns alltid medan bandet
+   bara finns när det faktiskt kommit en uppdatering.
 4. **Installationen** (`/api/update/install`) laddar ner och **kör** en binär, och har därför
    fyra spärrar som ingen av dem är valfri: `PA_PACKAGED` (sätts av launchern, så källkodsbygget
    inte kan installera över sig självt), utgåvan hämtas om på servern (klienten skickar aldrig en

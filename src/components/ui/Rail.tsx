@@ -8,6 +8,7 @@ import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
 import { ThemeControls } from "./ThemeControls";
+import { UpdateCheck } from "./UpdateCheck";
 
 /** The donation link, baked in at build time (PA_DONATE). Empty = not shown. */
 const DONATE = process.env.PA_DONATE ?? "";
@@ -46,6 +47,11 @@ export function Rail() {
             {t.plural("header.pals", pals.length)} · {t.plural("header.species", ownedSpecies.size)}
           </span>
         </div>
+        {/* Sits with the other shell controls rather than down in the footer:
+            checking for a new version is something you do to the app, not
+            something you read about it. Renders nothing in a build from source
+            (see UpdateCheck). */}
+        <UpdateCheck />
         {/* Baked in at build time. Empty in a build from source, and then the
             link does not exist at all — nobody should end up asking for money
             in someone else's name. */}

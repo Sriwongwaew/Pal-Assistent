@@ -896,7 +896,7 @@ export const sv: Catalogue = {
   "update.release": "Hela utgåvan på GitHub",
   "update.check": "Sök efter uppdatering",
   "update.checking": "Söker…",
-  "update.upToDate": "Du kör den senaste versionen ({version}).",
-  "update.foundNewer": "Version {version} finns – rutan högst upp visar vad som är nytt.",
-  "update.checkFailed": "Kunde inte nå GitHub. Är du uppkopplad?",
+  "update.upToDate": "Senaste versionen ({version})",
+  "update.foundNewer": "Version {version} finns",
+  "update.checkFailed": "Kunde inte nå GitHub",
 };

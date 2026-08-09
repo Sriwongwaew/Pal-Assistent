@@ -127,6 +127,10 @@ a { color: inherit; }
   position: sticky; top: 0; z-index: 5; width: 210px; flex: none; height: 100vh;
   display: flex; flex-direction: column; gap: 3px;
   padding: 22px 14px 16px; border-right: 1px solid var(--line);
+  /* Höjden är låst till skärmen, så allt som växer i foten klipps bort tyst –
+     och det som växer är uppdateringssvaret, som är olika långt på olika språk.
+     Hellre en rullning i skenan än ett halvt meddelande. */
+  overflow-y: auto;
 }
 .rail .brand { font-weight: 800; font-size: 25px; letter-spacing: -.02em; padding: 0 12px; margin-bottom: 18px; }
 .rail .brand em { font-style: normal; color: var(--acc); }
@@ -151,6 +155,24 @@ a { color: inherit; }
   border: 1px solid var(--line2);
 }
 .rail .donate:hover { color: var(--acc); border-color: var(--acc); }
+
+/* Uppdateringsknappen. Samma blockform som donationslänken – skenans fot ska
+   inte bli tre olika sorters knappar under varandra. Svaret står under knappen
+   i stället för bredvid: skenan är 182 px inuti sin padding, och en mening som
+   "du kör den senaste versionen (2.2.0)" får aldrig plats på en rad. */
+.rail .rupd { display: flex; flex-direction: column; }
+.rail .rupd button {
+  display: block; width: 100%; text-align: center; padding: 8px 10px;
+  border-radius: var(--r2); font: 800 11.5px inherit; color: var(--muted);
+  background: none; border: 1px solid var(--line2); cursor: pointer;
+}
+.rail .rupd button:hover:not(:disabled) { color: var(--acc); border-color: var(--acc); }
+.rail .rupd button:disabled { opacity: .6; cursor: default; }
+.rail .rupdmsg { font-size: 10.5px; line-height: 1.45; color: var(--ink2); }
+/* Marginalen bara när det finns ett svar. Rutan renderas alltid för aria-live,
+   och `display: none` hade tagit bort den ur tillgänglighetsträdet – då kan den
+   inte annonsera när den fylls. */
+.rail .rupdmsg:not(:empty) { margin-top: 7px; }
 
 .content { flex: 1; min-width: 0; padding: 22px 26px 40px; }
 .wrap { max-width: 1180px; margin: 0 auto; }
@@ -1813,15 +1835,6 @@ footer {
 .crkofi:hover { color: var(--acc); border-color: var(--acc); }
 .crhint { font-size: 10.5px; color: var(--muted); }
 
-/* Uppdateringsknappen i foten. Svaret står bredvid knappen och inte högst upp:
-   det är knappen man tittar på när man just tryckt på den. En <div>, inte en
-   <p> – `.credits p { margin: 0 }` har högre specificitet än en ensam klass och
-   hade ätit upp marginalen (det är därför .crsupport ovan inte får sin). */
-.crupd { margin-top: 11px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.crupd button.ghost { flex: none; }
-/* Tom tills någon tryckt – aria-live vill ha ett element som redan finns, så
-   den får inte rendera bort sig när svaret saknas. */
-.crupdmsg { font-size: 11px; color: var(--ink2); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

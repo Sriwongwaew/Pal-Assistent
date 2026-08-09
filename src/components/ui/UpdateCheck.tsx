@@ -1,14 +1,15 @@
 "use client";
 
-/* Knappen som frågar GitHub på begäran.
+/* Knappen som frågar GitHub på begäran. Sitter i skenan, bland skalets övriga
+ * kontroller.
  *
  * Den finns för att den automatiska kollen med flit är trög: en gång per dygn,
  * och tyst när den misslyckas. Det är rätt för en notis man inte bett om, men
  * fel för den som just läst att en ny version finns och vill ha den nu.
  *
- * Två saker som hänger ihop med var den sitter. Foten ligger flera skärmhöjder
- * från bandet, så svaret står **här vid knappen** och inte bara högst upp – och
- * hittar den något rullar bandet fram sig självt (se `UpdateBanner`).
+ * Svaret står **här vid knappen** och inte bara i bandet högst upp: skenan är
+ * synlig hela tiden, bandet bara när det finns en uppdatering. Hittar kollen
+ * något rullar bandet dessutom fram sig självt (se `UpdateBanner`).
  *
  * Bygget från källkoden har tom PA_REPO och har ingenting att fråga om; då
  * visas ingen knapp alls, precis som bandet aldrig visas där. */
@@ -43,13 +44,15 @@ export function UpdateCheck() {
             : null;
 
   return (
-    <div className="crupd">
-      <button type="button" className="ghost sm" onClick={refresh} disabled={checking}>
+    <div className="rupd">
+      <button type="button" onClick={refresh} disabled={checking}>
         {checking ? t("update.checking") : t("update.check")}
       </button>
       {/* Svaret kommer efter ett anrop, alltså efter att fokus redan flyttat
-          vidare – utan aria-live vore det osynligt för en skärmläsare. */}
-      <span className="crupdmsg" aria-live="polite">
+          vidare – utan aria-live vore det osynligt för en skärmläsare. Rutan
+          renderas därför alltid, även tom: en live-region som inte finns kan
+          inte annonsera när den fylls. */}
+      <span className="rupdmsg" aria-live="polite">
         {answer}
       </span>
     </div>

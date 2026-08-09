@@ -10,7 +10,6 @@
  * är precis vad paragrafen vill. */
 import supporters from "@/../data/supporters.json";
 import { useT } from "@/i18n/LocaleContext";
-import { UpdateCheck } from "./UpdateCheck";
 
 /** Bakas in vid bygget, samma variabel som uppdateringskollen använder. */
 const REPO = process.env.PA_REPO ?? "";
@@ -48,8 +47,6 @@ export function Credits() {
           </>
         )}
       </p>
-
-      <UpdateCheck />
 
       {TIERS.length > 0 && (
         <div className="crthanks">

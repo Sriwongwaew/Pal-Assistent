@@ -923,11 +923,12 @@ export const en = {
   // The button in the footer: a check you asked for yourself. Note that
   // "could not ask" is its own answer — saying "you are up to date" when
   // GitHub never replied would be a promise made out of nothing.
+  // Kept short: these render in the nav rail, which is a narrow column.
   "update.check": "Check for updates",
   "update.checking": "Checking…",
-  "update.upToDate": "You are running the latest version ({version}).",
-  "update.foundNewer": "Version {version} is available — the notice at the top has the details.",
-  "update.checkFailed": "Could not reach GitHub. Are you online?",
+  "update.upToDate": "Latest version ({version})",
+  "update.foundNewer": "Version {version} is available",
+  "update.checkFailed": "Could not reach GitHub",
 } as const;
 
 export type Messages = typeof en;
