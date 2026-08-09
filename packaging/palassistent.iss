@@ -65,7 +65,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "build\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "LÄS-MIG.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion isreadme
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
