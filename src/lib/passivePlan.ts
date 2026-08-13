@@ -72,6 +72,16 @@ const MAX_DEPTH = 10;
  */
 const ROOT_CANDIDATES = 4;
 
+/**
+ * Tak för antalet kandidatuppsättningar som prissätts mot hela planen.
+ *
+ * Varje kandidat kostar en artkedjesökning (Dijkstra över alla arter), och de
+ * tillkommer i tre omgångar: den greedy-minimala, de direkta paren, och en per
+ * art som redan bär allt. I Kens box blir det ~8 stycken; taket finns för att en
+ * box med hundra fulla bärare inte ska göra planeringen till en paus.
+ */
+const COVER_LIMIT = 12;
+
 /** Så många noder som mest sparas per delmängd. Fler ger inga bättre träd. */
 const NODES_PER_MASK = 8;
 
@@ -392,6 +402,36 @@ export function buildPassivePlan(
     const pair = [dp.a, dp.b].sort((a, b) => coverOf(b) - coverOf(a));
     if (!covers.some((c) => sameCover(c, pair))) covers.push(pair);
   }
+  /* ---- Börja där du FAKTISKT står ----
+     Set-covern väljer bärare på täckning, renhet och IV – aldrig på hur långt
+     bäraren har kvar till målarten. Bär flera arter alla önskade passiver får
+     man därför alltid samma startart, och en led man redan börjat gå ser
+     oförändrad ut: kläcker man steg 1:s unge (som per definition bär allt) står
+     planen kvar på samma antal artsteg och säger åt en att avla fram den igen.
+     Det var Kens iakttagelse aug 2026 ("min breeding plan uppdateras inte"), och
+     den var mätbar: en Sootseer med alla fyra lade sig i boxen utan att kedjan
+     Helzephyr Lux → Sootseer → Helzephyr → Frostallion Noct krympte ett steg.
+
+     Varje art som har en pal med ALLA önskade blir därför en egen
+     kandidatuppsättning, och sedan avgör den vanliga prissättningen nedan. Att
+     inte välja här är hela poängen: en art närmare målet kan ändå vara dyrare om
+     dess partners är smutsiga, och det vet bara äggräkningen.
+
+     Taket finns för att varje kandidat kostar en artkedjesökning. Renast först –
+     samma rangordning som allt annat i filen. */
+  const fullCarriers = pals
+    .filter((p) => usable.every((id) => p.pv.includes(id)))
+    .sort(rankCarriers);
+  const seenSpecies = new Set(covers.map((c) => (c.length === 1 ? c[0]!.s : -1)));
+  for (const p of fullCarriers) {
+    if (covers.length >= COVER_LIMIT) break;
+    if (seenSpecies.has(p.s)) continue;
+    /* Manuellt läge: uppsättningen måste innehålla den utpekade palen. */
+    if (mustUse && p.id !== mustUse.id) continue;
+    seenSpecies.add(p.s);
+    covers.push([p]);
+  }
+
   if (opts.breedAnother && target !== null) {
     /* En ensam bärare som redan är målarten är noll parningar, alltså ingen led.
        Den läggs undan – men bara om något annat blev kvar, annars vore svaret
@@ -842,4 +882,50 @@ export function buildPassivePlan(
 /** Antal parningar i deltäckningen – tiebreak när två träd kostar lika mycket. */
 function countSteps(node: Node): number {
   return node.via ? 1 + countSteps(node.via.a) + countSteps(node.via.b) : 0;
+}
+
+/* ============================================================
+   Vilka pals i boxen hör till planen?
+   ============================================================ */
+
+/** Vad en pal gör i planen. `step` är 1-baserat där ett steg är känt. */
+export interface PlanRole {
+  kind: "start" | "carrier" | "mergeParent" | "partner";
+  /** Steget palen används i. null = den är linjens start och hör inte till ett steg. */
+  step: number | null;
+  /** Fas 2:s steg numreras efter fas 1:s, precis som gränssnittet visar dem. */
+  phase: 1 | 2 | null;
+}
+
+/**
+ * Individ-id → dess roll i planen.
+ *
+ * Finns för att boxen ska kunna säga "den här palen ÄR steg 2:s partner" i
+ * stället för att man får hålla planen i huvudet medan man bläddrar bland
+ * hundra brickor (Kens förslag aug 2026: en guldkant som markerar vilket steg
+ * det är). Ren funktion över en färdig plan – ingen ny beräkning, inget
+ * gränssnitt.
+ *
+ * En pal kan förekomma flera gånger; **första rollen vinner**, och ordningen är
+ * vald: linjens start är det viktigaste att känna igen, sedan bärarna man ska
+ * leta upp, sedan partnerna. En partner som också är bärare är i praktiken en
+ * bärare man råkar para med, och det är bäraren man letar efter i boxen.
+ */
+export function planRoles(plan: PassivePlan): Map<string, PlanRole> {
+  const roles = new Map<string, PlanRole>();
+  const put = (pal: ScoredPal | null | undefined, role: PlanRole) => {
+    if (!pal || roles.has(pal.id)) return;
+    roles.set(pal.id, role);
+  };
+
+  put(plan.start, { kind: "start", step: null, phase: null });
+  for (const c of plan.carriersUsed) put(c, { kind: "carrier", step: null, phase: null });
+  for (const s of plan.mergeSteps) {
+    put(s.a.pal, { kind: "mergeParent", step: s.n, phase: 1 });
+    put(s.b.pal, { kind: "mergeParent", step: s.n, phase: 1 });
+  }
+  (plan.speciesPhase ?? []).forEach((s, i) => {
+    put(s.partner, { kind: "partner", step: i + 1, phase: 2 });
+  });
+  return roles;
 }

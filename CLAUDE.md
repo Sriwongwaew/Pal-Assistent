@@ -31,6 +31,13 @@ Features by route:
   (LEVEL, NEXT, stjärnor, HP/hunger/SAN, Attack/Defense/Work Speed med buff-pilar, arbetsremsa,
   Paldeck, Passive Skills 2×2) finns kvar och öppnas med **Base Info**-knappen i heron – eller
   automatiskt när man klickar en bricka på smal skärm.
+  **Pals som ingår i avelsplanen bär en guldkant och en bricka som säger vilket steg**
+  (`planRoles` i `passivePlan.ts`, Kens förslag aug 2026). Boxen läser samma sparade val som
+  planeraren (`pa-breeding`) och räknar om planen; utan sparade val markeras ingenting. Guld och
+  inte elementfärgen – den är upptagen av arten och betyder något annat. Kanten ligger som
+  `box-shadow` UTANFÖR ramen så den inte slåss med markeringen för vald pal, som äger
+  `border-color`; bägge kan synas samtidigt. Filtret **"I planen"** finns för att de tre-fyra
+  palsen annars ligger utspridda bland hundratals brickor.
 - `/breeding` **Breeding** – target pal + **vad den ska användas till** + optional base + up to
   4 wanted passives → full plan: carriers per passive, merge order with **inheritance odds per
   egg**, then a species chain to the target. Syftet (Strid / Tålig / Bas & arbete / Riddjur /
@@ -1216,6 +1223,19 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   ihop pals ur **samma** artlista, så korsartade par kunde aldrig hittas — det var inte ett filter
   som sållade bort dem, utan en uppräkning som aldrig såg dem. Därför tar `AltRouteBlock` numera
   varje förälders **egen** art i porträttet.
+- **Planen börjar där du STÅR, inte där set-covern råkar peka** (`COVER_LIMIT` i `passivePlan.ts`,
+  aug 2026). Set-covern väljer bärare på täckning, renhet och IV – aldrig på hur långt bäraren har
+  kvar till målarten. Bär flera arter alla önskade passiver blev startarten därför densamma varje
+  gång, och en led man redan börjat gå såg oförändrad ut: kläcker man steg 1:s unge, som per
+  definition bär allt, stod planen kvar och sa åt en att avla fram den igen. Det var Kens
+  iakttagelse ("min breeding plan uppdateras inte") och den var mätbar mot hans box – kedjan
+  Helzephyr Lux → Sootseer → Helzephyr → Frostallion Noct (3 steg, ~30 ägg) var i själva verket
+  Azurobe → Helzephyr → Frostallion Noct (2 steg, ~20 ägg), för Azurobe bar också alla fyra och
+  stod närmare. Varje art med en pal som bär ALLA önskade blir därför en egen kandidatuppsättning,
+  och den vanliga prissättningen mot hela planen avgör. **Välj inte här**: en art närmare målet kan
+  ändå vara dyrare om dess partners är smutsiga, och det vet bara äggräkningen. Taket finns för att
+  varje kandidat kostar en Dijkstra. `tests/planStart.test.ts` har facit, inklusive att en närmare
+  art INTE väljs när den saknar passiverna och att könsregeln fortfarande gäller.
 - **Parent selection is purity-first, then IV** (`ParentPrefs`/`compareParents` in `breeding.ts`).
   Once passives are picked, every *other* passive a parent carries lands in the inheritance pool
   and tanks the odds — with 4 wanted passives, a single junk one drops 10 % → 2 % (~10 → ~50 eggs).

@@ -13,6 +13,21 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **The breeding plan now starts where you actually are.** It used to pick the pal that carried the
+  most wanted passives and breed from there, without ever asking how far that species had left to
+  go — so if two of your pals carried all four wanted passives you always got the same route, and
+  hatching the offspring from step 1 changed nothing. Your Frostallion Noct plan was a three-step
+  chain from Helzephyr Lux at ~30 eggs; it is a two-step chain from Azurobe at ~20, because Azurobe
+  carried the same four and stood a step closer the whole time. Hatch the intermediate and the plan
+  drops that step instead of telling you to breed it again.
+
+- **Pals that are part of your plan are marked in the Box.** A gold border and a badge saying which
+  step it is — the line's starting pal, or the partner for step 1, step 2 and so on. There is an
+  "In the plan" filter too, since the three or four that matter are otherwise scattered among
+  hundreds of tiles.
+
 ## 2.5.0 – 2026-08-14
 
 

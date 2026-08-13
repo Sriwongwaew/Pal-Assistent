@@ -1473,6 +1473,26 @@ h3.phase::before, h3.phase::after {
 .picker-grid::-webkit-scrollbar { width: 10px; }
 .picker-grid::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 5px; }
 .pcell .circ.none { color: var(--muted); font-size: 20px; font-weight: 800; background: var(--panel2); }
+/* ---------- Ingår i avelsplanen (Kens förslag aug 2026) ----------
+   En guldkant på de pals planen faktiskt rör. Guld och inte elementfärgen: den
+   är redan upptagen av arten och betyder något annat, och två färgspråk på
+   samma bricka läser som brus. Kanten ligger som en egen ring UTANFÖR ramen
+   (box-shadow) så den inte konkurrerar med markeringen för vald pal, som äger
+   `border-color`. Bägge kan alltså synas samtidigt. */
+.pcell.inplan {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 78%, transparent);
+}
+.pcell.inplan:hover { box-shadow: 0 0 0 2px var(--gold); }
+/* Brickan säger VAD palen gör i planen – steg eller bärare. Nere till vänster,
+   där ingen annan markör bor (alpha uppe vänster, lucky uppe höger,
+   stjärnorna vid porträttets fot). */
+.pcell .mk.plan {
+  top: 50px; left: 6px;
+  padding: 1px 5px; border-radius: 999px;
+  background: var(--gold); color: #17130a;
+  font-weight: 800; font-size: 8.5px; letter-spacing: .04em;
+}
+
 .pcell .mk.owned {
   bottom: 4px; left: 5px; width: 9px; height: 9px; border-radius: 50%;
   background: var(--acc); border: 1.5px solid var(--panel);

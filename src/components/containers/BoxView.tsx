@@ -7,6 +7,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { usePalData } from "@/context/PalDataContext";
+import { BREEDING_PREFS_KEY, parseBreedingPrefs } from "@/lib/breedingPrefs";
+import { buildPassivePlan, planRoles, type PlanRole } from "@/lib/passivePlan";
 import { useSelectedPal } from "@/context/SelectedPalContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
@@ -21,13 +23,14 @@ import { PalHero, elementColor } from "@/components/ui/PalHero";
 import { PassiveFilterBody } from "@/components/ui/PassiveFilter";
 import { PassiveRow } from "@/components/ui/PassiveRow";
 
-type Filter = "spara" | "kond" | "rainbow" | "guld" | "perf" | "alpha";
+type Filter = "spara" | "kond" | "rainbow" | "guld" | "perf" | "alpha" | "plan";
 type Sort = "score" | "iv" | "combat" | "lvl" | "stars" | "art";
 
 const FILTERS: [Filter, MessageKey][] = [
   ["spara", "box.filter.keep"], ["kond", "box.filter.condense"],
   ["rainbow", "box.filter.rainbow"], ["guld", "box.filter.gold"], ["perf", "box.filter.perfect"],
   ["alpha", "box.filter.alpha"],
+  ["plan", "box.filter.plan"],
 ];
 
 /* Filtren är kombinerbara och OCH:as ihop – "guldpassiv + perfekt IV" är en
@@ -41,6 +44,10 @@ const PREDICATES: Record<Filter, (p: ScoredPal) => boolean> = {
   // Minst EN 100:a, inte tre – se perfectIvCount. Ordningen nedan lyfter 3 före 1.
   perf: (p) => perfectIvCount(p) > 0,
   alpha: (p) => p.boss || p.lucky,
+  /* Planen kan inte avgoras av palen ensam – den beror pa avelsvalen. Filtret
+     tillampas darfor separat nedan, dar rollkartan finns. Raden star kvar sa
+     tabellen fortsatter tacka varje Filter (typen kraver det). */
+  plan: () => true,
 };
 
 const SORTS: [Sort, MessageKey][] = [
@@ -56,7 +63,7 @@ type IvMins = [number, number, number];
 const PAGE = 120;
 
 export function BoxView() {
-  const { data, pals } = usePalData();
+  const { data, pals, ownedSpecies } = usePalData();
   const { select } = useSelectedPal();
   const t = useT();
   const [query, setQuery] = useState("");
@@ -68,6 +75,32 @@ export function BoxView() {
   const [asc, setAsc] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [selId, setSelId] = useState<string | null>(null);
+
+  /* ---- Vilka pals hör till avelsplanen? ----
+     Kens förslag aug 2026: "får vi en pal som är en del av breeding-chainen
+     kanske vi borde ha en guldig border för att markera vilket steg det är".
+     Planen bor i Breeding, men den pal man just kläckt tittar man på HÄR, och
+     att hålla en fyrastegsled i huvudet medan man bläddrar bland sexhundra
+     brickor är precis vad appen ska slippa en ifrån.
+
+     Valen läses ur samma localStorage-nyckel som planeraren sparar dem i, och
+     valideras mot dagens data av `parseBreedingPrefs` – ett artindex ur en
+     äldre bundle pekar annars rakt in i `data.species` (se breedingPrefs.ts).
+     Utan sparade val blir kartan tom och ingen bricka får en kant. */
+  const [prefsRaw, setPrefsRaw] = useState<string | null>(null);
+  useEffect(() => {
+    try { setPrefsRaw(localStorage.getItem(BREEDING_PREFS_KEY)); } catch { /* privat läge */ }
+  }, []);
+  const planRolesById = useMemo(() => {
+    if (prefsRaw === null) return new Map<string, PlanRole>();
+    const prefs = parseBreedingPrefs(prefsRaw, data);
+    if (prefs.target === null || prefs.wanted.length === 0) return new Map<string, PlanRole>();
+    const plan = buildPassivePlan(
+      data, pals, ownedSpecies, prefs.wanted, prefs.target,
+      { ivGoal: prefs.ivGoal }, prefs.chain, null,
+    );
+    return planRoles(plan);
+  }, [prefsRaw, data, pals, ownedSpecies]);
 
   /* ETT filterfäste i stället för sju chips + fyra selects i kontrollraden
      (Kens rättning aug 2026: "filterna ser väldigt röriga ut"). Panelen bär
@@ -101,6 +134,8 @@ export function BoxView() {
       ? pals.filter((p) => palMatches(palHaystack(data, p), terms))
       : pals;
     for (const f of active) out = out.filter(PREDICATES[f]);
+    // "I planen" behover rollkartan och kan inte bo i PREDICATES.
+    if (active.includes("plan")) out = out.filter((p) => planRolesById.has(p.id));
     if (chosenPv.length) out = out.filter((p) => matchesPassives(p.pv, chosenPv, pvMode));
     if (ivMins.some((m) => m > 0)) out = out.filter((p) => meetsIvMins(p.iv, ivMins));
 
@@ -131,7 +166,7 @@ export function BoxView() {
       return [...out].sort((a, b) => perfectIvCount(b) - perfectIvCount(a) || dir(a, b));
     }
     return [...out].sort(dir);
-  }, [pals, data, query, active, chosenPv, pvMode, ivMins, sort, asc, t.locale]);
+  }, [pals, data, query, active, chosenPv, pvMode, ivMins, sort, asc, planRolesById, t.locale]);
 
   const selected = useMemo(
     () => rows.find((p) => p.id === selId) ?? rows[0] ?? null,
@@ -345,10 +380,11 @@ export function BoxView() {
                   (chosenPv.includes(b) ? 1 : 0) - (chosenPv.includes(a) ? 1 : 0)
                   || (data.passives[b]?.r ?? 0) - (data.passives[a]?.r ?? 0))
                 .slice(0, 2);
+              const role = planRolesById.get(p.id) ?? null;
               return (
                 <button
                   key={p.id}
-                  className={`pcell ${isSel ? "sel" : ""}`}
+                  className={`pcell ${isSel ? "sel" : ""}${role ? " inplan" : ""}`}
                   style={{ "--elc": elementColor(sp) } as CSSProperties}
                   onClick={() => pick(p)}
                   title={t("pal.cellTitle", { name: sp.name, lv: p.lv, iv: p.iv.join("/") })}
@@ -360,6 +396,14 @@ export function BoxView() {
                     {p.boss && <span className="mk alpha" title={t("pal.alpha")}><GameIcon name="alpha" size={13} /></span>}
                     {p.lucky && <span className="mk lucky" title={t("pal.lucky")}><GameIcon name="lucky" size={12} /></span>}
                     {p.stars > 0 && <span className="mk stars">{p.stars}★</span>}
+                    {/* Guldkanten säger ATT palen ingår; brickan säger VAD den
+                        gör där. Utan den andra halvan vet man bara att den är
+                        med, inte om man ska para den nu eller spara den. */}
+                    {role && (
+                      <span className="mk plan" title={t("box.plan.title")}>
+                        {role.step === null ? t("box.plan.carrier") : t("box.plan.step", { n: role.step })}
+                      </span>
+                    )}
                   </span>
                   <span className="nm">{p.nick || sp.name}</span>
                   <span className="lv">{t("pal.lv", { n: p.lv })} · {p.iv.join("/")}</span>
