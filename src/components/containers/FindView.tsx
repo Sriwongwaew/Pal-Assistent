@@ -61,7 +61,8 @@ import {
 } from "@/lib/findData";
 import {
   expedMatching, hasSource, itemIndex, itemsMatching, parentPairsOf, parseCombo,
-  placeGaps, placeIndex, placesMatching, raidsMatching, schemWhere, skillIndex, skillsMatching,
+  placeGaps, placeIndex, placesMatching, raidsMatching, ruinSchematics, schemWhere,
+  skillIndex, skillsMatching,
   type ItemEntry, type Place, type SkillRow,
 } from "@/lib/findIndex";
 import { partnerSkill } from "@/lib/partnerSkills";
@@ -161,6 +162,14 @@ export function FindView() {
   const allPlaces = useMemo(() => placeIndex(), []);
   const gaps = useMemo(() => placeGaps(), []);
   const allSkills = useMemo(() => skillIndex(data), [data]);
+  /* Kurerade + härledda schematics. Ruinernas rader kommer ur kartdatat och är
+     inte skrivna för hand – se `ruinSchematics`. Utan dem saknades 71 rader,
+     alla legendariska tillbehör, för att deras blueprint heter "… Schematic"
+     utan sifferändelse och den förra granskningen sökte på "Schematic 4". */
+  const allSchem = useMemo(
+    () => [...LEGENDARY_SCHEMATICS, ...ruinSchematics()],
+    [],
+  );
   /** Vad arten släpper – varuindexet vänt åt andra hållet. */
   const dropsBySpecies = useMemo(() => {
     const m = new Map<string, { item: string; q: string | null }[]>();
@@ -209,7 +218,7 @@ export function FindView() {
         items: allItems,
         passives: passivesByTier(),
         skills: allSkills,
-        schem: LEGENDARY_SCHEMATICS,
+        schem: allSchem,
         places: allPlaces,
         exped: expedMatching(""),
         raids: RAIDS,
@@ -265,14 +274,14 @@ export function FindView() {
         .sort((a, b) => a.rel - b.rel || b.def.r - a.def.r || a.def.n.localeCompare(b.def.n))
         .map((r) => [r.id, r.def] as [string, PassiveDef]),
       skills: skillsMatching(allSkills, q),
-      schem: schematicsMatching(q),
+      schem: schematicsMatching(allSchem, q),
       places: placesMatching(allPlaces, q),
       exped: expedMatching(q),
       raids: raidsMatching(q),
       fishing: FISHING_PALS
         .filter(([name]) => name.toLowerCase().includes(q) || "fishing".includes(q) || "fiske".includes(q)),
     };
-  }, [q, query, data, allItems, allPlaces, allSkills, t.locale]);
+  }, [q, query, data, allItems, allPlaces, allSkills, allSchem, t.locale]);
 
   const counts: Record<FindCat, number> = {
     combos: hits.combos.length,
@@ -365,9 +374,10 @@ export function FindView() {
       : s.kind === "alpha" ? "find.schemAlpha"
       : s.kind === "raid" ? "find.schemRaid"
       : s.kind === "vendor" ? "find.schemVendor"
+      : s.kind === "ruin" ? "find.schemRuin"
       : "find.schemChest";
     const kindTag: Record<Schematic["kind"], "info" | "lucky" | "cond"> =
-      { tower: "info", alpha: "lucky", raid: "cond", vendor: "info", chest: "info" };
+      { tower: "info", alpha: "lucky", raid: "cond", vendor: "info", chest: "info", ruin: "lucky" };
     return (
       <>
         <Tag kind={kindTag[s.kind]}>{t(key)}{s.rate ? ` · ${s.rate}` : ""}</Tag>
@@ -761,6 +771,7 @@ export function FindView() {
     if (s.kind === "tower") return "find.how.tower";
     if (s.kind === "raid") return "find.how.raid";
     if (s.kind === "vendor") return "find.how.vendor";
+    if (s.kind === "ruin") return "find.how.ruin";
     switch (s.spot?.at) {
       case "camp": return "find.how.camp";
       case "oilrig": return "find.how.oilrig";

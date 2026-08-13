@@ -45,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const themeInit = `(function(){try{var d=document.documentElement,
 t=localStorage.getItem("pa-theme"),p=localStorage.getItem("pa-pal");
 if(t==="light"||t==="dark")d.dataset.theme=t;
-d.dataset.pal=(p==="nightwood"||p==="deepwater"||p==="basalt")?p:"dusk";
+d.dataset.pal="dusk basalt nightwood deepwater fieldbook graphite ember sakura glacier".split(" ").indexOf(p)>=0?p:"dusk";
 }catch(e){document.documentElement.dataset.pal="dusk";}})();`;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

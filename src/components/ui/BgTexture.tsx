@@ -2,12 +2,21 @@
 
 /* Dumb-ish: Habitats bakgrundsstruktur, ritad i canvas.
    Varje palett har sin egen struktur – stenkorn (basalt), höjdkurvor
-   (nightwood), vattenstrata (deepwater) och horisontband + stjärnfält (dusk).
+   (nightwood), vattenstrata (deepwater), horisontband + stjärnfält (dusk),
+   rutat papper (fieldbook), penseldrag (graphite), sprickor + glöd (ember),
+   kronblad (sakura) och frostkristaller (glacier).
    Mönstret är deterministiskt (egen LCG, ingen Math.random) så det inte
    flimrar mellan omritningar. */
 import { useEffect, useRef } from "react";
 
-type Pal = "basalt" | "nightwood" | "deepwater" | "dusk";
+type Pal =
+  | "basalt" | "nightwood" | "deepwater" | "dusk"
+  | "fieldbook" | "graphite" | "ember" | "sakura" | "glacier";
+
+/** Deterministisk LCG – samma frö ger samma mönster vid varje omritning. */
+function lcg(seed: number) {
+  return () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+}
 
 /** Läser av vilket läge <html> faktiskt hamnat i just nu. */
 function readState(): { pal: Pal; dark: boolean } {
@@ -84,8 +93,7 @@ function draw(cv: HTMLCanvasElement) {
       g.stroke();
     }
     if (dark) {
-      let seed = 20260810;
-      const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+      const rnd = lcg(20260810);
       g.fillStyle = "rgba(230,220,255,.35)";
       const stars = Math.round(w / 9);
       for (let i = 0; i < stars; i++) {
@@ -98,9 +106,126 @@ function draw(cv: HTMLCanvasElement) {
     return;
   }
 
+  if (pal === "fieldbook") {
+    /* Rutat papper: varje femte linje kraftigare, som i ett anteckningsblock.
+       Heltal + .5 gör linjen exakt en pixel bred – annars blir rutnätet suddigt
+       och ser ut som en tryckfelaktig gradient i stället för ett rutnät. */
+    const minor = dark ? "rgba(120,200,255,.055)" : "rgba(30,50,80,.05)";
+    const major = dark ? "rgba(120,200,255,.10)" : "rgba(30,50,80,.09)";
+    const step = 26;
+    g.lineWidth = 1;
+    for (let i = 0, x = 0; x <= w; i++, x += step) {
+      g.strokeStyle = i % 5 === 0 ? major : minor;
+      g.beginPath();
+      g.moveTo(Math.round(x) + 0.5, 0);
+      g.lineTo(Math.round(x) + 0.5, h);
+      g.stroke();
+    }
+    for (let i = 0, y = 0; y <= h; i++, y += step) {
+      g.strokeStyle = i % 5 === 0 ? major : minor;
+      g.beginPath();
+      g.moveTo(0, Math.round(y) + 0.5);
+      g.lineTo(w, Math.round(y) + 0.5);
+      g.stroke();
+    }
+    return;
+  }
+
+  if (pal === "graphite") {
+    // Penseldrag i metall: lodräta streck med olika längd och styrka. Ingen
+    // kulör alls – paletten går ut på att elementet är skärmens enda färg.
+    const rnd = lcg(20260813);
+    g.lineWidth = 1;
+    const streaks = Math.round(w / 7);
+    for (let i = 0; i < streaks; i++) {
+      const x = Math.round(rnd() * w) + 0.5;
+      const y0 = rnd() * h * 0.9;
+      const len = h * (0.15 + rnd() * 0.7);
+      const a = 0.018 + rnd() * 0.03;
+      g.strokeStyle = dark ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
+      g.beginPath();
+      g.moveTo(x, y0);
+      g.lineTo(x, Math.min(h, y0 + len));
+      g.stroke();
+    }
+    return;
+  }
+
+  if (pal === "ember") {
+    // Sprickor som växer uppåt ur nederkanten, plus glödpunkter längst ner.
+    const rnd = lcg(20260814);
+    g.strokeStyle = dark ? "rgba(255,150,80,.11)" : "rgba(120,45,20,.08)";
+    g.lineWidth = 1.2;
+    const cracks = 9;
+    for (let i = 0; i < cracks; i++) {
+      let x = (i + rnd() * 0.8) * (w / cracks);
+      let y = h + 20;
+      let dir = -Math.PI / 2 + (rnd() - 0.5) * 0.5;
+      g.beginPath();
+      g.moveTo(x, y);
+      const segs = 14 + Math.round(rnd() * 10);
+      for (let s = 0; s < segs && y > -30; s++) {
+        dir += (rnd() - 0.5) * 0.55;
+        const len = 22 + rnd() * 40;
+        x += Math.cos(dir) * len;
+        y += Math.sin(dir) * len;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    g.fillStyle = dark ? "rgba(255,140,60,.26)" : "rgba(180,70,25,.15)";
+    for (let i = 0; i < 26; i++) {
+      // rnd()² drar punkterna mot nederkanten – glöden ligger i botten.
+      const x = rnd() * w, y = h - rnd() * rnd() * h * 0.55, r = rnd() * 1.4 + 0.4;
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    }
+    return;
+  }
+
+  if (pal === "sakura") {
+    // Kronblad: två bezierkurvor per blad, slumpat vridna men deterministiskt.
+    const rnd = lcg(20260815);
+    g.fillStyle = dark ? "rgba(255,170,205,.10)" : "rgba(170,70,120,.085)";
+    const petals = Math.round((w * h) / 9000);
+    for (let i = 0; i < petals; i++) {
+      const s = 3 + rnd() * 5;
+      g.save();
+      g.translate(rnd() * w, rnd() * h);
+      g.rotate(rnd() * Math.PI);
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.bezierCurveTo(s * 0.9, -s * 0.5, s * 1.5, s * 0.35, 0, s * 1.25);
+      g.bezierCurveTo(-s * 1.5, s * 0.35, -s * 0.9, -s * 0.5, 0, 0);
+      g.fill();
+      g.restore();
+    }
+    return;
+  }
+
+  if (pal === "glacier") {
+    // Frostkristaller: korta streck i tre fasta vinklar, som is på en ruta.
+    // Fasta vinklar är hela skillnaden mot brus – slumpas de blir det grus.
+    const rnd = lcg(20260816);
+    g.lineWidth = 1;
+    const shards = Math.round((w * h) / 5200);
+    for (let i = 0; i < shards; i++) {
+      const x = rnd() * w, y = rnd() * h;
+      const a = (Math.floor(rnd() * 3) * Math.PI) / 3 + 0.18;
+      const len = 14 + rnd() * rnd() * 70;
+      const al = 0.03 + rnd() * 0.055;
+      g.strokeStyle = dark ? `rgba(190,235,250,${al})` : `rgba(25,80,105,${al})`;
+      g.beginPath();
+      g.moveTo(x - (Math.cos(a) * len) / 2, y - (Math.sin(a) * len) / 2);
+      g.lineTo(x + (Math.cos(a) * len) / 2, y + (Math.sin(a) * len) / 2);
+      g.stroke();
+    }
+    return;
+  }
+
   // basalt: stenkorn + mycket svaga konturer
-  let seed = 20260808;
-  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const rnd = lcg(20260808);
   g.fillStyle = dark ? "rgba(255,255,255,.055)" : "rgba(0,0,0,.05)";
   const grains = Math.round((w * h) / 190);
   for (let i = 0; i < grains; i++) {

@@ -13,7 +13,9 @@ export const THEME_KEY = "pa-theme";
 export const PAL_KEY = "pa-pal";
 
 type Theme = "system" | "light" | "dark";
-type Pal = "basalt" | "nightwood" | "deepwater" | "dusk";
+type Pal =
+  | "basalt" | "nightwood" | "deepwater" | "dusk"
+  | "fieldbook" | "graphite" | "ember" | "sakura" | "glacier";
 
 const THEMES: [Theme, MessageKey][] = [
   ["light", "theme.light"],
@@ -22,12 +24,18 @@ const THEMES: [Theme, MessageKey][] = [
 ];
 
 /** The dot in the button shows the palette's accent colour in dark mode.
- *  Dusk first — it has been the default since the August 2026 design round. */
+ *  Dusk first — it has been the default since the August 2026 design round;
+ *  the five after Deepwater came out of the August 2026 palette round. */
 const PALS: [Pal, MessageKey, string][] = [
   ["dusk", "palette.dusk", "#ffcf6e"],
   ["basalt", "palette.basalt", "#8f7bff"],
   ["nightwood", "palette.nightwood", "#5ad06b"],
   ["deepwater", "palette.deepwater", "#4aa8ff"],
+  ["fieldbook", "palette.fieldbook", "#5cc8ff"],
+  ["graphite", "palette.graphite", "#ffb02e"],
+  ["ember", "palette.ember", "#ff8a3d"],
+  ["sakura", "palette.sakura", "#ff9ec4"],
+  ["glacier", "palette.glacier", "#7fe3f0"],
 ];
 
 export function ThemeControls() {

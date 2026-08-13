@@ -114,6 +114,14 @@ Comments are stripped before the text is published.
   stand alone are flagged instead of presented as fact. Species search also matches work
   suitability now — type "mining" and the best miners come out sorted by level.
 
+- **Every legendary accessory was missing — the rings, talismans, batons, whistles and pendants.**
+  Katress Ring, Anubis's Talisman, the Emperor's Batons, the nine Rings of Resistance, the support
+  whistles, the Air Walkers, Phantom Ring: 71 schematics with no entry at all. Each one turns out
+  to have a fixed Ancient Ruin that always holds it, so Find now gives the coordinate and says the
+  drop is guaranteed rather than a chance — Katress Ring sits at (−1730, −990). Hovering any of them
+  shows what the accessory actually does for the pal fighting beside you. The ruins are a new map
+  layer too, 106 of them, each labelled with the schematic it holds.
+
 ### The map and your journey
 
 - **The Map is now the real Palworld map.** The game's own 1.0 world render with datamined

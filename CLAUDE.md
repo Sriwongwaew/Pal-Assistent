@@ -209,6 +209,19 @@ Features by route:
   där, annars är den en återvändsgränd. `tests/schemWhere.test.ts` håller kopplingen token →
   område mot paldb:s egna regionnamn – att snölägren ligger i snön är det enda i kedjan som är
   ett mänskligt val.
+  **Ruinerna är den starkaste schematic-källan, och raderna HÄRLEDS** (Kens fynd aug 2026: "vi
+  saknar massor med schematics för t.ex. katis ringen"). Det var sant: 71 legendariska tillbehör
+  – ringarna, talismanerna, batongerna, visselpiporna, pendangerna – fanns inte i tabellen, och de
+  var osynliga för granskningen av ett trivialt skäl: deras blueprint heter `Katress Ring Schematic`
+  **utan sifferändelse**, och granskningen sökte på "Schematic 4". Sök aldrig bara på den formen.
+  Varje `Ancient Ruin`-markör i paldb-lasten bär i sitt `comment`-fält NAMNET på den schematic den
+  ger, med koordinat och 100 % byte. Därför genereras raderna av `ruinSchematics()` i stället för
+  att hundra rader skrivs för hand: en patch som flyttar en ruin flyttar raden med, och ingen källa
+  gissas. Stickprovet som gjorde metoden trovärdig: Katress Ring hamnar på (−1729,9, −989,7),
+  exakt den koordinat paldb:s egen sida för schematicen anger. `LEGENDARY_SCHEMATICS` är alltså
+  **inte** hela sanningen längre – den kurerade tabellen är boss-/torn-/kist-källorna, och Find
+  slår ihop den med de härledda (`allSchem`). Böckerna ruinerna ger (Applied Technique) filtreras
+  bort: de är inte ritningar. `tests/ruinSchematics.test.ts` håller ihop kedjan.
   **Hovra en vara eller en schematic → vad itemet faktiskt gör** (Kens fråga aug 2026).
   Spelets egen beskrivning plus siffrorna, ur `itemInfo.ts`; rutan är SAMMA värd som
   passivrutan (`PassiveTip`, attributet är `data-item`) — se "Design rules" 3. Två förbehåll

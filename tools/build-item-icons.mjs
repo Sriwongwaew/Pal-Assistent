@@ -69,17 +69,36 @@ const fruitSrc = readFileSync(`${ROOT}/src/lib/ivFruits.ts`, "utf8");
 const fruitBlock = fruitSrc.match(/FRUIT_NAMES[^=]*=\s*\[([^\]]*)\]/);
 const fruitNames = [...fruitBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 
+/* Ruinernas schematics (aug 2026): 106 fasta platser ger var sin ritning, och
+   deras varor – ringar, talismaner, batonger, visselpipor – fanns i inget av
+   de andra urvalen. Namnen kapas vid " Schematic N": det är föremålet som har
+   en ikon och en beskrivning, inte pappret. */
+const worldmap = JSON.parse(readFileSync(`${ROOT}/src/lib/data/worldmap.json`, "utf8"));
+const ruinNames = [...new Set(
+  (worldmap.ruins ?? [])
+    .map((r) => String(r.gives ?? "").replace(/ Schematic( \d+)?$/, ""))
+    .filter((n) => n && !/Handbook/.test(n)),
+)];
+if (ruinNames.length === 0) throw new Error("worldmap.json:s ruins gav noll namn – har lagret försvunnit?");
+
 const findSrc = readFileSync(`${ROOT}/src/lib/findData.ts`, "utf8");
 const schemNames = [...new Set([...findSrc.matchAll(/name:\s*"([^"]+?) Schematic(?: \d+)?"/g)].map((m) => m[1]))];
 
-const wanted = [...new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemNames])];
+const wanted = [...new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemNames, ...ruinNames])];
 console.log(`behöver: ${wanted.length} namn (${dropNames.length} drops, ${ranchNames.length} ranch, `
-  + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemNames.length} schematics)`);
+  + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemNames.length} schematics, `
+  + `${ruinNames.length} ur ruiner)`);
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-/* Uppströms-l10n har enstaka egna stavningar – alias: vårt namn → deras. */
-const ALIAS = { "Flamethrower": "FlameThrower" };
+/* Uppströms-l10n har enstaka egna stavningar – alias: vårt namn → deras.
+   Undertröjan är Pocketpairs egen inkonsekvens: FÖREMÅLET heter "Heat Resistant
+   Undershirt" men RITNINGEN "Heat-Resistant Undershirt Schematic", med
+   bindestreck. Ruinlagret ger oss ritningens stavning. */
+const ALIAS = {
+  "Flamethrower": "FlameThrower",
+  "Heat-Resistant Undershirt": "Heat Resistant Undershirt",
+};
 
 const mapping = {};
 const missing = [];

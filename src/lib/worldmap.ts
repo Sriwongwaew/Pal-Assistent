@@ -57,6 +57,20 @@ export interface MapRegion {
   id: string;
 }
 
+/**
+ * Ancient Ruin – en fast plats som ger EN bestämd schematic, garanterat.
+ *
+ * `gives` är spelets egna itemnamn ur markörens `comment`-fält och översätts
+ * aldrig. Det här lagret fyllde hela luckan Ken hittade aug 2026 ("vi saknar
+ * massor med schematics för t.ex. katis ringen"): samtliga 71 legendariska
+ * tillbehör – ringarna, talismanerna, batongerna, visselpiporna, pendangerna –
+ * har exakt en ruin var, med koordinat och 100 % byte enligt paldb. Det är
+ * därför de kan läggas in UTAN att en enda källa gissas fram: se
+ * `ruinSchematics` i findIndex.ts, som härleder raderna ur det här i stället
+ * för att någon skriver hundra rader för hand.
+ */
+export interface MapRuin { x: number; y: number; gives: string }
+
 export interface WorldMap {
   towers: MapTower[];
   travels: MapTravel[];
@@ -72,6 +86,8 @@ export interface WorldMap {
    *  inte på platsen – därför bär de ingen. */
   treasures: MapPoint[];
   regions: MapRegion[];
+  /** Ancient Ruins – 106 st, en bestämd schematic var. Se `MapRuin`. */
+  ruins: MapRuin[];
 }
 
 export const WORLD_MAP = raw as WorldMap;

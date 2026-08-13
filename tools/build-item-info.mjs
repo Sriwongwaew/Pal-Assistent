@@ -63,6 +63,18 @@ const fruitSrc = readFileSync(`${ROOT}/src/lib/ivFruits.ts`, "utf8");
 const fruitBlock = fruitSrc.match(/FRUIT_NAMES[^=]*=\s*\[([^\]]*)\]/);
 const fruitNames = [...fruitBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 
+/* Ruinernas schematics (aug 2026): 106 fasta platser ger var sin ritning, och
+   deras varor – ringar, talismaner, batonger, visselpipor – fanns i inget av
+   de andra urvalen. Namnen kapas vid " Schematic N": det är föremålet som har
+   en ikon och en beskrivning, inte pappret. */
+const worldmap = JSON.parse(readFileSync(`${ROOT}/src/lib/data/worldmap.json`, "utf8"));
+const ruinNames = [...new Set(
+  (worldmap.ruins ?? [])
+    .map((r) => String(r.gives ?? "").replace(/ Schematic( \d+)?$/, ""))
+    .filter((n) => n && !/Handbook/.test(n)),
+)];
+if (ruinNames.length === 0) throw new Error("worldmap.json:s ruins gav noll namn – har lagret försvunnit?");
+
 const findSrc = readFileSync(`${ROOT}/src/lib/findData.ts`, "utf8");
 /* Schematics: både hela namnet (blueprint-raden) och det kapade (vapnet), för
    uppslaget provar vapnet först och pappret som reserv. */
@@ -70,9 +82,10 @@ const schemFull = [...new Set([...findSrc.matchAll(/name:\s*"([^"]+? Schematic(?
 const schemBase = [...new Set(schemFull.map((n) => n.replace(/ Schematic( \d+)?$/, "")))];
 if (schemBase.length === 0) throw new Error("LEGENDARY_SCHEMATICS gav noll namn – har tabellens form ändrats?");
 
-const wanted = new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemBase]);
+const wanted = new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemBase, ...ruinNames]);
 console.log(`behöver: ${wanted.size} namn (${dropNames.length} drops, ${ranchNames.length} ranch, `
-  + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemBase.length} schematics)`);
+  + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemBase.length} schematics, `
+  + `${ruinNames.length} ur ruiner)`);
 
 /* ---- Hämta och tolka items-tabellen ---- */
 
@@ -124,10 +137,14 @@ if (!probe || num(probe.atk) !== 320 || num(probe.mag) !== 20) {
 
 /* ---- Bygg utdata ---- */
 
+/* Samma alias som ikonbygget: spelets data stavar undertröjan med bindestreck
+   i ritningens namn och utan i föremålets. */
+const ALIAS = { "Heat-Resistant Undershirt": "Heat Resistant Undershirt" };
+
 const out = {};
 const missing = [];
 for (const name of [...wanted].sort()) {
-  const row = rows.get(name);
+  const row = rows.get(name) ?? rows.get(ALIAS[name] ?? "");
   if (!row) { missing.push(name); continue; }
   const desc = unesc(row.desc).trim();
   const entry = { t: row.type, d: desc };

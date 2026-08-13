@@ -34,7 +34,7 @@
 import { RANCH_DROPS, type RanchDrop } from "./constants";
 import { pairIndex } from "./breeding";
 import { EXPEDITION_SITES, type ExpeditionSite } from "./expedition";
-import { MATERIAL_DROPS, type DropPal, type SchemSpot } from "./findData";
+import { MATERIAL_DROPS, type DropPal, type Schematic, type SchemSpot } from "./findData";
 import { FRUIT_NAMES, FRUIT_STEP, IV_MAX } from "./ivFruits";
 import { partnerSkill } from "./partnerSkills";
 import { RAIDS, type RaidInfo } from "./questsData";
@@ -369,6 +369,10 @@ export function schemWhere(spot: SchemSpot | undefined): SchemWhere | null {
     }
     case "map":
       return take(WORLD_MAP.treasures, []);
+    case "ruin": {
+      const hits = WORLD_MAP.ruins.filter((r) => r.gives === spot.gives);
+      return take(hits, []);
+    }
     case "tower": {
       /* Tornen står still och har både koordinat och namn – att skicka någon
          till Uppdrag för att leta upp adressen var en omväg. Namnet är paldb:s
@@ -387,6 +391,47 @@ export function schemWhere(spot: SchemSpot | undefined): SchemWhere | null {
     }
   }
 }
+
+/**
+ * Schematics som ruinerna ger – HÄRLEDDA ur kartdatat, inte kurerade.
+ *
+ * Bakgrunden (Kens fynd aug 2026): "vi saknar massor med schematics för t.ex.
+ * katis ringen". Det var sant och gapet var 71 rader – alla legendariska
+ * tillbehör: ringarna, talismanerna, batongerna, visselpiporna, pendangerna.
+ * De var osynliga för den förra granskningen av ett trivialt skäl: deras
+ * blueprint heter "Katress Ring Schematic" UTAN sifferändelse, och granskningen
+ * sökte på "Schematic 4".
+ *
+ * Att de kan läggas in utan att en enda källa gissas fram beror på att varje
+ * Ancient Ruin-markör bär namnet på den schematic den ger, med koordinat och
+ * 100 % byte. Alltså genereras raderna här i stället för att någon skriver
+ * hundra rader för hand: en ny patch som flyttar en ruin flyttar raden med.
+ * Stickprovet som gjorde metoden trovärdig: Katress Ring hamnar på
+ * (−1729,9, −989,7), vilket är exakt den koordinat paldb:s egen sida för
+ * schematicen anger – två oberoende läsningar av samma källa.
+ *
+ * `rate` är 100 % och ingen uppskattning: platsen ger den varje gång, och det
+ * som kostar är resan dit och det som vaktar den.
+ */
+export function ruinSchematics(): Schematic[] {
+  return WORLD_MAP.ruins
+    // Ruinerna ger också Applied Technique-böcker; de är inte schematics.
+    .filter((r) => / Schematic( \d+)?$/.test(r.gives))
+    .map((r): Schematic => ({
+      name: r.gives,
+      source: RUIN_SOURCE,
+      kind: "ruin",
+      rate: "100 %",
+      coord: [r.x, r.y],
+      spot: { at: "ruin", gives: r.gives },
+      // Dataminad markör med koordinat – starkare än de korslagda guiderna.
+      sure: true,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "en"));
+}
+
+/** Ruinens namn i spelet. Står som `source` på de härledda raderna. */
+export const RUIN_SOURCE = "Ancient Ruin";
 
 /** Närmaste namngivna region inom `maxDist` spelenheter, annars null. */
 function nearestRegion(x: number, y: number, maxDist: number): MapRegion | null {

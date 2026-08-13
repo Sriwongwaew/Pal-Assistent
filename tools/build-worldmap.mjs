@@ -211,6 +211,30 @@ async function buildWorldmap() {
     .map((m) => ({ ...ig(m.pos.X, m.pos.Y) }))
     .filter(inFrame("treasures"));
 
+  /* ANCIENT RUINS – den starkaste schematic-källan som finns, och den låg
+     oanvänd i lasten. Varje ruinmarkör bär i sitt `comment`-fält NAMNET på den
+     schematic (eller Applied Technique-bok) den ger, och paldb anger 100 % på
+     platsen. Det betyder att 106 schematics har en fast adress med garanterat
+     byte – inget att gissa, inget att korsläsa mot guider.
+
+     Det här fyllde hela luckan Ken hittade ("vi saknar massor med schematics
+     för t.ex. katis ringen", aug 2026): samtliga 71 rank-8-tillbehör – ringarna,
+     talismanerna, batongerna, visselpiporna, pendangerna – har exakt en ruin
+     var. Katress Ring hamnar på (−1729,9, −989,7), vilket är precis den
+     koordinat paldb:s egen sida för schematicen anger; transformen är alltså
+     bekräftad mot en oberoende läsning av samma källa.
+
+     `gives` är spelets egna itemnamn och översätts aldrig. En ruin utan
+     `comment` vore en lucka vi inte kan beskriva, så den räknas och rapporteras
+     i stället för att tas med tom. */
+  const ruinsRaw = byType("Ancient Ruin");
+  const ruins = ruinsRaw
+    .map((m) => ({ ...ig(m.pos.X, m.pos.Y), gives: stripHtml(m.comment) }))
+    .filter((r) => r.gives)
+    .filter(inFrame("ruins"));
+  const ruinsBlank = ruinsRaw.length - ruins.length - (dropped.ruins ?? 0);
+  if (ruinsBlank > 0) console.log(`  ruiner utan comment (utelämnade): ${ruinsBlank}`);
+
   const dungeons = byType("Dungeon")
     .map((m) => ({
       ...ig(m.pos.X, m.pos.Y),
@@ -240,7 +264,7 @@ async function buildWorldmap() {
 
   const worldmap = {
     towers, travels, relics, alphas, camps, dungeons, fruits, ores,
-    oilrigs, treasures, regions,
+    oilrigs, treasures, regions, ruins,
   };
   await mkdir(OUT_DIR, { recursive: true });
   await writeFile(

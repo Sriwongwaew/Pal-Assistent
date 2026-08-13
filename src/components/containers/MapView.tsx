@@ -138,6 +138,11 @@ export function MapView() {
     const treasures: Marker[] = WORLD_MAP.treasures.map((m) => ({
       x: m.x, y: m.y, name: t("map.treasureName"),
     }));
+    /* Ruinerna bär VAD de ger, inte bara att de finns – det är hela skälet att
+       lagret är värt något: 106 fasta platser med en bestämd schematic var. */
+    const ruins: Marker[] = WORLD_MAP.ruins.map((m) => ({
+      x: m.x, y: m.y, name: m.gives.replace(/ Schematic( \d+)?$/, ""), sub: t("map.ruinSub"),
+    }));
     /* Regionerna är spelets egna namn med nivåspann – det som gör "Snow enemy
        camp" begripligt är att man ser vilket område man ska till. */
     const regions: Marker[] = WORLD_MAP.regions.map((m) => ({
@@ -158,6 +163,7 @@ export function MapView() {
       { id: "ores", label: "map.l.ores", icon: "ore", markers: ores, found: null, defaultOn: false },
       { id: "oilrigs", label: "map.l.oilrigs", icon: "", markers: oilrigs, found: null, defaultOn: false },
       { id: "treasures", label: "map.l.treasures", icon: "", markers: treasures, found: null, defaultOn: false },
+      { id: "ruins", label: "map.l.ruins", icon: "", markers: ruins, found: null, defaultOn: false },
       { id: "regions", label: "map.l.regions", icon: "", markers: regions, found: null, defaultOn: false },
     ];
   }, [data, t, found, spByCode, schematicBySource]);

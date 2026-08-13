@@ -72,6 +72,9 @@ export function dropsMatching(q: string): MaterialDrop[] {
  *   så en hard mode-schematic ska inte behöva en omväg via Uppdrag.
  * - `region` matchar `MapRegion.id` för det som ligger på en namngiven plats
  *   (arenan är en byggnad med en adress, till skillnad från handlarna).
+ * - `ruin` matchar `MapRuin.gives` – ruinen ÄR platsen, och den ger sin
+ *   schematic garanterat. Sätts inte för hand: raderna härleds ur kartdatat
+ *   (`ruinSchematics`), så uppslaget är alltid sitt eget ursprung.
  */
 export type SchemSpot =
   | { at: "camp"; regions: string[] }
@@ -79,14 +82,15 @@ export type SchemSpot =
   | { at: "map" }
   | { at: "dungeon"; name: string }
   | { at: "tower"; flag: string }
-  | { at: "region"; id: string };
+  | { at: "region"; id: string }
+  | { at: "ruin"; gives: string };
 
 export interface Schematic {
   /** Spelets namn ("Rocket Launcher Schematic 4", "Terra Blade Schematic"). */
   name: string;
   /** Vem/vad som släpper: alfabossens art, tornparet, kistan eller handlaren. */
   source: string;
-  kind: "alpha" | "tower" | "chest" | "raid" | "vendor";
+  kind: "alpha" | "tower" | "chest" | "raid" | "vendor" | "ruin";
   /** Bossens nivå (≈) där det finns en boss. */
   lv?: number;
   /** Chans eller pris när den avviker från kindens standard (≈3 %/≈10 %). */
@@ -217,9 +221,16 @@ export const LEGENDARY_SCHEMATICS: Schematic[] = [
   { name: "Tundra Outfit Schematic 4", source: "Treasure Map (Common)", kind: "chest", rate: "≈0,8 %", spot: { at: "map" }, sure: false },
 ];
 
-/** Sök bland schematics: träff på namnet eller källan. */
-export function schematicsMatching(q: string): Schematic[] {
+/**
+ * Sök bland schematics: träff på namnet eller källan.
+ *
+ * Tar listan som argument eftersom den inte längre bara är den kurerade
+ * tabellen: ruinernas rader HÄRLEDS ur kartdatat (`ruinSchematics`) och läggs
+ * ihop med den här. Utan det saknades 71 legendariska tillbehör – hela
+ * ring-, talisman- och batongfamiljen (Kens fynd aug 2026).
+ */
+export function schematicsMatching(all: readonly Schematic[], q: string): Schematic[] {
   const needle = q.toLowerCase();
-  return LEGENDARY_SCHEMATICS.filter((s) =>
+  return all.filter((s) =>
     s.name.toLowerCase().includes(needle) || s.source.toLowerCase().includes(needle));
 }
