@@ -23,22 +23,23 @@ Comments are stripped before the text is published.
   shows what the accessory actually does for the pal fighting beside you. The ruins are a new map
   layer too, 106 of them, each labelled with the schematic it holds.
 
-### Five new palettes
+### Four new looks in the gear menu, and one dropped
 
-The gear in the top row now offers nine colour schemes instead of four, each with its own
-background texture and its own take on light and dark mode:
-
-- **Fieldbook** — quiet, near-white paper with a grid in light mode; a blueprint in dark.
+- **Press sheet** — a printed sheet: not a rounded corner left anywhere, white paper on a grey
+  ground, rules you can actually see, one vermilion accent. Halftone screen behind it. Dark mode is
+  the same thing as a negative.
+- **Instrument** — every surface is framed rather than hinted at, corners nearly square, and the
+  darkest dark mode of the lot with signal cyan in the frames. A gauge sweep behind it.
 - **Graphite** — completely desaturated surfaces with a single amber signal colour, so the only
-  colour on screen is the pal's own element. Brushed-metal background.
-- **Ember** — cool ash and rust in light mode, black basalt with glowing orange in dark. The
-  background is cracks growing up out of the bottom edge.
-- **Cherry** — pale rose paper with plum ink; indigo night in dark mode. Drifting petals.
-- **Glacier** — a high-key palette with hairline borders, and the only one whose dark mode is
-  steel rather than night. Frost crystals.
+  colour on screen is the pal's own element. Brushed metal behind it.
+- **Glacier** — a high-key palette with hairline borders, and the only one whose dark mode is steel
+  rather than night. Frost crystals.
 
-Passive banners, work icons and species art are unchanged — they are the game's own assets and
-look the same in every palette.
+**Deepwater is gone.** If you had it selected the app now opens in Dusk instead. Dusk, Basalt and
+Nightwood are unchanged, and Dusk is still the default — nothing moves until you pick something.
+
+Passive banners, work icons and species art look the same in every palette: they are the game's own
+assets.
 
 ## 2.4.0 – 2026-08-13
 

@@ -444,9 +444,37 @@ skärm, en tom gör det aldrig.
    tonas av palens första element via `--elc` (sätts i React från `elementColor(sp)` /
    `ELEMENT_META`, aldrig hårdkodat i CSS). Ytorna är rundade (`--r1..--r4`), navigationen är
    vertikal, och bakgrunden är en canvas-struktur per palett — **inte** en gradient.
-   Tre paletter finns: `basalt` (standard, neutral sten så elementet blir skärmens enda färg),
-   `nattskog` (grönt + höjdkurvor) och `djupvatten` (blått + vattenstrata). Ljust och mörkt läge
-   är likvärdiga — designa alltid båda.
+   **Sju paletter finns** (Kens urval ur tretton, aug 2026), och en palett är exakt två saker:
+   tokensen i `globals.css` och en canvas-gren i `BgTexture`. Inget lager, ingen komponent och
+   ingen layout hör till en palett.
+   **Men tokens är mer än färg**, och det är hela lärdomen ur urvalsrunda 2 (Kens dom om de fem
+   första: *"känns lite för lika nuvarande"*): de bytte bara nyans, och det man SER är strukturen.
+   Fyra spakar utöver kulören sitter också i tokens och får appen att kännas som en annan app —
+   `--panel`s **alfa** (ogenomskinligt kort ↔ genomskinlig yta där bakgrunden syns),
+   `--r1..--r4` (fyrkantigt ↔ mjukt runt; de får överskrivas per palett, attributselektorn vinner
+   över `:root` oavsett ordning i filen), `--line`/`--line2`s **tyngd** (hårfin antydan ↔ ritad
+   ram) och `--bg`s **ljushet** (nästan vitt ↔ mellanton där panelerna lyfter). Dra i dem innan du
+   hittar på en nionde grön nyans.
+   Ordningen i `PALS` är mjukast yta → hårdast, och den är information: `dusk` (standard: gryning
+   → violett natt med guld, horisontband + stjärnfält), `basalt` (neutral sten så elementet blir
+   skärmens enda färg, stenkorn), `nightwood` (grönt + höjdkurvor), `graphite` (helt omättade ytor,
+   bärnstensaccent, penseldrag), `glacier` (högt tonläge, **enda paletten vars mörka läge är stål
+   och inte natt**, frostkristaller), `press` (trycksak — `--r` = 0 rakt igenom, ogenomskinligt
+   papper, linjer som syns; halvtonsraster) och `instrument` (tunga ramar `.30`/`.26` mot vanliga
+   `.12`, nästan skarpa hörn; mätarsvep).
+   **Sex paletter togs bort i samma runda** och ska inte byggas tillbaka utan att Ken ber om det:
+   `deepwater` (fanns sedan tidigare), `fieldbook`, `ember`, `sakura` (låg för nära dagens look)
+   samt `glass` och `chalk` (avsteg han inte valde). En **borttagen palett i localStorage faller
+   tyst tillbaka på `dusk`** via valideringen i `layout.tsx` — det är hela skälet att listan står
+   där, och det som gör en rensning ofarlig för den som redan valt.
+   Ljust och mörkt läge är likvärdiga — designa alltid båda.
+   **De 54 hårdkodade `999px` överlever en fyrkantig palett** (chips, flikar, knappar är piller
+   oavsett `--r`). Det är avsiktligt i `press`/`instrument` — trycksak med taggar — men räkna inte
+   med att `--r: 0` gör hela gränssnittet skarpt.
+   Fem ställen känner palettlistan, och en ny palett som glöms på något av dem faller tyst tillbaka
+   på `dusk`: tokensen (tre block – ljust, systemmörkt, uttryckligt mörkt), grenen i `BgTexture`,
+   `Pal`-unionen + `PALS` i `ThemeControls`, valideringen i `layout.tsx`:s inline-skript och
+   `palette.<id>` i **båda** språkkatalogerna.
    Past rejects: aurora backgrounds, glow effects, collector-card frames, display fonts.
    Tema-tokens sätts i tre steg i `globals.css` (`:root` = ljust → `@media (prefers-color-scheme:
    dark)` med `:not([data-theme="light"])` → `:root[data-theme="dark"]`). **Sätt aldrig en färg

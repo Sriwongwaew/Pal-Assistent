@@ -1,17 +1,16 @@
 "use client";
 
 /* Dumb-ish: Habitats bakgrundsstruktur, ritad i canvas.
-   Varje palett har sin egen struktur – stenkorn (basalt), höjdkurvor
-   (nightwood), vattenstrata (deepwater), horisontband + stjärnfält (dusk),
-   rutat papper (fieldbook), penseldrag (graphite), sprickor + glöd (ember),
-   kronblad (sakura) och frostkristaller (glacier).
+   Varje palett har sin egen struktur – horisontband + stjärnfält (dusk),
+   stenkorn (basalt), höjdkurvor (nightwood), penseldrag (graphite),
+   frostkristaller (glacier), halvtonsraster (press) och mätarsvep (instrument).
    Mönstret är deterministiskt (egen LCG, ingen Math.random) så det inte
    flimrar mellan omritningar. */
 import { useEffect, useRef } from "react";
 
 type Pal =
-  | "basalt" | "nightwood" | "deepwater" | "dusk"
-  | "fieldbook" | "graphite" | "ember" | "sakura" | "glacier";
+  | "dusk" | "basalt" | "nightwood"
+  | "graphite" | "glacier" | "press" | "instrument";
 
 /** Deterministisk LCG – samma frö ger samma mönster vid varje omritning. */
 function lcg(seed: number) {
@@ -63,20 +62,6 @@ function draw(cv: HTMLCanvasElement) {
     return;
   }
 
-  if (pal === "deepwater") {
-    g.strokeStyle = dark ? "rgba(120,200,240,.10)" : "rgba(20,80,120,.09)";
-    g.lineWidth = 1.1;
-    for (let y = -40; y < h + 40; y += 21) {
-      g.beginPath();
-      for (let x = 0; x <= w; x += 8) {
-        const yy = y + 13 * Math.sin(x * 0.0062 + y * 0.021) + 6 * Math.sin(x * 0.017 - y * 0.011);
-        if (x) g.lineTo(x, yy); else g.moveTo(x, yy);
-      }
-      g.stroke();
-    }
-    return;
-  }
-
   if (pal === "dusk") {
     /* Skymningens horisontband: flacka vågor som tätnar mot nederkanten, som
        ljusbanden i en solnedgång. I mörkt läge dessutom ett glest stjärnfält
@@ -106,27 +91,43 @@ function draw(cv: HTMLCanvasElement) {
     return;
   }
 
-  if (pal === "fieldbook") {
-    /* Rutat papper: varje femte linje kraftigare, som i ett anteckningsblock.
-       Heltal + .5 gör linjen exakt en pixel bred – annars blir rutnätet suddigt
-       och ser ut som en tryckfelaktig gradient i stället för ett rutnät. */
-    const minor = dark ? "rgba(120,200,255,.055)" : "rgba(30,50,80,.05)";
-    const major = dark ? "rgba(120,200,255,.10)" : "rgba(30,50,80,.09)";
-    const step = 26;
-    g.lineWidth = 1;
-    for (let i = 0, x = 0; x <= w; i++, x += step) {
-      g.strokeStyle = i % 5 === 0 ? major : minor;
-      g.beginPath();
-      g.moveTo(Math.round(x) + 0.5, 0);
-      g.lineTo(Math.round(x) + 0.5, h);
-      g.stroke();
+  if (pal === "press") {
+    // Halvtonsraster: ett jämnt punktnät är tryckets egen struktur.
+    g.fillStyle = dark ? "rgba(255,255,255,.05)" : "rgba(20,20,20,.055)";
+    const step = 7;
+    for (let y = 0; y < h + step; y += step) {
+      // Varannan rad förskjuten halva steget – ett rakt nät blir ett rutmönster.
+      const off = (Math.round(y / step) % 2) * (step / 2);
+      for (let x = 0; x < w + step; x += step) {
+        g.beginPath();
+        g.arc(x + off, y, 0.85, 0, Math.PI * 2);
+        g.fill();
+      }
     }
-    for (let i = 0, y = 0; y <= h; i++, y += step) {
-      g.strokeStyle = i % 5 === 0 ? major : minor;
+    return;
+  }
+
+  if (pal === "instrument") {
+    // Mätarsvep: koncentriska bågar ur nedre högra hörnet, med skalstreck.
+    const cx = w * 1.02, cy = h * 1.06;
+    const span = Math.hypot(w, h) * 1.1;
+    for (let r = 90; r < span; r += 78) {
+      g.strokeStyle = dark ? "rgba(140,200,220,.075)" : "rgba(15,45,70,.06)";
+      g.lineWidth = 1;
       g.beginPath();
-      g.moveTo(0, Math.round(y) + 0.5);
-      g.lineTo(w, Math.round(y) + 0.5);
+      g.arc(cx, cy, r, Math.PI, Math.PI * 1.5);
       g.stroke();
+      // Skalstreck vart 5:e grad längs bågen – instrumentets gradering.
+      g.strokeStyle = dark ? "rgba(140,200,220,.11)" : "rgba(15,45,70,.09)";
+      for (let d = 180; d <= 270; d += 5) {
+        const a = (d * Math.PI) / 180;
+        const long = d % 15 === 0;
+        const t = long ? 9 : 4.5;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+        g.lineTo(cx + Math.cos(a) * (r + t), cy + Math.sin(a) * (r + t));
+        g.stroke();
+      }
     }
     return;
   }
@@ -147,59 +148,6 @@ function draw(cv: HTMLCanvasElement) {
       g.moveTo(x, y0);
       g.lineTo(x, Math.min(h, y0 + len));
       g.stroke();
-    }
-    return;
-  }
-
-  if (pal === "ember") {
-    // Sprickor som växer uppåt ur nederkanten, plus glödpunkter längst ner.
-    const rnd = lcg(20260814);
-    g.strokeStyle = dark ? "rgba(255,150,80,.11)" : "rgba(120,45,20,.08)";
-    g.lineWidth = 1.2;
-    const cracks = 9;
-    for (let i = 0; i < cracks; i++) {
-      let x = (i + rnd() * 0.8) * (w / cracks);
-      let y = h + 20;
-      let dir = -Math.PI / 2 + (rnd() - 0.5) * 0.5;
-      g.beginPath();
-      g.moveTo(x, y);
-      const segs = 14 + Math.round(rnd() * 10);
-      for (let s = 0; s < segs && y > -30; s++) {
-        dir += (rnd() - 0.5) * 0.55;
-        const len = 22 + rnd() * 40;
-        x += Math.cos(dir) * len;
-        y += Math.sin(dir) * len;
-        g.lineTo(x, y);
-      }
-      g.stroke();
-    }
-    g.fillStyle = dark ? "rgba(255,140,60,.26)" : "rgba(180,70,25,.15)";
-    for (let i = 0; i < 26; i++) {
-      // rnd()² drar punkterna mot nederkanten – glöden ligger i botten.
-      const x = rnd() * w, y = h - rnd() * rnd() * h * 0.55, r = rnd() * 1.4 + 0.4;
-      g.beginPath();
-      g.arc(x, y, r, 0, Math.PI * 2);
-      g.fill();
-    }
-    return;
-  }
-
-  if (pal === "sakura") {
-    // Kronblad: två bezierkurvor per blad, slumpat vridna men deterministiskt.
-    const rnd = lcg(20260815);
-    g.fillStyle = dark ? "rgba(255,170,205,.10)" : "rgba(170,70,120,.085)";
-    const petals = Math.round((w * h) / 9000);
-    for (let i = 0; i < petals; i++) {
-      const s = 3 + rnd() * 5;
-      g.save();
-      g.translate(rnd() * w, rnd() * h);
-      g.rotate(rnd() * Math.PI);
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.bezierCurveTo(s * 0.9, -s * 0.5, s * 1.5, s * 0.35, 0, s * 1.25);
-      g.bezierCurveTo(-s * 1.5, s * 0.35, -s * 0.9, -s * 0.5, 0, 0);
-      g.fill();
-      g.restore();
     }
     return;
   }

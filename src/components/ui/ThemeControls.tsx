@@ -14,8 +14,8 @@ export const PAL_KEY = "pa-pal";
 
 type Theme = "system" | "light" | "dark";
 type Pal =
-  | "basalt" | "nightwood" | "deepwater" | "dusk"
-  | "fieldbook" | "graphite" | "ember" | "sakura" | "glacier";
+  | "dusk" | "basalt" | "nightwood"
+  | "graphite" | "glacier" | "press" | "instrument";
 
 const THEMES: [Theme, MessageKey][] = [
   ["light", "theme.light"],
@@ -24,18 +24,19 @@ const THEMES: [Theme, MessageKey][] = [
 ];
 
 /** The dot in the button shows the palette's accent colour in dark mode.
- *  Dusk first — it has been the default since the August 2026 design round;
- *  the five after Deepwater came out of the August 2026 palette round. */
+ *  Dusk first — it is the default. After it the order runs from the softest
+ *  surface to the hardest: the two older tinted palettes, then the two that
+ *  only change colour, then the two that change the structure as well
+ *  (square corners, drawn frames). Ken picked these seven out of thirteen in
+ *  the August 2026 palette round. */
 const PALS: [Pal, MessageKey, string][] = [
   ["dusk", "palette.dusk", "#ffcf6e"],
   ["basalt", "palette.basalt", "#8f7bff"],
   ["nightwood", "palette.nightwood", "#5ad06b"],
-  ["deepwater", "palette.deepwater", "#4aa8ff"],
-  ["fieldbook", "palette.fieldbook", "#5cc8ff"],
   ["graphite", "palette.graphite", "#ffb02e"],
-  ["ember", "palette.ember", "#ff8a3d"],
-  ["sakura", "palette.sakura", "#ff9ec4"],
   ["glacier", "palette.glacier", "#7fe3f0"],
+  ["press", "palette.press", "#ff5a3d"],
+  ["instrument", "palette.instrument", "#35d6e8"],
 ];
 
 export function ThemeControls() {

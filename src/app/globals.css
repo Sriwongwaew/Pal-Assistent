@@ -4,9 +4,9 @@
    navigation och elementets färg som informationsbärare.
    Bakgrunden ritas i canvas (BgTexture), inte som gradient.
 
-   Nio paletter väljs med data-pal på <html>: dusk (standard sedan
-   aug 2026), basalt, nightwood, deepwater, och de fem ur urvalsrundan
-   aug 2026 – fieldbook, graphite, ember, sakura, glacier. Ljust/mörkt styrs av
+   Sju paletter väljs med data-pal på <html>, Kens urval aug 2026: dusk
+   (standard), basalt, nightwood, graphite, glacier och de två avstegen press
+   och instrument. Ljust/mörkt styrs av
    data-theme med systeminställningen som fallback. Ordningen nedan är viktig:
      1. :root                          = ljusa tokens
      2. @media (prefers-color-scheme)  = system-mörkt, men bara om
@@ -46,24 +46,6 @@
   --ink: #12211a; --ink2: #3d5a4c; --muted: #6f8779;
   --acc: #1f8a45; --acc-soft: rgba(31, 138, 69, .14);
 }
-:root[data-pal="deepwater"] {
-  --bg: #e1eaee; --panel: rgba(255, 255, 255, .93); --panel2: rgba(255, 255, 255, .62);
-  --inset: rgba(10, 60, 80, .05); --strip: rgba(255, 255, 255, .7);
-  --line: rgba(10, 60, 80, .12); --line2: rgba(10, 60, 80, .22);
-  --ink: #0d1e26; --ink2: #3a5b68; --muted: #6d8894;
-  --acc: #1668c0; --acc-soft: rgba(22, 104, 192, .13);
-}
-/* ---------- palett: FÄLTBOKEN ----------
-   Ljust = papper: nästan vitt, bläcksvart text och rutnät som i ett
-   anteckningsblock. Mörkt = blåkopia (se nedan). Bakgrunden ska vara tyst –
-   det är palettens hela poäng, inte en färg mindre. */
-:root[data-pal="fieldbook"] {
-  --bg: #f6f4ee; --panel: rgba(255, 255, 255, .95); --panel2: rgba(252, 251, 246, .70);
-  --inset: rgba(27, 31, 36, .045); --strip: rgba(255, 255, 255, .76);
-  --line: rgba(27, 31, 36, .12); --line2: rgba(27, 31, 36, .22);
-  --ink: #1b1f24; --ink2: #4a525c; --muted: #838b95;
-  --acc: #17558f; --acc-soft: rgba(23, 85, 143, .12);
-}
 /* ---------- palett: GRAFIT ----------
    Kulörlösa ytor: noll mättnad i botten, panelerna och linjerna, och EN skarp
    signalfärg (bärnsten) i accenten. Då är palens element den enda kulören på
@@ -75,29 +57,6 @@
   --ink: #141414; --ink2: #4a4a4a; --muted: #7c7c7c;
   --acc: #b46a00; --acc-soft: rgba(180, 106, 0, .13);
 }
-/* ---------- palett: GLÖD ----------
-   Ljust = kall aska med rostaccent, mörkt = svart basalt med glödande orange.
-   Röd flyttas åt rosa i mörkt läge (längre ner) så varningar går att skilja
-   från accenten. */
-/* Botten är grå-taupe, inte krämig: skymningen är redan varm sand, och två
-   paletter som skiljer sig på ett par procent gult är inte två val. */
-:root[data-pal="ember"] {
-  --bg: #e6e0dd; --panel: rgba(253, 250, 249, .95); --panel2: rgba(250, 246, 244, .66);
-  --inset: rgba(70, 35, 25, .05); --strip: rgba(255, 252, 250, .74);
-  --line: rgba(70, 35, 25, .13); --line2: rgba(70, 35, 25, .24);
-  --ink: #241a18; --ink2: #5c4a45; --muted: #8d7c77;
-  --acc: #c1481a; --acc-soft: rgba(193, 72, 26, .13);
-}
-/* ---------- palett: KÖRSBÄR ----------
-   Ljust = blekt rosenpapper med plommonbläck, mörkt = indigonatt. Mjukast av
-   paletterna; kronbladen i bakgrunden är enda dekorativa strukturen. */
-:root[data-pal="sakura"] {
-  --bg: #f7eef0; --panel: rgba(255, 252, 253, .95); --panel2: rgba(255, 250, 252, .68);
-  --inset: rgba(90, 50, 80, .05); --strip: rgba(255, 252, 253, .74);
-  --line: rgba(90, 50, 80, .13); --line2: rgba(90, 50, 80, .24);
-  --ink: #2b1f2a; --ink2: #63505e; --muted: #93808f;
-  --acc: #b03a6a; --acc-soft: rgba(176, 58, 106, .13);
-}
 /* ---------- palett: GLACIÄR ----------
    Högt tonläge: nästan vita ytor och hårfina linjer. Det som skiljer den från
    djupvatten är MÖRKA läget – det är stål, inte natt (se nedan), alltså den
@@ -108,6 +67,44 @@
   --line: rgba(15, 50, 65, .12); --line2: rgba(15, 50, 65, .22);
   --ink: #101c22; --ink2: #3f5a66; --muted: #74909c;
   --acc: #0f7f9b; --acc-soft: rgba(15, 127, 155, .13);
+}
+
+/* ============================================================
+   AVSTEGEN (urvalsrunda 2, aug 2026 – Ken behöll dessa två av fyra)
+   Kens dom om första omgången: "känns lite för lika nuvarande". Och han hade
+   rätt — de bytte bara NYANS. Det man ser är strukturen, och den sitter också i
+   tokens: hur genomskinliga ytorna är (--panel), hur runda de är (--r1..--r4),
+   hur tunga linjerna är (--line/--line2) och hur ljus botten är (--bg).
+   De två nedan drar i flera av dem samtidigt, och det är därför de valdes.
+   Ingen komponent är ändrad — en palett får fortfarande bara vara tokens + en
+   canvas-gren. (De två som föll: `glass`, genomskinliga ytor med bakgrunden
+   ritad som landskap, och `chalk`, mellanton i botten. Bägge finns i historiken
+   om spakarna behövs igen.)
+   ============================================================ */
+
+/* ---------- palett: BLADET ----------
+   Trycksak: HELT fyrkantiga ytor (--r = 0), ogenomskinligt vitt papper på
+   gråtonad botten, och linjer som syns — tryckets streck, inte en hårfin
+   antydan. Det är avsteget från "Habitat är rundat", med flit. */
+:root[data-pal="press"] {
+  --bg: #eeece7; --panel: #ffffff; --panel2: rgba(20, 20, 20, .045);
+  --inset: rgba(20, 20, 20, .06); --strip: rgba(255, 255, 255, .88);
+  --line: rgba(20, 20, 20, .26); --line2: rgba(20, 20, 20, .50);
+  --ink: #101010; --ink2: #3d3d3d; --muted: #6e6e6e;
+  --acc: #c8321e; --acc-soft: rgba(200, 50, 30, .10);
+  --r1: 0px; --r2: 0px; --r3: 0px; --r4: 0px;
+}
+/* ---------- palett: INSTRUMENTET ----------
+   Tunga ramar (--line .30/.26 mot vanliga .12) och nästan skarpa hörn: varje
+   yta är inramad som ett mätinstrument i stället för att antydas. Mörkt läge
+   är det svartaste i urvalet. */
+:root[data-pal="instrument"] {
+  --bg: #e3e5e8; --panel: #ffffff; --panel2: rgba(15, 25, 40, .05);
+  --inset: rgba(15, 25, 40, .06); --strip: rgba(255, 255, 255, .86);
+  --line: rgba(15, 25, 40, .30); --line2: rgba(15, 25, 40, .55);
+  --ink: #0d141c; --ink2: #3c4756; --muted: #6b7787;
+  --acc: #0b6b7a; --acc-soft: rgba(11, 107, 122, .12);
+  --r1: 4px; --r2: 5px; --r3: 6px; --r4: 8px;
 }
 
 /* ---------- systemets mörka läge (om inget uttryckligt ljusval) ----------
@@ -136,43 +133,12 @@
     --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
     --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
   }
-  :root:not([data-theme="light"])[data-pal="deepwater"] {
-    --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
-    --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
-    --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
-    --ink: #e3f0f6; --ink2: #98b8c6; --muted: #69889a;
-    --acc: #4aa8ff; --acc-soft: rgba(74, 168, 255, .16);
-  }
-  /* Fältboken blir en blåkopia i mörkt: marinblått papper, cyan bläck. */
-  :root:not([data-theme="light"])[data-pal="fieldbook"] {
-    --bg: #0d1826; --panel: rgba(19, 33, 50, .90); --panel2: rgba(28, 46, 68, .72);
-    --inset: rgba(0, 0, 0, .34); --strip: rgba(28, 46, 68, .60);
-    --line: rgba(150, 200, 255, .13); --line2: rgba(150, 200, 255, .26);
-    --ink: #e8eef6; --ink2: #a6b6c8; --muted: #71829a;
-    --acc: #5cc8ff; --acc-soft: rgba(92, 200, 255, .16);
-  }
   :root:not([data-theme="light"])[data-pal="graphite"] {
     --bg: #0e0e0f; --panel: rgba(24, 24, 26, .90); --panel2: rgba(38, 38, 41, .74);
     --inset: rgba(0, 0, 0, .34); --strip: rgba(38, 38, 41, .62);
     --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
     --ink: #f0f0f1; --ink2: #a8a8ac; --muted: #78787d;
     --acc: #ffb02e; --acc-soft: rgba(255, 176, 46, .16);
-  }
-  :root:not([data-theme="light"])[data-pal="ember"] {
-    --bg: #18110d; --panel: rgba(41, 29, 24, .90); --panel2: rgba(57, 42, 35, .72);
-    --inset: rgba(0, 0, 0, .34); --strip: rgba(57, 42, 35, .60);
-    --line: rgba(255, 200, 170, .13); --line2: rgba(255, 200, 170, .26);
-    --ink: #f6ece7; --ink2: #c3aca3; --muted: #8b7871;
-    --acc: #ff8a3d; --acc-soft: rgba(255, 138, 61, .16);
-    /* Röd dras åt rosa: annars är varningsfärgen och accenten samma orangeröda. */
-    --red: #ff5f77;
-  }
-  :root:not([data-theme="light"])[data-pal="sakura"] {
-    --bg: #16111c; --panel: rgba(36, 27, 45, .90); --panel2: rgba(50, 38, 62, .72);
-    --inset: rgba(0, 0, 0, .32); --strip: rgba(50, 38, 62, .60);
-    --line: rgba(230, 190, 220, .13); --line2: rgba(230, 190, 220, .26);
-    --ink: #f4ecf6; --ink2: #bfaec8; --muted: #877a93;
-    --acc: #ff9ec4; --acc-soft: rgba(255, 158, 196, .16);
   }
   /* Glaciärens mörka läge är STÅL, inte natt – ljusare botten, alltså svagare
      inset (en svart skugga syns mer på en ljus yta). */
@@ -182,6 +148,22 @@
     --line: rgba(200, 230, 245, .14); --line2: rgba(200, 230, 245, .26);
     --ink: #eef5f9; --ink2: #b0c4d0; --muted: #8199a7;
     --acc: #7fe3f0; --acc-soft: rgba(127, 227, 240, .16);
+  }
+  /* Bladet i negativ: samma fyrkanter och samma tydliga streck, svart papper. */
+  :root:not([data-theme="light"])[data-pal="press"] {
+    --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
+    --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
+    --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
+    --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
+    --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
+  }
+  /* Instrumentet mörkt: svartast i urvalet, ramarna lyser fortfarande. */
+  :root:not([data-theme="light"])[data-pal="instrument"] {
+    --bg: #07090c; --panel: rgba(15, 19, 25, .94); --panel2: rgba(26, 32, 40, .80);
+    --inset: rgba(0, 0, 0, .50); --strip: rgba(15, 19, 25, .80);
+    --line: rgba(140, 190, 210, .26); --line2: rgba(140, 190, 210, .46);
+    --ink: #f2f6f8; --ink2: #a9bac5; --muted: #78899a;
+    --acc: #35d6e8; --acc-soft: rgba(53, 214, 232, .16);
   }
 }
 
@@ -209,22 +191,6 @@
   --ink: #e8f2ec; --ink2: #9dbdae; --muted: #6e8d7f;
   --acc: #5ad06b; --acc-soft: rgba(90, 208, 107, .16);
 }
-:root[data-theme="dark"][data-pal="deepwater"] {
-  --bg: #08131a; --panel: rgba(14, 34, 45, .88); --panel2: rgba(24, 52, 66, .72);
-  --inset: rgba(0, 0, 0, .3); --strip: rgba(24, 52, 66, .6);
-  --line: rgba(150, 220, 240, .14); --line2: rgba(150, 220, 240, .26);
-  --ink: #e3f0f6; --ink2: #98b8c6; --muted: #69889a;
-  --acc: #4aa8ff; --acc-soft: rgba(74, 168, 255, .16);
-}
-/* Samma fem nya paletter en gång till – uttryckligt mörkt vinner över systemet.
-   Duplikatet är filens disciplin (tre steg), inte ett förbiseende. */
-:root[data-theme="dark"][data-pal="fieldbook"] {
-  --bg: #0d1826; --panel: rgba(19, 33, 50, .90); --panel2: rgba(28, 46, 68, .72);
-  --inset: rgba(0, 0, 0, .34); --strip: rgba(28, 46, 68, .60);
-  --line: rgba(150, 200, 255, .13); --line2: rgba(150, 200, 255, .26);
-  --ink: #e8eef6; --ink2: #a6b6c8; --muted: #71829a;
-  --acc: #5cc8ff; --acc-soft: rgba(92, 200, 255, .16);
-}
 :root[data-theme="dark"][data-pal="graphite"] {
   --bg: #0e0e0f; --panel: rgba(24, 24, 26, .90); --panel2: rgba(38, 38, 41, .74);
   --inset: rgba(0, 0, 0, .34); --strip: rgba(38, 38, 41, .62);
@@ -232,27 +198,28 @@
   --ink: #f0f0f1; --ink2: #a8a8ac; --muted: #78787d;
   --acc: #ffb02e; --acc-soft: rgba(255, 176, 46, .16);
 }
-:root[data-theme="dark"][data-pal="ember"] {
-  --bg: #18110d; --panel: rgba(41, 29, 24, .90); --panel2: rgba(57, 42, 35, .72);
-  --inset: rgba(0, 0, 0, .34); --strip: rgba(57, 42, 35, .60);
-  --line: rgba(255, 200, 170, .13); --line2: rgba(255, 200, 170, .26);
-  --ink: #f6ece7; --ink2: #c3aca3; --muted: #8b7871;
-  --acc: #ff8a3d; --acc-soft: rgba(255, 138, 61, .16);
-  --red: #ff5f77;
-}
-:root[data-theme="dark"][data-pal="sakura"] {
-  --bg: #16111c; --panel: rgba(36, 27, 45, .90); --panel2: rgba(50, 38, 62, .72);
-  --inset: rgba(0, 0, 0, .32); --strip: rgba(50, 38, 62, .60);
-  --line: rgba(230, 190, 220, .13); --line2: rgba(230, 190, 220, .26);
-  --ink: #f4ecf6; --ink2: #bfaec8; --muted: #877a93;
-  --acc: #ff9ec4; --acc-soft: rgba(255, 158, 196, .16);
-}
 :root[data-theme="dark"][data-pal="glacier"] {
   --bg: #1a2530; --panel: rgba(37, 50, 62, .90); --panel2: rgba(51, 67, 81, .74);
   --inset: rgba(0, 0, 0, .24); --strip: rgba(51, 67, 81, .66);
   --line: rgba(200, 230, 245, .14); --line2: rgba(200, 230, 245, .26);
   --ink: #eef5f9; --ink2: #b0c4d0; --muted: #8199a7;
   --acc: #7fe3f0; --acc-soft: rgba(127, 227, 240, .16);
+}
+/* Bladet i negativ: samma fyrkanter och samma tydliga streck, svart papper. */
+:root[data-theme="dark"][data-pal="press"] {
+  --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
+  --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
+  --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
+  --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
+  --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
+}
+/* Instrumentet mörkt: svartast i urvalet, ramarna lyser fortfarande. */
+:root[data-theme="dark"][data-pal="instrument"] {
+  --bg: #07090c; --panel: rgba(15, 19, 25, .94); --panel2: rgba(26, 32, 40, .80);
+  --inset: rgba(0, 0, 0, .50); --strip: rgba(15, 19, 25, .80);
+  --line: rgba(140, 190, 210, .26); --line2: rgba(140, 190, 210, .46);
+  --ink: #f2f6f8; --ink2: #a9bac5; --muted: #78899a;
+  --acc: #35d6e8; --acc-soft: rgba(53, 214, 232, .16);
 }
 
 /* Radier – Habitat är rundat, men inte bubbligt.
@@ -561,7 +528,7 @@ a { color: inherit; }
 }
 .tctl .seg button:hover { color: var(--ink); }
 .tctl .seg button[aria-pressed="true"] { background: var(--acc); color: var(--bg); }
-/* Radbryter: nio paletter är bredare än panelen bakom kugghjulet. */
+/* Radbryter: sju paletter ryms inte på en rad i panelen bakom kugghjulet. */
 .tctl .pals { display: inline-flex; flex-wrap: wrap; gap: 5px; }
 .tctl .swatch {
   width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line2); cursor: pointer;
