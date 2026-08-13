@@ -13,6 +13,33 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **Every legendary accessory was missing — the rings, talismans, batons, whistles and pendants.**
+  Katress Ring, Anubis's Talisman, the Emperor's Batons, the nine Rings of Resistance, the support
+  whistles, the Air Walkers, Phantom Ring: 71 schematics with no entry at all. Each one turns out
+  to have a fixed Ancient Ruin that always holds it, so Find now gives the coordinate and says the
+  drop is guaranteed rather than a chance — Katress Ring sits at (−1730, −990). Hovering any of them
+  shows what the accessory actually does for the pal fighting beside you. The ruins are a new map
+  layer too, 106 of them, each labelled with the schematic it holds.
+
+### Five new palettes
+
+The gear in the top row now offers nine colour schemes instead of four, each with its own
+background texture and its own take on light and dark mode:
+
+- **Fieldbook** — quiet, near-white paper with a grid in light mode; a blueprint in dark.
+- **Graphite** — completely desaturated surfaces with a single amber signal colour, so the only
+  colour on screen is the pal's own element. Brushed-metal background.
+- **Ember** — cool ash and rust in light mode, black basalt with glowing orange in dark. The
+  background is cracks growing up out of the bottom edge.
+- **Cherry** — pale rose paper with plum ink; indigo night in dark mode. Drifting petals.
+- **Glacier** — a high-key palette with hairline borders, and the only one whose dark mode is
+  steel rather than night. Frost crystals.
+
+Passive banners, work icons and species art are unchanged — they are the game's own assets and
+look the same in every palette.
+
 ## 2.4.0 – 2026-08-13
 
 
@@ -113,14 +140,6 @@ Comments are stripped before the text is published.
   shuffled the boss drops and old guides still disagree; rows where the 1.0 sources conflict or
   stand alone are flagged instead of presented as fact. Species search also matches work
   suitability now — type "mining" and the best miners come out sorted by level.
-
-- **Every legendary accessory was missing — the rings, talismans, batons, whistles and pendants.**
-  Katress Ring, Anubis's Talisman, the Emperor's Batons, the nine Rings of Resistance, the support
-  whistles, the Air Walkers, Phantom Ring: 71 schematics with no entry at all. Each one turns out
-  to have a fixed Ancient Ruin that always holds it, so Find now gives the coordinate and says the
-  drop is guaranteed rather than a chance — Katress Ring sits at (−1730, −990). Hovering any of them
-  shows what the accessory actually does for the pal fighting beside you. The ruins are a new map
-  layer too, 106 of them, each labelled with the schematic it holds.
 
 ### The map and your journey
 
