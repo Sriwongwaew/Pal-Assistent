@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 2.4.0 – 2026-08-13
+
 
 ### Find — one search box over everything the app knows
 
