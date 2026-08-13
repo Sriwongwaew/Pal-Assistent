@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 2.5.0 – 2026-08-14
+
 
 - **Every legendary accessory was missing — the rings, talismans, batons, whistles and pendants.**
   Katress Ring, Anubis's Talisman, the Emperor's Batons, the nine Rings of Resistance, the support
