@@ -79,7 +79,11 @@ Regler:
 - **Utelämna det rent interna.** Refaktorering, tester, CI och beroenden hör inte hemma här om
   användaren inte märker något. En utgåva utan användarsynliga ändringar ska inte släppas alls.
 - **Håll dig till 2–8 rader.** Är det fler har du förmodligen tagit med sådant som inte märks.
-- **Svenska**, som resten av projektet.
+- **Engelska.** Noteringarna är det som möter *användaren* – i utgåvan på GitHub, i appens
+  "Vad är nytt?"-ruta och i `CHANGELOG.md` – och allt en användare eller utomstående läser är
+  engelskt (se CLAUDE.md, samma regel som README och release-texten). Svenskan i det här projektet
+  är till för att prata med Ken och för kommentarer i `src/**`, inte för det som publiceras.
+  Här stod tidigare "svenska", vilket motsade både CLAUDE.md och filens eget innehåll.
 - Gruppera under en `### Rubrik` bara om raderna är många och faller i tydliga högar. Rubriker
   visas i appen som fetstilta rader.
 

@@ -304,11 +304,21 @@ Sju saker om dumparna som är valda, inte råkade så:
    Rollernas rad är därför mätarens etikett (`species ready`) — gemener, och kräver ändå att
    datan är inläst, alltså precis det villkoret vi vill vänta på.
 
-**Never run `npm run build` while `npm run dev` is running.** They share `.next/`, and the build
-overwrites the manifests and chunks the dev server holds in memory. The running page then dies with
-`__webpack_modules__[moduleId] is not a function` (or 404s on its own chunks) — nothing is actually
-broken in the source. Fix: stop dev, `rm -rf .next`, start dev again. Ken usually has a dev server
-up, so stop it (or build in a separate checkout) before verifying a build.
+**Never run `npm run build` while a server is holding `.next/` — `npm run start` counts, not just
+`npm run dev`.** They share the directory, and the build overwrites the manifests and chunks the
+running server holds in memory. The page then dies with `__webpack_modules__[moduleId] is not a
+function`, 404s on its own chunks, or — the nastiest form — renders an **empty body**, because the
+client bundle failed to load and there is no error boundary to show for it. Nothing is broken in
+the source. Fix: stop the server, `rm -rf .next`, start it again. Ken usually has a dev server up,
+so stop it (or build with `PA_PACKAGE=1`, which writes to `.next-package/`) before verifying a
+build.
+
+**The empty-body form is worth recognising, because it lies convincingly.** A verification script
+that reads the page will report that everything it looked for is missing — every palette without
+tokens, every category without hits — and that reads as a broken feature, not a broken server. It
+cost three separate debugging detours in one day (aug 2026). The tell is that *everything* fails at
+once, including things you did not touch; a real regression is narrower. Kill the server before you
+build, always, and if a whole page reports empty, suspect the server before the code.
 
 ## Architecture (smart/dumb – keep this discipline)
 
@@ -1501,3 +1511,11 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   `C:\Repository\palassistent` (extract with `tar --strip-components=1 --overwrite`; the device
   mount cannot delete files — old archives are parked in `_to_delete/`).
 - `_to_delete/` is junk the user empties himself; never rely on its contents.
+- **Ken arbetar i samma träd samtidigt som du. Kör aldrig `git add -A` på en granskning som är
+  någon minut gammal.** Det hände aug 2026: en `git add -A` för en helt annan ändring svepte med
+  281 rader pågående palettarbete – ny CSS, ny canvas-gren, nya katalognycklar – och pushade det.
+  Arbetet visade sig vara komplett, men det var inte mitt att skicka, och han fick veta det efteråt
+  i stället för innan. Titta på `git status` **precis** före `add`, och committa bara det du kan
+  redogöra för. Är något du inte känner igen med: fråga, eller lägg till per fil.
+  Samma sak gäller åt andra hållet — dyker det upp ändringar mitt i ett arbete är det inte en
+  konflikt att lösa på egen hand, utan ett besked om att han håller på med något.
