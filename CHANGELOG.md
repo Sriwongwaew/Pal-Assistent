@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 2.6.0 – 2026-08-14
+
 
 - **The breeding plan now starts where you actually are.** It used to pick the pal that carried the
   most wanted passives and breed from there, without ever asking how far that species had left to
