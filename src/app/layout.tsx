@@ -16,6 +16,7 @@ import { UpdateBanner } from "@/components/containers/UpdateBanner";
 import { BgTexture } from "@/components/ui/BgTexture";
 import { FooterLegend } from "@/components/ui/FooterLegend";
 import { HeaderMeta } from "@/components/ui/HeaderMeta";
+import { GoalWatch } from "@/components/ui/GoalWatch";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { PassiveTipHost } from "@/components/ui/PassiveTip";
 import { Rail } from "@/components/ui/Rail";
@@ -44,8 +45,8 @@ export async function generateMetadata(): Promise<Metadata> {
 const themeInit = `(function(){try{var d=document.documentElement,
 t=localStorage.getItem("pa-theme"),p=localStorage.getItem("pa-pal");
 if(t==="light"||t==="dark")d.dataset.theme=t;
-d.dataset.pal=(p==="nightwood"||p==="deepwater")?p:"basalt";
-}catch(e){document.documentElement.dataset.pal="basalt";}})();`;
+d.dataset.pal=(p==="nightwood"||p==="deepwater"||p==="basalt")?p:"dusk";
+}catch(e){document.documentElement.dataset.pal="dusk";}})();`;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await activeLocale();
@@ -73,6 +74,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                         <HeaderMeta />
                         <SaveImport />
                       </div>
+                      {/* Målbevakningen ligger under rubriken och på VARJE sida:
+                          live-läget läser om saven medan man spelar, och då står
+                          man sällan på planeraren. Målbilden kommer ur samma
+                          sparade val som avelssidan. */}
+                      <GoalWatch />
                       <main>{children}</main>
                       <FooterLegend />
                     </div>

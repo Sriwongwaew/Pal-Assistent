@@ -11,26 +11,46 @@
 import { translate } from "../i18n";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 
+import type { IvGoal } from "./breeding";
+import { NEAR_IV } from "./ivFruits";
 import type { ScoredPal } from "./types";
 
 /** Chans att en enskild stat ärvs från en given förälder. */
 export const IV_FROM_PARENT = 0.3;
 /** Chans att staten i stället slumpas om helt. */
 export const IV_RANDOM = 0.4;
-/** Att den omslumpade siffran landar på exakt 100 (0–100 likformigt). */
-const RANDOM_HITS_100 = 1 / 101;
+/**
+ * Att den omslumpade siffran når `target` (0–100 likformigt, alltså 101 utfall).
+ *
+ * Tröskeln är hela skillnaden mellan lägena: exakt 100 träffas i **1 fall av
+ * 101** (0,99 %), men 90 eller bättre i **11 av 101** (10,9 %) – elva gånger så
+ * ofta. Det är därför "nära perfekt" är ett eget läge och inte en attityd.
+ */
+const randomHits = (target: number) => (IV_MAX_VALUE - target + 1) / (IV_MAX_VALUE + 1);
+
+/** Taket för en stat. (Duplicerat som `IV_MAX` i `ivFruits` – samma tal.) */
+const IV_MAX_VALUE = 100;
 
 export const IV_LABELS = ["HP", "Attack", "Defense"] as const;
 export type IvIndex = 0 | 1 | 2;
 
-const isMax = (v: number) => v >= 100;
+/** Når statens värde målet? `target` är 100 för perfekt, 90 för nära. */
+export const meetsIv = (v: number, target = IV_MAX_VALUE) => v >= target;
 
-/** Chans att barnet får 100 i en stat där föräldrarna har `a` respektive `b`. */
-export function statOdds(a: number, b: number): number {
+/**
+ * Vilket IV-värde ett mål siktar på. `fast` jagar inga tröskelvärden alls – då
+ * är svaret 0, och den som frågar ska inte använda tröskellogiken.
+ */
+export function ivTargetOf(goal: IvGoal): number {
+  return goal === "perfect" ? IV_MAX_VALUE : goal === "near" ? NEAR_IV : 0;
+}
+
+/** Chans att barnet når `target` i en stat där föräldrarna har `a` resp. `b`. */
+export function statOdds(a: number, b: number, target = IV_MAX_VALUE): number {
   return (
-    IV_FROM_PARENT * (isMax(a) ? 1 : 0) +
-    IV_FROM_PARENT * (isMax(b) ? 1 : 0) +
-    IV_RANDOM * RANDOM_HITS_100
+    IV_FROM_PARENT * (meetsIv(a, target) ? 1 : 0) +
+    IV_FROM_PARENT * (meetsIv(b, target) ? 1 : 0) +
+    IV_RANDOM * randomHits(target)
   );
 }
 
@@ -41,8 +61,8 @@ export interface PairIvOdds {
   all: number;
 }
 
-export function pairIvOdds(a: ScoredPal, b: ScoredPal): PairIvOdds {
-  const per = [0, 1, 2].map((i) => statOdds(a.iv[i] ?? 0, b.iv[i] ?? 0)) as
+export function pairIvOdds(a: ScoredPal, b: ScoredPal, target = IV_MAX_VALUE): PairIvOdds {
+  const per = [0, 1, 2].map((i) => statOdds(a.iv[i] ?? 0, b.iv[i] ?? 0, target)) as
     [number, number, number];
   return { per, all: per[0] * per[1] * per[2] };
 }
@@ -74,12 +94,14 @@ export interface IvPlan {
 const eggsFor = (p: number) => (p > 0 ? Math.ceil(1 / p) : Infinity);
 
 /** Hur många av de tre statarna pal:en redan har på 100. */
-const maxCount = (p: ScoredPal) => p.iv.reduce((n, v) => n + (isMax(v) ? 1 : 0), 0);
+const maxCount = (p: ScoredPal, target: number) =>
+  p.iv.reduce((n, v) => n + (meetsIv(v, target) ? 1 : 0), 0);
 const ivTotal = (p: ScoredPal) => (p.iv[0] ?? 0) + (p.iv[1] ?? 0) + (p.iv[2] ?? 0);
 
 /** Bäst som IV-förälder: flest 100:or, därefter högst total. `score` duger inte
  *  här – den väger in passiver och stjärnor som inte påverkar arvet av statar. */
-const byIv = (a: ScoredPal, b: ScoredPal) => maxCount(b) - maxCount(a) || ivTotal(b) - ivTotal(a);
+const byIvFor = (target: number) => (a: ScoredPal, b: ScoredPal) =>
+  maxCount(b, target) - maxCount(a, target) || ivTotal(b) - ivTotal(a);
 
 /**
  * Bygger en IV-plan för en art du äger.
@@ -88,11 +110,14 @@ const byIv = (a: ScoredPal, b: ScoredPal) => maxCount(b) - maxCount(a) || ivTota
  * bär olika 100:or, behåll avkomman som ärvde dem, och upprepa tills båda
  * föräldrarna är maxade – då är slutparningen ≈ 21 % per ägg i stället för 2,7 %.
  */
-export function planPerfectIv(palsOfSpecies: ScoredPal[]): IvPlan {
+export function planPerfectIv(palsOfSpecies: ScoredPal[], target = IV_MAX_VALUE): IvPlan {
   const carriers: [ScoredPal[], ScoredPal[], ScoredPal[]] = [[], [], []];
   for (const p of palsOfSpecies) {
-    for (const i of [0, 1, 2] as IvIndex[]) if (isMax(p.iv[i] ?? 0)) carriers[i].push(p);
+    for (const i of [0, 1, 2] as IvIndex[]) {
+      if (meetsIv(p.iv[i] ?? 0, target)) carriers[i].push(p);
+    }
   }
+  const byIv = byIvFor(target);
   for (const list of carriers) list.sort(byIv);
 
   const gaps = ([0, 1, 2] as IvIndex[]).filter((i) => carriers[i].length === 0);
@@ -130,14 +155,16 @@ export function planPerfectIv(palsOfSpecies: ScoredPal[]): IvPlan {
   }
   if (!plan.best) return plan;
 
-  plan.ready = maxCount(plan.best.a) === 3 && maxCount(plan.best.b) === 3;
+  plan.ready = maxCount(plan.best.a, target) === 3 && maxCount(plan.best.b, target) === 3;
   if (plan.ready) return plan;
 
   // Mellansteg: para ihop bärare som täcker olika statar, så nästa generation
   // samlar fler 100:or i samma individ.
   const covered = new Set<IvIndex>();
   for (const i of [0, 1, 2] as IvIndex[]) {
-    if (isMax(plan.best.a.iv[i] ?? 0) && isMax(plan.best.b.iv[i] ?? 0)) covered.add(i);
+    if (meetsIv(plan.best.a.iv[i] ?? 0, target) && meetsIv(plan.best.b.iv[i] ?? 0, target)) {
+      covered.add(i);
+    }
   }
   const needed = ([0, 1, 2] as IvIndex[]).filter((i) => !covered.has(i) && !gaps.includes(i));
 
@@ -149,7 +176,7 @@ export function planPerfectIv(palsOfSpecies: ScoredPal[]): IvPlan {
     if (!carrier) continue;
     const partner = (carrier.g === "M" ? females : males)
       .filter((p) => p.id !== carrier.id)
-      .sort(byIv)[0];
+      .sort(byIvFor(target))[0];
     if (!partner) continue;
     const a = carrier.g === "M" ? carrier : partner;
     const b = carrier.g === "M" ? partner : carrier;
@@ -158,7 +185,7 @@ export function planPerfectIv(palsOfSpecies: ScoredPal[]): IvPlan {
     const key = `${a.id}|${b.id}`;
     const entry = merged.get(key) ?? { a, b, aim: new Set<IvIndex>() };
     for (const j of [0, 1, 2] as IvIndex[]) {
-      if (isMax(a.iv[j] ?? 0) || isMax(b.iv[j] ?? 0)) entry.aim.add(j);
+      if (meetsIv(a.iv[j] ?? 0, target) || meetsIv(b.iv[j] ?? 0, target)) entry.aim.add(j);
     }
     merged.set(key, entry);
   }
@@ -166,7 +193,7 @@ export function planPerfectIv(palsOfSpecies: ScoredPal[]): IvPlan {
   for (const { a, b, aim } of merged.values()) {
     const aimFor = [...aim].sort();
     const odds = aimFor.reduce<number>(
-      (acc, j) => acc * statOdds(a.iv[j] ?? 0, b.iv[j] ?? 0),
+      (acc, j) => acc * statOdds(a.iv[j] ?? 0, b.iv[j] ?? 0, target),
       1,
     );
     plan.steps.push({ a, b, aimFor, odds, eggs: eggsFor(odds) });

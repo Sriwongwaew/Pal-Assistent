@@ -25,12 +25,23 @@
  * räkna annorlunda här skulle göra siffrorna omöjliga att jämföra med planens.
  * `cleanAssembly` säger däremot ärligt när poolen är exakt de önskade – då är
  * ungen garanterat ren, vilket är just det som gör en sådan väg bra.
+ *
+ * **Två slags vägar räknas upp, och den andra fanns inte förut.** Hopsamlingen
+ * ovan vilar på att två av samma art ger samma art – det är det som håller
+ * landningsarten förutsägbar, men det gjorde också att par av **olika** art
+ * aldrig kunde hittas. Kens Helzephyr ♀ × Beakon ♂ → Helzephyr Lux var inte
+ * bortsållad av ett filter, den räknades aldrig upp. Sådana par (`directPair.ts`)
+ * läggs därför till som egen sorts väg: barnet ÄR målarten, så det finns ingen
+ * artkedja efteråt. `passivePlan` provar dem numera också som huvudplan, så det
+ * som återstår här är fallen där planen inte fick välja fritt – manuellt läge,
+ * där en utpekad pal måste vara med.
  */
 
 import {
   childrenOf, compareParents, inheritOdds, solveChain, solveChainCheapest,
 } from "./breeding";
 import type { ParentPrefs } from "./breeding";
+import { findDirectPairs } from "./directPair";
 import type { AppData, ChainStep, ScoredPal } from "./types";
 
 /** Minsta besparing (i ägg) för att en alternativ väg ska vara värd att visa. */
@@ -51,7 +62,11 @@ export interface AltStep extends ChainStep {
 }
 
 export interface AltRoute {
-  /** Arten passiverna samlas på i stället. */
+  /**
+   * Arten passiverna samlas på i stället – alltså hopsamlingsstegets UNGE.
+   * Är föräldrarna av olika art (`a.s !== b.s`) är det målarten, och då finns
+   * ingen kedja efteråt.
+   */
   species: number;
   /** De två ägda pals som paras ihop. Alltid ♂ + ♀. */
   a: ScoredPal;
@@ -74,7 +89,9 @@ export interface AltRoute {
  * Letar startarter som slår huvudplanen.
  *
  * `baseline` är planens `expectedEggs` och `skipSpecies` den art planen redan
- * bygger linjen på – att föreslå samma art igen vore inget alternativ.
+ * bygger linjen på – att föreslå samma art igen vore inget alternativ. `usedIds`
+ * är de pals planen faktiskt använder: ett par den redan står på är inget
+ * "du kan också", det är planen.
  */
 export function findAltRoutes(
   data: AppData,
@@ -85,6 +102,7 @@ export function findAltRoutes(
   baseline: number,
   skipSpecies: number | null,
   prefs: ParentPrefs,
+  usedIds: ReadonlySet<string> = new Set(),
 ): AltRoute[] {
   const k = usable.length;
   if (target === null || k === 0 || !Number.isFinite(baseline) || baseline <= 0) return [];
@@ -190,6 +208,26 @@ export function findAltRoutes(
       pool: best.pool, odds: best.odds, assembleEggs, poolJunk,
       cleanAssembly: best.pool === k,
       chain, totalEggs, saves,
+    });
+  }
+
+  /* Par av OLIKA art vars unge är målarten: ett steg, ingen kedja. Samma
+     uppräkning som planeraren själv provar som huvudplan, så det som dyker upp
+     här är par den inte fick välja (manuellt läge). Samma art hanteras redan av
+     loopen ovan – landar den på målet är dess kedja tom och resultatet
+     identiskt, så villkoret hindrar dubbletter. */
+  for (const dp of findDirectPairs(data, pals, target, usable, prefs, MAX_ALTS + 1)) {
+    if (dp.a.s === dp.b.s) continue;
+    if (usedIds.has(dp.a.id) && usedIds.has(dp.b.id)) continue;
+    const totalEggs = 1 / dp.odds;
+    const saves = baseline - totalEggs;
+    if (saves < MIN_SAVING) continue;
+    routes.push({
+      species: target,
+      a: dp.a, b: dp.b,
+      pool: dp.pool, odds: dp.odds, assembleEggs: totalEggs, poolJunk: dp.poolJunk,
+      cleanAssembly: dp.pool === k,
+      chain: [], totalEggs, saves,
     });
   }
 

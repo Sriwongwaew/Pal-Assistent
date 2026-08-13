@@ -4,9 +4,9 @@
    navigation och elementets färg som informationsbärare.
    Bakgrunden ritas i canvas (BgTexture), inte som gradient.
 
-   Tre paletter väljs med data-pal på <html>: basalt (standard),
-   nightwood, deepwater. Ljust/mörkt styrs av data-theme med
-   systeminställningen som fallback. Ordningen nedan är viktig:
+   Fyra paletter väljs med data-pal på <html>: dusk (standard sedan
+   aug 2026), basalt, nightwood, deepwater. Ljust/mörkt styrs av
+   data-theme med systeminställningen som fallback. Ordningen nedan är viktig:
      1. :root                          = ljusa tokens
      2. @media (prefers-color-scheme)  = system-mörkt, men bara om
         användaren inte uttryckligen valt ljust
@@ -17,15 +17,26 @@
    Den gamla in-game-repliken ligger kvar i tools/backup/globals.ingame.css.
    ============================================================ */
 
-/* ---------- palett: BASALT (standard) ---------- */
-:root, :root[data-pal="basalt"] {
+/* ---------- palett: SKYMNING/GRYNING (standard sedan designrundan aug 2026;
+   basalt var standard före det) ----------
+   Ljust läge = gryning: varm sand, plommonbläck, teal-accent. Tokensen ligger
+   på bara :root så även ett JS-löst första ögonblick får rätt palett. */
+:root, :root[data-pal="dusk"] {
+  --bg: #f1e8d7; --panel: rgba(255, 252, 244, .94); --panel2: rgba(255, 250, 238, .66);
+  --inset: rgba(70, 45, 80, .05); --strip: rgba(255, 252, 244, .72);
+  --line: rgba(70, 45, 80, .13); --line2: rgba(70, 45, 80, .24);
+  --ink: #2a2138; --ink2: #5d5270; --muted: #8d8399;
+  --acc: #1f7f8c; --acc-soft: rgba(31, 127, 140, .13);
+  --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
+  --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
+}
+/* ---------- palett: BASALT ---------- */
+:root[data-pal="basalt"] {
   --bg: #e7e6e3; --panel: rgba(255, 255, 255, .94); --panel2: rgba(255, 255, 255, .66);
   --inset: rgba(0, 0, 0, .045); --strip: rgba(255, 255, 255, .72);
   --line: rgba(0, 0, 0, .10); --line2: rgba(0, 0, 0, .18);
   --ink: #16181b; --ink2: #4c525a; --muted: #7d838c;
   --acc: #5b46d8; --acc-soft: rgba(91, 70, 216, .13);
-  --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
-  --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
 }
 :root[data-pal="nightwood"] {
   --bg: #e4e9e4; --panel: rgba(255, 255, 255, .92); --panel2: rgba(255, 255, 255, .62);
@@ -41,17 +52,24 @@
   --ink: #0d1e26; --ink2: #3a5b68; --muted: #6d8894;
   --acc: #1668c0; --acc-soft: rgba(22, 104, 192, .13);
 }
-
-/* ---------- systemets mörka läge (om inget uttryckligt ljusval) ---------- */
+/* ---------- systemets mörka läge (om inget uttryckligt ljusval) ----------
+   Basen är skymningen: djup violett natt med varmt guld. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
+    --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
+    --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
+    --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
+    --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
+    --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
+    --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
+  }
+  :root:not([data-theme="light"])[data-pal="basalt"] {
     --bg: #101215; --panel: rgba(26, 29, 34, .88); --panel2: rgba(40, 44, 51, .72);
     --inset: rgba(0, 0, 0, .3); --strip: rgba(40, 44, 51, .6);
     --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
     --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
     --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
-    --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
-    --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
   }
   :root:not([data-theme="light"])[data-pal="nightwood"] {
     --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
@@ -71,13 +89,20 @@
 
 /* ---------- uttryckligt mörkt läge (vinner över systemet) ---------- */
 :root[data-theme="dark"] {
+  --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
+  --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
+  --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
+  --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
+  --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
+  --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
+  --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
+}
+:root[data-theme="dark"][data-pal="basalt"] {
   --bg: #101215; --panel: rgba(26, 29, 34, .88); --panel2: rgba(40, 44, 51, .72);
   --inset: rgba(0, 0, 0, .3); --strip: rgba(40, 44, 51, .6);
   --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
   --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
   --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
-  --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
-  --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
 }
 :root[data-theme="dark"][data-pal="nightwood"] {
   --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
@@ -119,60 +144,114 @@ a { color: inherit; }
 .bgtex { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
 /* ============================================================
-   SKALET: vertikal navigation + innehåll
+   SKALET: navigation i toppen + innehåll
+   Skenan låg först till vänster (Habitats ursprungsval); flyttad till en
+   topprad på Kens begäran i designrundan aug 2026. Samma komponent och
+   markup – bara flödesriktningen är en annan.
    ============================================================ */
-.shell { position: relative; z-index: 1; display: flex; min-height: 100vh; align-items: flex-start; }
+.shell { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
 
+/* Tre zoner: märket | flikarna | spelaren + kugghjulet. Flikarna står i
+   MITTEN (Kens rättning aug 2026: raden var vänsterklumpad och tråkig på en
+   bred skärm) – 1fr-zonerna på var sida håller dem centrerade oavsett hur
+   breda kanterna är. */
 .rail {
-  position: sticky; top: 0; z-index: 5; width: 210px; flex: none; height: 100vh;
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 22px 14px 16px; border-right: 1px solid var(--line);
-  /* Höjden är låst till skärmen, så allt som växer i foten klipps bort tyst –
-     och det som växer är uppdateringssvaret, som är olika långt på olika språk.
-     Hellre en rullning i skenan än ett halvt meddelande. */
-  overflow-y: auto;
+  position: sticky; top: 0; z-index: 50; width: 100%;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+  padding: 9px 22px; border-bottom: 1px solid var(--line);
+  /* Egen botten + blur: innehållet rullar under raden, och utan botten flyter
+     brickornas färger rakt in i navigationen. --strip är halvgenomskinlig med
+     flit – strukturen i bakgrunden ska anas, inte försvinna. */
+  background: var(--strip); backdrop-filter: blur(10px);
 }
-.rail .brand { font-weight: 800; font-size: 25px; letter-spacing: -.02em; padding: 0 12px; margin-bottom: 18px; }
+.rail .rzone { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.rail .rc { justify-content: center; flex-wrap: wrap; }
+.rail .rr { justify-content: flex-end; }
+.rail .brand {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-weight: 800; font-size: 21px; letter-spacing: -.02em;
+}
 .rail .brand em { font-style: normal; color: var(--acc); }
 .rail a.ri {
-  display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: var(--r2);
-  font-size: 13.5px; font-weight: 800; color: var(--muted); text-decoration: none;
+  display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px;
+  font-size: 13px; font-weight: 800; color: var(--muted); text-decoration: none;
+  border: 1px solid transparent; transition: color .12s, background .12s;
 }
-.rail a.ri .d { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .45; flex: none; }
+/* Ikonen ersatte pricken: spelets egna glyfer, dämpade tills raden är aktiv. */
+.rail a.ri .ric {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; flex: none; opacity: .75;
+}
 .rail a.ri:hover { color: var(--ink); background: var(--panel2); }
-.rail a.ri.on { background: var(--acc-soft); color: var(--ink); }
-.rail a.ri.on .d { background: var(--acc); opacity: 1; box-shadow: 0 0 0 4px var(--acc-soft); }
-.rail .railfoot { margin-top: auto; display: flex; flex-direction: column; gap: 9px; }
-.rail .who { padding: 10px 13px; border-radius: var(--r2); background: var(--panel2); }
-.rail .who .k { display: block; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
-.rail .who b { font-size: 15px; display: block; }
-.rail .who .sm { font-size: 10.5px; color: var(--muted); }
+.rail a.ri:hover .ric { opacity: 1; }
+.rail a.ri.on {
+  background: var(--acc-soft); color: var(--ink);
+  border-color: color-mix(in srgb, var(--acc) 30%, transparent);
+}
+.rail a.ri.on .ric { opacity: 1; }
+.rail .railfoot { display: flex; flex-direction: row; align-items: center; gap: 9px; }
+/* Smal skärm: zonerna radbryts – märket + spelaren först, flikarna under. */
+@media (max-width: 1180px) {
+  .rail { display: flex; flex-wrap: wrap; }
+  .rail .rr { margin-left: auto; }
+  .rail .rc { order: 3; width: 100%; justify-content: flex-start; }
+}
+.rail .who { padding: 4px 12px; border-radius: var(--r2); background: var(--panel2); line-height: 1.25; }
+.rail .who .k { display: none; }
+.rail .who b { font-size: 12.5px; display: block; }
+.rail .who .sm { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
 /* Donationslänken: syns, men underordnad spelarrutan. Ett verktyg som tigger
    högre än det informerar blir ett annat sorts program. */
 .rail .donate {
-  display: block; text-align: center; padding: 8px 10px; border-radius: var(--r2);
+  display: inline-block; text-align: center; padding: 7px 13px; border-radius: 999px;
   font: 800 11.5px inherit; color: var(--muted); text-decoration: none;
-  border: 1px solid var(--line2);
+  border: 1px solid var(--line2); white-space: nowrap;
 }
 .rail .donate:hover { color: var(--acc); border-color: var(--acc); }
 
-/* Uppdateringsknappen. Samma blockform som donationslänken – skenans fot ska
-   inte bli tre olika sorters knappar under varandra. Svaret står under knappen
-   i stället för bredvid: skenan är 182 px inuti sin padding, och en mening som
-   "du kör den senaste versionen (2.2.0)" får aldrig plats på en rad. */
-.rail .rupd { display: flex; flex-direction: column; }
+/* Uppdateringsknappen. Svaret får inte trycka isär toppraden, så det lägger
+   sig som en liten panel UNDER raden i stället för i flödet. */
+.rail .rupd { position: relative; }
 .rail .rupd button {
-  display: block; width: 100%; text-align: center; padding: 8px 10px;
-  border-radius: var(--r2); font: 800 11.5px inherit; color: var(--muted);
-  background: none; border: 1px solid var(--line2); cursor: pointer;
+  display: inline-block; text-align: center; padding: 7px 13px;
+  border-radius: 999px; font: 800 11.5px inherit; color: var(--muted);
+  background: none; border: 1px solid var(--line2); cursor: pointer; white-space: nowrap;
 }
 .rail .rupd button:hover:not(:disabled) { color: var(--acc); border-color: var(--acc); }
 .rail .rupd button:disabled { opacity: .6; cursor: default; }
-.rail .rupdmsg { font-size: 10.5px; line-height: 1.45; color: var(--ink2); }
-/* Marginalen bara när det finns ett svar. Rutan renderas alltid för aria-live,
-   och `display: none` hade tagit bort den ur tillgänglighetsträdet – då kan den
-   inte annonsera när den fylls. */
-.rail .rupdmsg:not(:empty) { margin-top: 7px; }
+/* Rutan renderas alltid för aria-live (`display: none` hade tagit bort den ur
+   tillgänglighetsträdet) – men ram, botten och skugga får den först när den
+   har något att säga, annars hänger en tom liten låda under knappen. */
+.rail .rupdmsg {
+  position: absolute; top: calc(100% + 8px); right: 0; width: 280px;
+  font-size: 10.5px; line-height: 1.45; color: var(--ink2);
+}
+.rail .rupdmsg:not(:empty) {
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r2);
+  padding: 9px 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
+}
+
+/* Kugghjulet: allt som KONFIGURERAR appen bor i en popover – raden själv
+   navigerar bara (Kens rättning: hela tema/språk-klustret gjorde den rörig). */
+.navmore { position: relative; }
+.navmore > summary {
+  list-style: none; cursor: pointer; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line2); border-radius: 999px; font-size: 15px;
+  color: var(--ink2); background: var(--panel2); user-select: none;
+}
+.navmore > summary::-webkit-details-marker { display: none; }
+.navmore > summary:hover { color: var(--ink); border-color: var(--acc); }
+.navmore[open] > summary { background: var(--acc-soft); color: var(--ink); }
+.navmore .navpanel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
+  width: 300px; display: grid; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r2);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .35); padding: 13px 14px;
+}
+.navmore .navpanel .tctl { flex-direction: column; align-items: stretch; }
+.navmore .navpanel .tctl .seg { justify-content: center; }
+.navmore .navpanel .tctl .pals { justify-content: center; }
 
 .content { flex: 1; min-width: 0; padding: 22px 26px 40px; }
 .wrap { max-width: 1180px; margin: 0 auto; }
@@ -223,6 +302,39 @@ a { color: inherit; }
 
 /* ---------- topprad i innehållet ---------- */
 .headrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ---------- målbevakningen: "du har fått den" ----------
+   Bandet ligger mellan rubriken och sidan, och det är ett BESKED – inte en
+   panel man ska kunna missa. Därför elementets färg som vänsterkant (samma
+   regel som allt annat som handlar om en pal), grönt när målbilden är nådd, och
+   en stängknapp: en notis som inte går att stänga blir en skylt. */
+.gwrap { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+.gwatch {
+  position: relative; display: flex; align-items: flex-start; gap: 12px;
+  border: 1px solid var(--line); border-left: 4px solid var(--elc);
+  border-radius: var(--r3); background:
+    radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--elc) 12%, transparent), transparent 60%),
+    var(--panel);
+  padding: 12px 44px 12px 14px;
+}
+.gwatch.done { border-left-color: var(--green); }
+.gicon { flex: none; }
+.gbody { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ghd { font-size: 14.5px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 7px;
+  align-items: center; }
+.ghd > b { font-weight: 800; }
+.gwatch.done .ghd > b { color: var(--green); }
+.gwatch:not(.done) .ghd > b { color: var(--acc); }
+.ghd .meta { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.gsay { font-size: 12.5px; color: var(--ink2); max-width: 78ch; }
+.gclose {
+  position: absolute; top: 8px; right: 9px; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--muted);
+  font-size: 12px; line-height: 1; cursor: pointer;
+}
+.gclose:hover { color: var(--ink); border-color: var(--line2); }
+.gclose:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.gmore { font-size: 12px; color: var(--muted); padding-left: 4px; }
 .headrow h1 { font-size: 22px; }
 .headrow h1 em { font-style: normal; color: var(--acc); }
 .meta { color: var(--muted); font-size: 12px; }
@@ -384,14 +496,149 @@ button.ghost.sm { padding: 7px 15px; font-size: 12px; }
 /* :disabled behöver egen regel – annars lyser knappen upp på hover ändå. */
 button.ghost:disabled { opacity: .45; cursor: default; }
 
+/* ---------- översiktens wow-lager (designrundan aug 2026) ---------- */
+/* Att göra nu: pulserande punkter + länkchips som pekar mot sidorna. */
+.ovticker { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+.ovticker .tk {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 15px; font-size: 12.5px; font-weight: 800; color: var(--ink2);
+  text-decoration: none;
+}
+.ovticker .tk:hover { border-color: var(--acc); color: var(--ink); }
+.ovticker .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .ovticker .dot { animation: ovpulse 2.4s ease-in-out infinite; }
+  @keyframes ovpulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+}
+
+/* Styrkeradarn + de fyra styrkekorten. */
+.ovstr { display: grid; grid-template-columns: minmax(230px, 1fr) 2fr; gap: 16px; align-items: center; }
+.ovradar .radar { width: 100%; max-width: 280px; display: block; margin: 0 auto; }
+.ovcards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ovcard {
+  display: flex; align-items: center; gap: 11px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--r2); padding: 10px 13px;
+  font-family: inherit; color: inherit;
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--elc) 16%, transparent), transparent 65%),
+    var(--panel);
+}
+.ovcard:hover { border-color: var(--line2); }
+.ovcard .txt { min-width: 0; display: grid; }
+.ovcard .k { font-size: 10px; font-weight: 800; color: var(--muted); }
+.ovcard .nm { font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ovcard .v { font-family: "Zen Kaku Gothic New"; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink2); }
+@media (max-width: 800px) { .ovstr { grid-template-columns: 1fr; } }
+
+/* ---------- Rollerna: formation, baskort, pallplats (designrundan) ---------- */
+/* Formationen: ettan störst, botten i linje – storleken ÄR rangordningen. */
+.trow.bfform { align-items: flex-end; gap: 26px; }
+.trow.bfform .tp .nm { font-size: 13px; }
+/* Basgänget som elementtvättade kort – återanvänder .ovcard-formen. */
+.bfcrew { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.bfcrew .ovcard { cursor: default; }
+.bfcrew .ovcard .v { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+/* Pallplatsen: tvåan vänster, ettan högst, trean lägst. */
+.bfpod { display: flex; align-items: flex-end; gap: 10px; max-width: 560px; margin-bottom: 12px; }
+.bfpod .bfst {
+  flex: 1; text-align: center; background: var(--panel2);
+  border: 1px solid var(--line); border-radius: var(--r1) var(--r1) 0 0;
+  padding-top: 12px; display: flex; flex-direction: column; align-items: center;
+}
+.bfpod .bfst.c0 { padding-top: 26px; }
+.bfpod .bfst.c2 { padding-top: 38px; }
+.bfpod .bfst .tp { margin-bottom: 8px; }
+.bfpod .bfbase {
+  width: 100%; padding: 4px 0; background: var(--panel);
+  font-family: "Zen Kaku Gothic New"; font-weight: 900; font-size: 14px;
+  border-top: 3px solid #d4af37;
+}
+.bfpod .bfbase.r2 { border-top-color: #b9c2cc; }
+.bfpod .bfbase.r3 { border-top-color: #c9905e; }
+
+/* ---------- boxens passivfilter (PassiveFilter) ----------
+   Menyn är position:absolute under sin chip-knapp, så kontrollraden behåller
+   sin höjd när den öppnas. Namnen är pfl-prefixade så ingen `kind`-sträng kan
+   krocka (se varningen om klassnamnskollisioner ovan). */
+/* Boxens filterfäste: EN knapp, en panel med tre grupper – snabbfilter, IV,
+   passiver (Kens rättning aug 2026: sju chips + fyra selects i kontrollraden
+   lästes som röra). Raden bär sök/sortering/träffar; panelen bär valen; de
+   AKTIVA valen står som kryssbara chips under raden. */
+.fltwrap { position: relative; }
+.fltpanel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  width: min(560px, calc(100vw - 32px)); max-height: 76vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .25); padding: 10px 14px 14px;
+}
+/* Smal skärm: knappen kan sitta var som helst i den brutna raden, så en
+   vänsterankrad 560-panel sticker utanför. Fäst den i rutan i stället. */
+@media (max-width: 860px) {
+  .fltpanel { position: fixed; inset: 11vh 16px auto; width: auto; }
+}
+.flthd { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.flthd .flgrp { margin: 0; }
+.flgrp {
+  display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin: 12px 0 6px;
+}
+.fltchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fltiv { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pfl { position: relative; }
+.pflmenu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .25); padding: 10px 12px 12px;
+}
+.pflbar { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.pflbar input[type=text] { min-width: 0; flex: 1; padding: 6px 12px; }
+.pflmode { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.pflmode .fchip { padding: 4px 11px; }
+.pfllist {
+  display: grid; grid-template-columns: 1fr; gap: 5px;
+  max-height: 320px; overflow-y: auto; padding-right: 4px;
+}
+.pfllist::-webkit-scrollbar { width: 10px; }
+.pfllist::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 5px; }
+
+/* Aktiva passivfiltret som banners ovanför heron. Egen klass och inte bara
+   `.chosen`: den klassen hör till planeraren och kan få egna mått där. */
+.pvactive { display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin-bottom: 12px; }
+.pvactive .meta { margin-left: 4px; }
+
+/* IV-tröskel med värde ≠ 0 markeras som aktiva chips – annars ser tre grå
+   select likadana ut oavsett om de filtrerar eller inte. */
+select.ivmin.on { border-color: var(--acc); color: var(--ink); box-shadow: 0 0 0 3px var(--acc-soft); }
+
 /* ============================================================
    HERO-BAND – Översikt och Boxen
    ============================================================ */
 .hero {
   position: relative; display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r4);
-  padding: 18px 20px; margin-bottom: 14px;
+  border: 1px solid var(--line); border-radius: var(--r4);
+  padding: 18px 20px; margin-bottom: 14px; overflow: hidden;
+  /* Elementtvätt även på hero-bandet – palens element ska äga hela ytan. */
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--elc) 18%, transparent), color-mix(in srgb, var(--elc) 5%, transparent) 45%, transparent 70%),
+    var(--panel);
 }
+/* Auraringarna (designrundan): koncentriska elementringar bakom porträttet.
+   Repeating-radial i stället för SVG – noll markup, följer --elc automatiskt.
+   pointer-events spelar ingen roll (::before), och ringarna ligger under allt. */
+.hero::before {
+  content: ""; position: absolute; left: -60px; top: 50%; width: 420px; height: 420px;
+  transform: translateY(-50%); pointer-events: none;
+  background: repeating-radial-gradient(circle,
+    transparent 0 44px,
+    color-mix(in srgb, var(--elc) 26%, transparent) 44px 45.5px,
+    transparent 45.5px 92px);
+  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 72%);
+  mask-image: radial-gradient(circle, #000 30%, transparent 72%);
+}
+.hero > * { position: relative; }
 .hero .hpor {
   position: relative; width: 176px; height: 176px; flex: none; border-radius: var(--r4);
   display: flex; align-items: center; justify-content: center;
@@ -465,13 +712,20 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .boxleft { padding: 0; border: none; background: none; margin: 0; }
 .boxright { display: none; }
 .palgrid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  /* Bredare brickor sedan designrundan: passiverna står som banners PÅ
+     brickan, så man ser vad en pal bär utan att öppna den. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
   gap: 10px; align-content: start;
 }
 .pcell {
-  position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2);
+  position: relative; border: 1px solid var(--line); border-radius: var(--r2);
   padding: 8px 8px 10px; cursor: pointer; font-family: inherit; color: inherit; text-align: center;
   display: flex; flex-direction: column; transition: transform .12s ease, border-color .12s ease;
+  /* Elementtvätten (designrundan aug 2026): brickan bär sitt elements färg som
+     en svag gradient över panelen, inte bara bakom porträttet. */
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--elc) 13%, transparent), transparent 62%),
+    var(--panel);
 }
 .pcell:hover { transform: translateY(-2px); border-color: var(--line2); }
 .pcell .circ {
@@ -495,6 +749,12 @@ button.ghost:disabled { opacity: .45; cursor: default; }
   margin-top: 1px; font-size: 9.5px; color: var(--muted);
   font-family: "Zen Kaku Gothic New"; font-weight: 900; font-variant-numeric: tabular-nums;
 }
+/* Brickans banners: samma .prow som överallt, i miniatyr. Kolumn, inte rad –
+   brickan är 158 px och två banners bredvid varandra blev bara ellipser. */
+.pcell .pvz { display: grid; gap: 3px; margin-top: 6px; }
+.pcell .pvz .prow { height: 20px; font-size: 9.5px; border-radius: 5px; padding: 0 5px 0 8px; }
+.pcell .pvz .prow .arr { display: none; }
+.pcell .pvz .pvmore { font-size: 9px; font-weight: 800; color: var(--muted); }
 .pcell .mk { position: absolute; font-size: 10px; line-height: 1; z-index: 2; }
 .pcell .mk.alpha { top: 2px; left: 2px; }
 .pcell .mk.lucky { top: 2px; right: 2px; }
@@ -593,6 +853,81 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .prow.t4 { color: #68ffd8; border-color: #2fbfae; }
 .prow.t4::before { background: #c9fff1; box-shadow: 0 0 5px rgba(141, 255, 240, .45); }
 .prow.t4::after { background-image: url(/icons/bg_teal.webp); opacity: .3; }
+
+/* Glansen – och den gäller BARA legend (tier 4).
+   Spelet animerar legendbannern och World Tree-bannern (regnbågen nedan);
+   **guld, grått och negativa står stilla**. Första försöket lyste guld också
+   och det var fel – Kens rättning aug 2026, han känner igen Pal-menyn. Lägg
+   inte tillbaka det: rör sig allt betyder rörelsen ingenting, och just guld är
+   den vanligaste bannern i boxen.
+   Fem saker som är valda, inte råkade så:
+
+   1. **Sveparen ligger i bannerns egen bakgrund**, inte i ett nytt element:
+      ::before är remsan, ::after spelets fasetttextur, och alla åtta ställen
+      som ritar banners gör det ur `passiveVisual()` – ett extra barn hade
+      behövt läggas till i vartenda. Bara `background-image` sätts, så
+      `background: #0e1013` ovan står kvar som färg.
+   2. **Den ligger under texturen med flit** (::after målar över): ljuset ska
+      ligga i materialet, inte som en folie ovanpå det.
+   3. **Slingan är mest paus.** Sveparen tar sista tredjedelen; en Pal-panel
+      visar fyra banners samtidigt och en oavbruten glimt blir en blinkande
+      skylt.
+   4. **Fasförskjutna per plats i rutnätet** (negativ delay = startar mitt i
+      slingan, ingen väntan): fyra banners som glimmar i takt ser ut som ett
+      fel, inte som ljus.
+   5. **Bara `background-position` animeras**, aldrig storlek eller opacitet på
+      hela bannern – det är en ommålning av 29 px, och de finns i mängd.
+   `prefers-reduced-motion` tas av den globala regeln längst ner i filen.
+
+   Sveparen är **tre bannerbredder bred med ljuset i första tredjedelen**, och
+   det är den delen som är lätt att råka fel på: `background-position` i procent
+   räknas mot (behållarens bredd − bildens bredd), så en bild *smalare* än
+   bannern kan inte parkeras utanför kanten – 0 % och 100 % är då bara
+   vänsterkant och högerkant. Med 300 % bredd blir referensen −200 %, alltså
+   ligger ljuset utanför bild vid BÅDA ändarna: 66 % = precis utanför
+   vänsterkanten (där pausen står), 0 % = utanför högerkanten. Därför går
+   slingan nedåt, och slutvärdet är 0 % och inte 100 %.
+   66 och inte 100: gränsen räknas ur strimmans egna stopp och är oberoende av
+   bannerns bredd (både bild och förskjutning skalar med den). Startade slingan
+   på 100 % gick de första fyra tiondelarna av sveparen utanför bild, och
+   glimten blev kortare än tiden sa. */
+@keyframes pshine { 0%, 64% { background-position: 66% 0; } 100% { background-position: 0% 0; } }
+@keyframes pstripe {
+  0%, 100% { box-shadow: 0 0 5px rgba(141, 255, 240, .45); }
+  50% { box-shadow: 0 0 10px rgba(141, 255, 240, .9); }
+}
+/* Ljusstrimman är smal (≈15 % av tre bannerbredder = knappt en halv banner) och
+   lutar 112°: rakt uppåt syns ingen lutning alls på 29 px höjd, och en bred
+   strimma blev en ljus tvätt i stället för en glimt. Kärnan är het med en halo
+   i bannerns egen ton – en jämn slöja i samma alfa syns knappt (mätt: +8,9 mot
+   +27,8 i bannerns medelljus), och kontrasten mot bottnen är hela frågan, så
+   pröva alltid mot den riktiga bannern och inte mot en tanke om den. */
+.prow.t4 {
+  background-repeat: no-repeat; background-size: 300% 100%; background-position: 66% 0;
+  background-image: linear-gradient(112deg, transparent 30%, rgba(190, 255, 244, .45) 34.5%,
+    rgba(245, 255, 253, .95) 37.5%, rgba(190, 255, 244, .45) 40.5%, transparent 45%);
+  animation: pshine 5.5s linear infinite;
+}
+.prow.t4::before { animation: pstripe 5.5s ease-in-out infinite; }
+/* Fasförskjutningen räknas på RUTNÄTETS barn, inte på bannern: i målbilden är
+   varje plats en `.gslot`-knapp med bannern inuti, och `.prow:nth-child` hade
+   matchat noll av dem. Delayen skadar inget på ett barn som inte animeras.
+   De tre behållarna är de som visar banners i grupp – Base Info-panelens 2×2
+   (`.pd-pgrid`) är inte ett `.prows`, och det är just den fyrans glimtar man
+   ser tydligast. */
+.prows > *:nth-child(3n+2), .prows > *:nth-child(3n+2) .prow,
+.pd-pgrid > *:nth-child(3n+2), .pcrow > *:nth-child(3n+2) { animation-delay: -1.8s; }
+.prows > *:nth-child(3n+3), .prows > *:nth-child(3n+3) .prow,
+.pd-pgrid > *:nth-child(3n+3), .pcrow > *:nth-child(3n+3) { animation-delay: -3.6s; }
+/* Boxens brickor är undantaget, och det är mätt – inte antaget. Legend är INTE
+   sällsynt i en riktig box: Kens rutnät ritar 120 brickor med 233 minibanners,
+   och **166 av dem är tier 4** (Legend, Lucky, Demon God …). Med dem igång går
+   bildrutorna från 5,6 ms till 15,5 ms i snitt (p95 21 ms, 17 rutor över 20 ms)
+   — synligt hack utan att man ens rullar, eftersom glansen är en ommålning per
+   banner per bildruta. Regnbågen lämnas orörd: tier 5 är faktiskt sällsynt och
+   var animerad redan. */
+.pcell .pvz .prow.t4, .pcell .pvz .prow.t4::before { animation: none; }
+
 @keyframes rbflow { 0% { background-position: 0% 50%; } 100% { background-position: -200% 50%; } }
 @keyframes rbstripe { 0% { background-position: 0 0; } 100% { background-position: 0 -200%; } }
 .prow.t5 {
@@ -634,6 +969,23 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .ptip .ptbody { font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
 .ptip .ptnote { font-size: 12px; line-height: 1.4; color: var(--ink2); margin-top: 5px; }
 .ptip .ptmeta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* Varurutan (aug 2026): samma ruta, annat innehåll – spelets beskrivning plus
+   varans siffror. Något bredare än passivrutan, för item-texterna är hela
+   meningar där passivtexten är en effekt. Kategorin tonas som en etikett och
+   lånar INTE bannerns färgskala: en vara har ingen tier. */
+.ptip.itip { max-width: min(390px, calc(100vw - 16px)); }
+.ptip.itip .pttier { color: var(--muted); }
+/* Siffrorna som par: etikett i dämpad ton, värdet i siffertypsnittet. Egen rad
+   över metaraden så förbehållet om basvarianten står under det det gäller. */
+.ptip .itstats {
+  display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 7px;
+  padding-top: 7px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--muted);
+}
+.ptip .itstats b { color: var(--ink); margin-left: 3px; }
+/* Tomt förbehåll ska inte lämna en tom rad efter siffrorna. */
+.ptip.itip .ptmeta:empty { display: none; }
 /* Passivnamn i löptext. Prickad understrykning för att det ska synas att raden
    går att hovra – en banner ser klickbar ut av sig själv, ett namn i en mening
    gör det inte. */
@@ -660,6 +1012,243 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .stepcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; margin: 9px 0; }
 .stepcard .hd { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .stepcard .hint { margin-top: 7px; }
+
+/* ---------- leden (BreedRoute) ----------
+   Planens etapper på en karta: ryggraden till vänster bär ungens elementfärg,
+   stegkorten till höger är exakt de vanliga. br-prefixet skyddar mot
+   klassnamnskollisioner (se varningen under "Design rules").
+   Linjerna ritas utan viewBox (se kommentaren i BreedRoute.tsx) – annars
+   skalas streckmönstret med radhöjden och leden faller isär i fragment. */
+.brroute { margin: 4px 0; }
+.brrow { display: grid; grid-template-columns: 128px 1fr; gap: 0 12px; min-height: 130px; }
+.brspine { position: relative; }
+.brspine .brline { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Första raden i en led med huvuden: startsegmentet ritas i den uppmätta
+   överlagringen (från knutpunkten, inte radtoppen) – den statiska linan
+   skulle annars sticka upp förbi punkten mot ingenting. */
+.brrow.trim .brline { display: none; }
+.brspine .brconv { position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
+/* Föräldraporträtten står VID grenarnas startpunkter (x=20 resp. x=110 i den
+   130 px breda gren-SVG:n, dvs ±45 px från kolumnens mitt). Utan de här
+   lägena klumpar de sig opositionerade i hörnet – det var Kens tredje bugg. */
+.brpar {
+  position: absolute; top: 0; z-index: 2;
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--elc);
+  background: color-mix(in srgb, var(--elc) 22%, var(--bg));
+  box-shadow: 0 0 0 3px var(--bg);
+}
+.brpar > img { width: 88%; height: 88%; object-fit: contain; }
+.brpar.tl { left: calc(50% - 61px); }
+.brpar.tr { left: calc(50% + 29px); }
+.brring {
+  position: absolute; left: 50%; top: 122px; transform: translateX(-50%);
+  width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--line2);
+  background: var(--bg);
+}
+
+/* Bärar-/partnerkorten på leden (heads). Grenarna ritas i .brov – en uppmätt
+   överlagring – från varje korts underkant till noden för steget där palen
+   paras in. Luften under korten är grenarnas spelrum. */
+.brroute { position: relative; }
+.brov { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.brheads {
+  display: grid; gap: 12px; margin-bottom: 76px; position: relative; z-index: 1;
+  /* Spaltantalet sätts av BreedRoute (--brcols), men ALDRIG under två – se
+     kommentaren där. Att det står i CSS och inte som inline-style är för att
+     smal skärm ska kunna vinna över det utan !important. */
+  grid-template-columns: repeat(var(--brcols, 2), 1fr);
+}
+.brrow { position: relative; z-index: 1; }
+.brhcard {
+  background: var(--panel); border: 1px solid var(--line);
+  border-top: 3px solid var(--elc); border-radius: var(--r3); padding: 12px 15px;
+}
+.brhwho { display: flex; gap: 11px; align-items: center; }
+.brhwho .nm { font-weight: 800; font-size: 14.5px; }
+.brhwho .meta { color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.brhp {
+  width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2.5px solid var(--elc);
+  background: color-mix(in srgb, var(--elc) 22%, var(--bg));
+}
+.brhpv { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.brhpv .jk { opacity: .55; }
+/* Kortet för palen som paras in i JUST det här steget: står ovanför sitt
+   stegkort, smalare än det, med grenen in i nodens högersida. */
+/* Föräldrarna som brickor INUTI stegkortet (artefaktens `.parentrow`). Steg 2
+   och framåt visar båda föräldrarna här i stället för att lyfta partnern till
+   ett eget kort på leden – parningen hör hemma i steget den beskriver, och
+   ryggraden får vara en obruten linje. Bara linjens start har kort på leden. */
+/* Kedjeväljaren: likvärdiga vägar till målet, en knapp per väg. Sitter ovanför
+   fas 2-leden – valet byter hela artkedjan, så det ska läsas innan man ger sig
+   in i stegen. */
+.chainpick {
+  margin: 12px 0 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2);
+  padding: 9px 13px;
+}
+.cphd {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  cursor: pointer; list-style: none;
+}
+/* Webkits egen triangel bort – vi ritar VISA/DÖLJ i stället, som de andra
+   hopfällbara panelerna. Texten kommer ur `--ui-show`/`--ui-hide`, som
+   LocaleProvider skriver på <html>: ett pseudo-element går inte att nå med t(). */
+.cphd::-webkit-details-marker { display: none; }
+.cphd::after {
+  content: var(--ui-show, "VISA");
+  margin-left: auto; flex: none;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; color: var(--muted);
+}
+.chainpick[open] > .cphd::after { content: var(--ui-hide, "DÖLJ"); }
+.chainpick[open] > .cphd { margin-bottom: 9px; }
+.cphd .k { font-size: 12px; font-weight: 800; color: var(--ink2); }
+/* Vägen som faktiskt används, i sammanfattningen – så man ser vilken det blev
+   utan att fälla ut panelen. */
+.cpnow { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.cptag {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
+  color: var(--acc); border: 1px solid var(--acc);
+  border-radius: 999px; padding: 1px 7px;
+}
+.cpauto { margin-bottom: 9px; }
+.cprow { display: flex; gap: 9px; flex-wrap: wrap; }
+.cpopt {
+  display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: var(--r2); padding: 8px 11px; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
+}
+.cpopt:hover { border-color: var(--line2); }
+/* Vald väg: ramen bär markeringen, inte en fylld yta – banners och porträtt
+   inuti ska behålla sina egna färger. */
+.cpopt.on { border-color: var(--acc); box-shadow: inset 0 0 0 1px var(--acc); }
+.cpway { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.cpeggs {
+  display: flex; align-items: center; gap: 7px;
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-size: 11px; font-weight: 800; color: var(--muted);
+}
+.cpeggs em {
+  font-style: normal; font-size: 9.5px; letter-spacing: .04em;
+  color: var(--acc); font-family: inherit;
+}
+
+.brparents { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; }
+.brparent {
+  display: flex; gap: 9px; align-items: center;
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: var(--r1); padding: 6px 10px;
+}
+.brparent .brpp {
+  width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--elc);
+  background: color-mix(in srgb, var(--elc) 22%, var(--bg));
+}
+/* Direktbarn: könsmärken och liknande syskon ska inte ärva porträttets mått
+   (samma fälla som `.part img`, se Design rules 5). */
+.brparent .brpp > img { width: 88%; height: 88%; object-fit: contain; }
+.brparent .nm { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 11.5px; }
+.brparent .iv {
+  font-size: 10px; color: var(--muted);
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+}
+/* Bannerraden i en bricka får inte tvinga brickan bred – den bryter hellre. */
+.brparent .pcrow { flex-wrap: wrap; max-width: 260px; }
+
+/* Kompakta stegkort (artefaktens form). Ersätter .stepcard inne i leden. */
+.brcard .brstep {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--elc); border-radius: var(--r2);
+  padding: 12px 15px; margin: 9px 0;
+}
+.brstep .klbl {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  font-size: 12.5px; font-weight: 800; color: var(--ink2);
+}
+.klbl2 { font-size: 11px; font-weight: 800; color: var(--muted); flex: none; }
+.brcarry { display: flex; align-items: center; gap: 9px; margin-top: 10px; flex-wrap: wrap; }
+.brpills { display: flex; align-items: center; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+.bpill {
+  border: 1px solid var(--line2); border-radius: 999px; padding: 2px 10px;
+  font-size: 11px; font-weight: 700; color: var(--ink2); background: var(--panel2);
+}
+.brparents { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.bpp {
+  display: flex; gap: 9px; align-items: center;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r1);
+  padding: 6px 11px;
+}
+.bpp .t { display: grid; line-height: 1.35; }
+.bpp b { font-size: 12px; }
+.bpp .t > span { font-size: 10.5px; color: var(--muted); font-weight: 700; }
+.bpp i { font-style: normal; color: var(--acc); font-size: 10px; font-weight: 800; }
+.bppv { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* Banners i leden har naturlig bredd – artefaktens uttryck. Scopat hit så
+   2-kolumnsrutnätet (.prows) överallt annars står orört. */
+.brroute .pchips { margin: 0; }
+.brroute .pcrow { display: flex; flex-wrap: wrap; gap: 5px; }
+.brroute .pcrow .prow { flex: none; }
+.brnode {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  text-align: center; width: 100%;
+}
+/* Noden sitter alltid överst i sin rad: sedan föräldrarna flyttade IN i
+   stegkortet finns inget anslutande kort som skjuter ner den. */
+.brnode .bricon {
+  width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2.5px solid var(--elc);
+  background: color-mix(in srgb, var(--elc) 22%, var(--bg));
+  box-shadow: 0 0 0 4px var(--bg);
+}
+/* Direktbarn, inte descendant: ikonens systrar (kön/alfa-märken) ska inte
+   ärva måtten – samma fälla som `.part img` (se Design rules 5). */
+.brnode .bricon > img { width: 88%; height: 88%; object-fit: contain; }
+/* Textpiller med sidans botten bakom: annars stryker linjen rakt genom namnet. */
+.brnode .nm {
+  font-size: 11px; font-weight: 800; line-height: 1.3;
+  background: var(--bg); border-radius: 999px; padding: 0 7px;
+  max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.brnode .lb {
+  font-size: 9px; font-weight: 800; color: var(--muted); letter-spacing: .04em;
+  background: var(--bg); border-radius: 999px; padding: 0 7px;
+}
+/* Etappkortet bär ungens elementfärg som vänsterkant – samma språk som
+   skisserna. --elc sätts på .brcard i BreedRoute. */
+.brcard .stepcard { border-left: 3px solid var(--elc); }
+@media (prefers-reduced-motion: no-preference) {
+  .brmarch { animation: brmarch 26s linear infinite; }
+  @keyframes brmarch { to { stroke-dashoffset: -200; } }
+}
+/* Smal skärm: kartan bär inte – korten räcker, och en 128 px-kolumn stjäl
+   en tredjedel av bredden. */
+@media (max-width: 700px) {
+  .brrow { grid-template-columns: 1fr; min-height: 0; }
+  .brspine { display: none; }
+  /* Ryggraden är borta här, så grenarna har ingenting att mötas i – då är
+     halvbreda huvudkort bara trängsel. */
+  .brheads { grid-template-columns: 1fr; }
+}
+
+/* Fasrubrikerna som band (artefaktens språk): etiketten mellan två streckade
+   linjer i stället för en naken h3. Gäller planens rubriker. */
+h3.phase {
+  display: flex; align-items: center; gap: 12px; margin: 18px 0 10px;
+  font-size: 13.5px; color: var(--ink2);
+}
+h3.phase::before, h3.phase::after {
+  content: ""; flex: 1; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--line2) 0 7px, transparent 7px 13px);
+}
+/* Centrerad etikett med linjer åt båda håll – artefaktens fasband. */
 .stepnum {
   background: var(--acc); color: var(--bg); min-width: 24px; height: 24px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; padding: 0 9px;
@@ -819,8 +1408,7 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .impcases > div + div { margin-top: 6px; }
 .impcases > .fine { opacity: .78; }
 
-/* Förrådet av implantat – egen panel med samma hopfällning som Avelsbas, så den
-   ärver `.bsetup > summary` (chevron, VISA/DÖLJ, klickbar list). */
+/* Förrådet av implantat – modalkropp som Avelsbas (.bsetup.asmodal + .bshd). */
 /* ---------- manuellt läge ----------
    Två platser, en editor. Klassnamnen är prefixade "m"/"mpair" av samma skäl som
    "bs": det här stilarket är ett enda, och en generisk `.slot` hade kunnat träffa
@@ -894,61 +1482,15 @@ button.ghost:disabled { opacity: .45; cursor: default; }
    med <Tag kind="…">-strängar, och en generisk `.eff`/`.row` här hade kunnat
    träffa en badge någon annanstans. Allt utom summary-raden scopas dessutom
    under .bsetup. */
+/* .bsetup är numera alltid en modalkropp (.asmodal) – den fristående
+   details-formen med chevron/VISA-DÖLJ togs bort när verktygen blev modaler.
+   Barnstilarna (.bsgrp/.bsrow/.eff …) är fortfarande nycklade på .bsetup. */
 .bsetup {
   background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--r3); padding: 10px 16px; margin-bottom: 14px;
 }
-.bsetup[open] { padding-bottom: 16px; }
-/* Rubriken är en egen list med ram och botten, inte bara text. Den första
-   versionen hade en 11 px pil i --muted och inget annat, och den lästes inte som
-   "det finns mer här" – sektionen är hopfälld som standard, så missar man
-   greppet finns hela avelsbasen inte. */
-.bsetup > summary {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  cursor: pointer; list-style: none;
-  padding: 7px 12px; border: 1px solid var(--line);
-  border-radius: var(--r2); background: var(--panel2);
-  transition: border-color .15s ease;
-}
-.bsetup[open] > summary { margin-bottom: 2px; }
-/* Hopfälld är sektionen EN list, inte en ruta i en ruta: den yttre panelen
-   backar undan så det bara finns en ram att läsa, och listen lyfts till
-   panelnivå så den ser ut som något man klickar på och inte som en urgröpning. */
-.bsetup:not([open]) { background: none; border-color: transparent; padding: 0; }
-.bsetup:not([open]) > summary { background: var(--panel); padding: 11px 14px; }
-.bsetup > summary:hover { border-color: var(--acc); }
-.bsetup > summary::-webkit-details-marker { display: none; }
-/* Egen pil i en rund knapp: den vänder med [open], sitter kvar även när raden
-   radbryts, och accenten gör den till det första ögat hittar på raden. */
-.bsetup > summary::before {
-  content: "▸"; flex: none;
-  width: 20px; height: 20px; border-radius: 999px;
-  display: grid; place-items: center; font-size: 10px; line-height: 1;
-  color: var(--acc); background: var(--acc-soft);
-  border: 1px solid var(--acc-soft);
-  transition: transform .15s ease;
-}
-.bsetup[open] > summary::before { transform: rotate(90deg); }
-/* Ordet efter taggen säger vad klicket gör. Utan det får man gissa att raden
-   går att klicka på alls.
-
-   Texten kommer ur en custom property och inte ur `content: "Visa"`, eftersom
-   pseudo-element inte går att nå från React: `LocaleProvider` skriver
-   `--ui-show`/`--ui-hide` på <html> när språket byts. Reservvärdet är engelska,
-   samma som DEFAULT_LOCALE. */
-.bsetup > summary::after {
-  content: var(--ui-show, "Show"); flex: none;
-  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--acc);
-}
-.bsetup[open] > summary::after { content: var(--ui-hide, "Hide"); }
-.bsetup > summary .ttl { font-weight: 800; font-size: 14.5px; }
-.bsetup > summary .num {
-  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
-  font-weight: 900; font-size: 17px; color: var(--acc); font-variant-numeric: tabular-nums;
-}
-.bsetup > summary .meta { font-size: 12px; color: var(--muted); }
-.bsetup > summary .tag { margin-left: auto; }
+/* (historik: pseudo-elementens VISA/DÖLJ kom ur --ui-show/--ui-hide som
+   LocaleProvider skriver på <html>; .pickfold använder fortfarande greppet.) */
 
 /* Takten mot spelets tak. Underlaget (u) är vad Bralohas kondensering ensam
    skulle ge – skillnaden mellan de två staplarna är det man kan ta i dag,
@@ -1032,11 +1574,122 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .bsetup .bswarn b { color: var(--ink2); }
 /* min(430px, 100%): utan det får spåret 430 px även på en 420 px-skärm och sidan
    börjar scrolla i sidled. */
+/* Väljarnas hopfällning: en panelrad i vila, hela pickrow utfälld. Samma
+   formspråk som verktygspanelerna ovanför. */
+.pickfold { margin-bottom: 14px; }
+.pickfold > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r3);
+  padding: 13px 16px; font-weight: 800; font-size: 13.5px;
+}
+.pickfold > summary::-webkit-details-marker { display: none; }
+.pickfold > summary::before { content: "▸"; color: var(--muted); transition: transform .15s ease; }
+.pickfold[open] > summary::before { transform: rotate(90deg); }
+.pickfold[open] > summary { margin-bottom: 14px; }
+.pickfold > summary .picked { margin-left: auto; }
+
 .pickrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr)); gap: 14px; align-items: start; }
 .pickrow .panel { margin-bottom: 0; }
 /* Vänsterspalten är en stapel, inte ett kort: passiv-väljaren till höger är
    dubbelt så hög, och rutnätet ska inte tänjas för att fylla tomrummet. */
 .pickcol { display: grid; gap: 14px; align-content: start; min-width: 0; }
+
+/* ---------- planerarens topp: målbild | förväntat | verktyg ----------
+   Artefaktens huvud (designrundan aug 2026). bh-prefix mot klasskollisioner. */
+.bhead { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.bhead .goalcard { margin: 0; }
+/* Målcellen: kortet + knappen som öppnar väljarna – de hör ihop. */
+.bhgoal { display: grid; gap: 8px; align-content: start; }
+.bhedit { display: flex; align-items: center; gap: 8px; text-align: left; }
+.bhedit .picked { margin-left: auto; }
+/* Radbrytningen i Förväntat: etikett vänster, tal höger, Zen för siffran. */
+.bhrow { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px;
+  font-size: 11.5px; color: var(--ink2); }
+.bhrow b { color: var(--ink); }
+.bhimps { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.bhmeter { display: block; margin-top: 8px; width: 100%; max-width: none; }
+
+/* Verktygen renderas som modalKROPPAR i samma pamodal som väljarna (Kens
+   rättning ×2: kortraden expanderade hoppigt, och den CSS-lyfta details-
+   varianten blev en hoptryckt remsa utan stängning). Panelen tappar sin egen
+   ram – pmbox är rutan – och huvudraden .bshd ersätter summaryn: samma
+   innehåll (titel, tal, badge) men statisk, stängningen äger modalen. */
+.bsetup.asmodal { border: 0; background: none; padding: 0; margin: 0; }
+.bshd {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  /* Höger luft så badgen inte kryper in under modalens ✕. */
+  padding: 2px 44px 10px 0; margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.bshd .ttl { font-weight: 800; font-size: 16px; }
+.bshd .num {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-size: 17px; color: var(--acc); font-variant-numeric: tabular-nums;
+}
+.bshd .meta { font-size: 12px; color: var(--muted); }
+.bshd .tag { margin-left: auto; }
+
+/* Verktygsknapparna i topp-panelen. */
+.bhtoolbtn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; margin-top: 7px; padding: 8px 12px; cursor: pointer;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r1);
+  font: 800 12px inherit; color: var(--ink); text-align: left;
+}
+.bhtoolbtn:hover { border-color: var(--acc); }
+.bhtoolbtn .v { color: var(--ink2); font-weight: 700; }
+
+/* Förväntat: fasstapeln – en mätare i två färger + legendprickar. */
+.bhsplit { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+.bhsplit .p1 { background: var(--acc); }
+.bhsplit .p2 { background: color-mix(in srgb, var(--acc) 45%, var(--line2)); }
+.bhdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.bhdot.p1 { background: var(--acc); }
+.bhdot.p2 { background: color-mix(in srgb, var(--acc) 45%, var(--line2)); }
+.bhrow.bhx { border-top: 1px dashed var(--line2); padding-top: 6px; margin-top: 8px; }
+
+/* Väljarmodalen (art/passiver från målbilden). */
+.pamodal { position: fixed; inset: 0; z-index: 95; }
+.pmback { position: absolute; inset: 0; background: rgba(8, 6, 16, .55); backdrop-filter: blur(3px); }
+.pmbox {
+  position: relative; margin: 6vh auto 0; width: min(980px, calc(100vw - 28px));
+  max-height: 86vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r3);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, .5); padding: 16px 20px;
+}
+.pmbox .panel { margin-bottom: 0; box-shadow: none; border: 0; padding: 0; background: none; }
+.pmclose {
+  position: absolute; top: 10px; right: 12px; z-index: 2;
+  background: var(--panel2); border: 1px solid var(--line2); border-radius: 999px;
+  width: 30px; height: 30px; cursor: pointer; color: var(--ink2); font-weight: 800;
+}
+.pmclose:hover { color: var(--ink); border-color: var(--acc); }
+
+/* Målbildens klickytor: porträttet med penna + passivplatserna som knappar. */
+.gpor.gbtn { position: relative; cursor: pointer; border: 0; padding: 0; background: none; }
+.gpor.gbtn:hover { outline: 2px solid var(--acc); outline-offset: 3px; border-radius: 50%; }
+.gpen {
+  position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--acc); color: var(--bg); border-radius: 50%; font-size: 11px;
+  box-shadow: 0 0 0 3px var(--panel);
+}
+.gedit { font-style: normal; color: var(--acc); margin-left: 6px; }
+.gslot { border: 0; padding: 0; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.gslot:hover .prow { outline: 2px solid var(--acc); outline-offset: 1px; }
+.gslot .prow { width: 100%; }
+/* Kolumn med pinnad fot: sista raden trycks mot botten så alla tre toppkort
+   möts i underkant (granskarens fynd: 40 % död yta i två av tre). */
+.bhcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r3); padding: 13px 16px;
+  display: flex; flex-direction: column; }
+.bhcard > :last-child { margin-top: auto; }
+.bhk { font-size: 10.5px; font-weight: 800; color: var(--muted); margin-bottom: 6px; }
+.bhbig { font-family: "Zen Kaku Gothic New"; font-weight: 900; font-variant-numeric: tabular-nums; font-size: 30px; line-height: 1.1; }
+.bhbig span { font-size: 13px; font-weight: 700; color: var(--ink2); }
+.bhtime { margin-top: 6px; font-size: 12px; color: var(--ink2); }
+.bhtool { font-size: 12.5px; font-weight: 800; margin-top: 5px; }
+@media (max-width: 900px) { .bhead { grid-template-columns: 1fr; } }
 
 /* ---------- målbilden: arten + passiverna planen ska ge den ---------- */
 .goalcard {
@@ -1128,6 +1781,45 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .ivsum .col.dim b { color: var(--muted); }
 .ivsum .col.win { background: color-mix(in srgb, var(--green) 12%, transparent); }
 .ivsum .col.win b { color: var(--green); }
+/* Varför arten står i kön: rollen och stjärnhoppet i klartext. Tonas ner till
+   varningsfärg när arten inte har någon roll alls – då är rådet "gör något
+   annat först", inte "gör det här". */
+.rqwhy { margin: 0 0 7px; font-size: 11.5px; font-weight: 700; color: var(--green); }
+.rqwhy.none { color: var(--orange); }
+
+/* Fas-chip i stegets huvud: färgen säger vad steget UTRÄTTAR, och det är den
+   som låter numreringen löpa 1 → N genom hela planen i stället för att brytas av
+   tre rubriker (Kens design "En led", aug 2026). */
+.ph { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 999px; white-space: nowrap; border: 1px solid; flex: none; }
+.ph.imp { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 45%, transparent);
+  background: color-mix(in srgb, var(--violet) 13%, transparent); }
+.ph.iv { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 45%, transparent);
+  background: color-mix(in srgb, var(--blue) 13%, transparent); }
+.ph.pv { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+  background: color-mix(in srgb, var(--gold) 14%, transparent); }
+.ph.goalph { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent);
+  background: color-mix(in srgb, var(--green) 13%, transparent); }
+.phlegend { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 12px; }
+/* Vad ungen ska ha i IV – samma roll som passivbannern har för passiver. */
+.ivchip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 7px; color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 40%, transparent);
+  background: color-mix(in srgb, var(--blue) 12%, transparent); }
+.ivchip .n { font-family: "Zen Kaku Gothic New"; font-weight: 900; }
+
+/* En 100:a som bärs in ur en annan art (ivImport.ts). Brickan ska läsas som
+   "det här är inte en pal du har – det är en du avlar fram först", så den bär
+   accentfärgen i stället för elementets och har artkedjan inbakad. */
+.mini.imp { padding-left: 10px; background: color-mix(in srgb, var(--acc) 14%, var(--panel2));
+  border-color: color-mix(in srgb, var(--acc) 45%, var(--line)); }
+.mini.imp > .k { font-size: 9.5px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--acc); }
+/* Varifrån brickan kommer, eller var palen står – en svans, inte ett fält. */
+.mini .via { font-size: 9.5px; font-weight: 700; color: var(--muted); }
+.ivpath { display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.ivarrow { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; }
+
 /* donatorer för en IV-lucka */
 .donors { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .donor { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -1137,17 +1829,31 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 /* ============================================================
    LISTOR OCH RADER
    ============================================================ */
-details.dgroup { border: 1px solid var(--line); border-radius: var(--r2); background: var(--panel2); padding: 12px 15px; margin: 9px 0; }
-details.dgroup summary { cursor: pointer; font-weight: 800; font-size: 13px; }
+/* Moderniserade sedan designrundan: samma kortspråk som bhead/toolrow —
+   panelbotten, r3-radier och en chevron som vrider sig. */
+details.dgroup { border: 1px solid var(--line); border-radius: var(--r3); background: var(--panel); padding: 12px 16px; margin: 10px 0; }
+details.dgroup summary { cursor: pointer; font-weight: 800; font-size: 13px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+details.dgroup summary::before { content: "▸"; color: var(--muted); transition: transform .15s ease; }
+details.dgroup[open] summary::before { transform: rotate(90deg); }
+details.dgroup summary::-webkit-details-marker { display: none; }
 details.dgroup summary .n { color: var(--muted); font-weight: 600; font-size: 12px; }
 /* Rubriken säger VAD gruppen är, .why säger varför de sparas. */
 details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 8px; }
 @media (max-width: 720px) { details.dgroup summary .why { display: block; margin: 2px 0 0; } }
-.rrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+/* Radkort i stället för tabellinjer (designrundan): rundade rader med
+   hover-lyft, som boxbrickorna fast liggande. */
+.rrow {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; flex-wrap: wrap;
+  border: 1px solid transparent; border-radius: var(--r1); margin: 3px 0;
+  background: var(--panel2);
+}
+.rrow:hover { border-color: var(--line2); }
 .rrow:last-child { border-bottom: none; }
 .rrow img { border-radius: var(--r1) !important; }
 .rrow .nm { font-weight: 800; font-size: 13px; min-width: 120px; }
 .rrow .ivt { font-size: 11.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+/* Mätaren fyller radens glugg i stället för 550 px tomrum (granskaren). */
+.rrow .statbar { flex: 1; min-width: 120px; }
 .rowbtn {
   background: none; border: none; border-bottom: 1px solid var(--line); width: 100%;
   text-align: left; color: inherit; font: inherit; cursor: pointer; border-radius: var(--r1);
@@ -1168,7 +1874,7 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
    BÄST FÖR…
    ============================================================ */
 .wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; margin-top: 10px; }
-.wcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 13px; }
+.wcard { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--line2); border-radius: var(--r2); padding: 12px 13px; }
 .wcard .wt { font-weight: 800; font-size: 12.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .wcard .wt .em { font-size: 16px; display: inline-flex; }
 .wrow { display: flex; align-items: center; gap: 7px; padding: 4px 3px; font-size: 12.5px; border-radius: var(--r1); }
@@ -1198,7 +1904,8 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .statbar { flex: none; width: 92px; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; }
 .statbar i { display: block; height: 100%; border-radius: 3px; background: var(--acc); }
 .statbar.tiny { display: block; width: 56px; height: 4px; margin: 3px auto 2px; }
-.teamcard { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 15px; margin-bottom: 12px; }
+/* `.teamcard` var ytan bakom formationen när rollerna var band. Konsolens
+   moduler bär den ytan själva, så wrappern är borta ur markupen (aug 2026). */
 .trow { display: flex; gap: 12px; flex-wrap: wrap; }
 .tp { position: relative; text-align: center; width: 92px; }
 .tp .por {
@@ -1503,25 +2210,86 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .prog .track { height: 8px; border-radius: 5px; background: var(--panel2); overflow: hidden; }
 .prog .track i { display: block; height: 100%; border-radius: 5px; background: var(--acc); }
 
-/* ---------- spara-listan: rutnät, inte radbrytande flex ----------
-   Med 190 pals är kolumnerna hela poängen – flex-wrap gav en ojämn
-   trappa där inget gick att jämföra i sidled. */
-.kgrid { margin-top: 6px; }
-.krow {
-  display: grid; align-items: center; gap: 10px; width: 100%; text-align: left;
-  grid-template-columns: 26px minmax(130px, 1fr) 142px minmax(140px, 1fr) minmax(200px, 1.5fr);
-  background: none; border: none; border-bottom: 1px solid var(--line); border-radius: var(--r1);
-  padding: 7px 6px; color: inherit; font: inherit; cursor: pointer;
+/* ---------- SPARA-KONSOLEN: segmentband + väljare + brickor ----------
+   Nio hopfällda grupper sa aldrig hur stor någon grupp var i förhållande till
+   de andra – man fick nio rubriker och en siffra i varje. Bandet visar hela
+   mängden på en gång, brickorna under är väljare, och bara den valda gruppens
+   exemplar ritas ut.
+
+   Färgen är information, inte dekoration: FAMILJEN av skäl (passiv / IV /
+   status / artens bästa) bär hue, och stegen k1–k3 skiljer grupper inom samma
+   familj på ljushet i stället för att införa nya färger. Allt kommer ur temats
+   egna tokens, så båda lägena och alla paletter fungerar – elementfärgen är
+   fortfarande reserverad för pals, och en pal i rutnätet under bär sin egen. */
+.kscon { display: grid; gap: 10px; }
+.ksband {
+  display: flex; height: 15px; border-radius: 8px; overflow: hidden;
+  background: var(--inset); box-shadow: inset 0 0 0 1px var(--line);
 }
-.krow:last-child { border-bottom: none; }
-.krow:hover { background: var(--acc-soft); }
-.krow .knm { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 13px; min-width: 0; }
-.krow .knm b { font-weight: 800; }
-.krow .ivt { font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 1080px) {
-  .krow { grid-template-columns: 26px minmax(0, 1fr); }
-  .krow > :nth-child(n+3) { grid-column: 2; }
+.ksband i {
+  display: block; height: 100%; min-width: 3px; background: var(--kfc);
+  opacity: .55; transition: opacity .12s;
 }
+.ksband i.on { opacity: 1; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 45%, transparent); }
+
+/* Familjetonerna, skrivna rakt ut i alla tolv kombinationer i stället för via
+   en mellanvariabel: en `--kfb` som sattes av en mer specifik regel och lästes
+   av en mindre var korrekt men omöjlig att felsöka. Klassnamnen är långa med
+   flit – `.k2` i ett globalt stilark är precis den sortens namn som en dag
+   kolliderar med en `kind`-sträng (se varningen under "Ytor"). */
+.kfam-pv { --kfc: var(--gold); }
+.kfam-pv.kstep2 { --kfc: color-mix(in srgb, var(--gold) 60%, var(--ink2)); }
+.kfam-pv.kstep3 { --kfc: color-mix(in srgb, var(--gold) 32%, var(--ink2)); }
+.kfam-iv { --kfc: var(--blue); }
+.kfam-iv.kstep2 { --kfc: color-mix(in srgb, var(--blue) 60%, var(--ink2)); }
+.kfam-iv.kstep3 { --kfc: color-mix(in srgb, var(--blue) 32%, var(--ink2)); }
+.kfam-st { --kfc: var(--violet); }
+.kfam-st.kstep2 { --kfc: color-mix(in srgb, var(--violet) 60%, var(--ink2)); }
+.kfam-st.kstep3 { --kfc: color-mix(in srgb, var(--violet) 32%, var(--ink2)); }
+.kfam-rest { --kfc: var(--muted); }
+.kfam-rest.kstep2 { --kfc: color-mix(in srgb, var(--muted) 70%, var(--ink2)); }
+.kfam-rest.kstep3 { --kfc: color-mix(in srgb, var(--muted) 45%, var(--ink2)); }
+
+.kslegend { display: flex; flex-wrap: wrap; gap: 5px; }
+.kschip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+  background: var(--panel2); color: var(--ink2); font: inherit;
+  font-size: 11px; font-weight: 700;
+}
+.kschip i { width: 8px; height: 8px; border-radius: 2px; background: var(--kfc); flex: none; }
+.kschip b { color: var(--ink); font-weight: 900; }
+.kschip:hover { border-color: var(--line2); color: var(--ink); }
+.kschip.on {
+  color: var(--ink); background: var(--inset);
+  border-color: color-mix(in srgb, var(--kfc) 65%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--kfc) 35%, transparent);
+}
+.kswhy { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+.kswhy b { color: var(--ink); font-weight: 800; }
+
+/* Brickorna: porträtt över namn över IV över skälets banner. Fyra i bredd i en
+   halv modul, och `min-width: 0` överallt – bannern måste få krympa, annars
+   spränger ett långt passivnamn (Heart of the Immovable King) hela rutnätet. */
+.kscells { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 7px; }
+.kscell {
+  display: grid; justify-items: center; gap: 4px; min-width: 0; cursor: pointer;
+  background: var(--inset); border: 1px solid transparent; border-radius: var(--r2);
+  padding: 9px 7px 8px; color: inherit; font: inherit; text-align: center;
+}
+.kscell:hover { border-color: color-mix(in srgb, var(--elc) 55%, transparent); }
+.kscell .nm {
+  display: flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 800;
+  max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kscell .ivt {
+  display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.kscell .prows { width: 100%; grid-template-columns: minmax(0, 1fr); }
+.kscell .prow { min-width: 0; height: 24px; font-size: 10.5px; padding: 0 4px 0 8px; }
+.kscell .prow .arr { transform: scale(.8); }
+.kscell .nm img { flex: none; }
 
 /* ============================================================
    DETALJVY (Base Info) – spelets layout, på Habitats ytor
@@ -1728,21 +2496,244 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
    skärm, och kön är det man faktiskt kom för att göra. */
 .rqkeeps details.dgroup { margin: 6px 0; padding: 9px 15px; }
 
-/* ---------- kön ---------- */
-.rqband {
+/* ============================================================
+   ROLLERNA – "Konsolen" (Kens val ur fyra designförslag aug 2026,
+   omdesignrunda 2). Förra ytan underkändes som "böklig … mycket
+   saker i luften och klutter", och de tre felen den hade styr
+   varje val här:
+
+     1. Ingenting höll ihop innehållet  → allt bor i MODULER med
+        ram och rubrikband (.rhmod).
+     2. Allt hade samma vikt            → rollens siffror är
+        MÄTARE överst (.rhg), modulrubrikerna är små.
+     3. Listor i listor                 → kön är en radlista med
+        LED-stjärnor och vinstmätare (.cqrow), spara-listan ett
+        segmentband (.ksband ovan).
+
+   Plattorna bakom flikrad och band är fortfarande borta (Kens
+   begäran aug 2026): varken mätarraden eller nätet har en
+   wrapper-yta. Modulerna ÄR innehållsytor och bär därför sina
+   egna ramar – det är samma regel, inte ett undantag.
+
+   Bandets ton är ETT element per roll; --elc sätts i React ur
+   ELEMENT_META, aldrig hårdkodat här.
+   ============================================================ */
+
+/* ---------- mätarraden: fem instrument som också är flikarna ---------- */
+.rhdash {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
+  margin-bottom: 14px;
+}
+.rhg {
+  position: relative; display: grid; align-content: start; gap: 3px; overflow: hidden;
+  padding: 11px 13px 12px; text-decoration: none; border-radius: var(--r2);
+  border: 1px solid var(--line); background: var(--panel);
+  transition: transform .12s, border-color .12s, box-shadow .12s;
+}
+/* Instrumentets övre kant lyser i rollens färg – rollen känns igen på tonen
+   innan man läst namnet, och kanten kostar ingen yta. */
+.rhg::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--elc), transparent 72%); opacity: .85;
+}
+.rhg:hover {
+  border-color: color-mix(in srgb, var(--elc) 55%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--elc) 14%, rgba(0, 0, 0, .14));
+}
+.rhg.on {
+  border-color: color-mix(in srgb, var(--elc) 60%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--elc) 10%, transparent), transparent 60%), var(--panel);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--elc) 32%, transparent);
+}
+.rhg .rw { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rhg .no {
+  font-size: 10px; font-weight: 800; letter-spacing: .16em; color: var(--muted); flex: none;
+}
+.rhg.on .no { color: color-mix(in srgb, var(--elc) 60%, var(--ink)); }
+.rhg .nm {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: 13.5px; font-weight: 800; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rhg .nm .ric {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; flex: none; font-size: 13px;
+}
+/* Talet är stort, etiketten liten och på samma baslinje: siffran är det man
+   scannar, ordet är det man läser först EN gång. */
+.rhg .big { display: flex; align-items: baseline; gap: 6px; margin-top: 3px; min-width: 0; }
+.rhg .big b { font-size: 21px; font-weight: 900; line-height: 1.05; color: var(--ink); }
+.rhg .big .l {
+  font-size: 10.5px; color: var(--ink2); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rhg .n { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rhg .m { display: block; height: 4px; border-radius: 2px; background: var(--inset); overflow: hidden; margin-top: 7px; }
+.rhg .m i { display: block; height: 100%; background: var(--elc); }
+
+/* ---------- rollens rad: bara vad rollen är och vilken fråga den svarar på ----------
+   KPI-pillren är borta: samma tal står i mätaren ovanför, och två ställen som
+   säger samma sak är en av de saker som gjorde sidan rörig. */
+.rhhead {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--acc);
-  border-radius: var(--r2); padding: 12px 16px; margin-bottom: 14px;
+  padding: 4px 2px 9px; margin-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--elc) 35%, var(--line));
 }
-.rqband .k {
-  font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 800;
-}
-.rqband .v { font-size: 14px; color: var(--ink2); }
-.rqband .v b {
-  color: var(--ink); font-size: 17px; font-weight: 900;
+.rhhead .rn {
   font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  font-weight: 900; font-size: 20px; line-height: 1; flex: none;
+  color: color-mix(in srgb, var(--elc) 55%, var(--ink));
 }
-.rqband .s { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+.rhhead h2 { font-size: 19px; }
+.rhhead .q { font-size: 11.5px; color: var(--ink2); }
+
+/* ---------- modulnätet ----------
+   Tolv spalter, och innehållet ligger i SPALTER (.rhcol) snarare än rader:
+   moduler direkt i nätet bildar rader, och två rader med olika höga moduler
+   lämnar ett tomrum lika stort som skillnaden. Fullbreddsmoduler (.s12) ligger
+   som egna rader efter spalterna. */
+.rhgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.rhcol { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; min-width: 0; }
+/* Modulerna behåller sin `s7`/`s5`-klass inne i en spalt – den beskriver
+   bredden de HAR. Men `grid-column: span 7` i en enspaltig grid skapar sju
+   implicita spalter, så spalten nollar den. Behåll raden. */
+.rhcol > .rhmod { grid-column: 1 / -1; }
+.rhmod {
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--r2); background: var(--panel);
+}
+.s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s6 { grid-column: span 6; }
+.s7 { grid-column: span 7; } .s8 { grid-column: span 8; } .s12 { grid-column: span 12; }
+/* Rubrikbandet: liten spärrad rubrik till vänster, räknaren som pillra till
+   höger. Räknaren är det som gör en rubrik kontrollerbar – "19 arter · +22★"
+   svarar på "är det mycket?" utan att man läser en rad i kroppen. */
+.rhmh {
+  display: flex; align-items: center; gap: 10px; padding: 8px 13px;
+  background: var(--inset); border-bottom: 1px solid var(--line);
+}
+.rhmh h3 {
+  font-size: 11px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--ink2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rhmh .n {
+  margin-left: auto; flex: none; font-size: 11px; font-weight: 900; color: var(--ink);
+  font-variant-numeric: tabular-nums; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+}
+.rhmb { padding: 12px 13px 13px; min-width: 0; }
+.rhmb.flush { padding: 6px 6px 10px; }
+.rhmb > .sub { margin: -2px 0 9px; }
+/* Fotnoten: källor, förbehåll och "hur läser jag det här" hör hit – i kroppen
+   konkurrerade de med innehållet, och det var hälften av kluttret. */
+.rhmf {
+  margin-top: auto; padding: 8px 13px 10px; border-top: 1px solid var(--line);
+  font-size: 10.5px; line-height: 1.5; color: var(--muted); background: var(--strip);
+}
+.rhmf b { color: var(--ink2); font-weight: 800; }
+.rhmf .rqwhy, .rhmf details { background: none; border: 0; padding: 0; margin: 0; }
+.rhmf .rqwhy > summary { font-size: 11px; }
+
+/* Mellanrubrik inne i en modul. */
+.rhsub {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12.5px; margin: 16px 0 8px;
+}
+.rhmb > .rhsub:first-child { margin-top: 0; }
+.rhsub .note { font-size: 10.5px; font-weight: 500; color: var(--muted); }
+
+/* ---------- köinstrumentet: en rad per art ----------
+   Kolumnerna är samma i huvudet och i raderna, så LED-remsan och mätaren står
+   under sina etiketter. Utan etiketterna är de mönster, och ett mönster ingen
+   kan läsa av är just den dekoration omdesignen skulle bli av med. */
+.cqhead, .cqrow > summary {
+  display: grid; align-items: center; gap: 9px;
+  grid-template-columns: 24px 30px minmax(84px, 1fr) 62px 52px minmax(46px, 1fr) 46px 30px 14px;
+}
+.cqhead {
+  padding: 4px 8px 6px; font-size: 8.5px; font-weight: 800; letter-spacing: .12em;
+  color: var(--muted); text-transform: uppercase;
+}
+.cqrow { border-top: 1px solid var(--line); }
+.cqrow:first-of-type { border-top: 0; }
+.cqrow > summary {
+  cursor: pointer; list-style: none; padding: 6px 8px; border-radius: var(--r1);
+}
+.cqrow > summary::-webkit-details-marker { display: none; }
+.cqrow > summary:hover { background: var(--inset); }
+.cqrow[open] > summary { background: var(--inset); }
+.cqrow .ix { font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.cqrow .nm {
+  font-size: 12.5px; font-weight: 800; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cqrow .feed { font-size: 11px; color: var(--ink2); text-align: right; white-space: nowrap; }
+.cqrow .pct { font-size: 11.5px; font-weight: 900; color: var(--green); text-align: right; }
+.cqrow .cv { color: var(--muted); font-size: 10px; text-align: center; }
+.cqrow[open] > summary .cv { color: var(--acc); transform: rotate(180deg); }
+.cqrow .rswarn { justify-content: center; }
+.cqrow .ava { flex: none; }
+
+/* Stjärnhoppet som lampor: fyllda = har, lysande = får nu, släckta = taket.
+   Fyra lampor är hela sanningen (STAR_COST har fyra steg, 1.0:s tak är 4★). */
+.cqleds { display: inline-flex; gap: 3px; }
+.cqleds i {
+  display: block; width: 10px; height: 13px; border-radius: 2px;
+  background: var(--inset); box-shadow: inset 0 0 0 1px var(--line2);
+}
+.cqleds i.was { background: var(--line2); box-shadow: none; }
+.cqleds i.new {
+  background: var(--gold);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+/* Vinstmätaren står mot taket (+20 % vid 4★), inte mot radens eget max – annars
+   ser en 1★-rad lika stark ut som en 3★-rad. */
+.cqbar { height: 5px; border-radius: 3px; background: var(--inset); overflow: hidden; }
+.cqbar i { display: block; height: 100%; background: var(--green); }
+
+/* ---------- uppgiften: numrerad rad i en Gör-modul ----------
+   Samma anatomi i statisk rad, länkrad och utfällbar, så modulen läses som EN
+   lista. Egen pil (.cv) i stället för webbläsarens triangel. */
+.rhtask {
+  border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  background: none; color: inherit; text-decoration: none; width: 100%;
+  font: inherit; text-align: left; display: block; padding: 0; margin: 0;
+}
+.rhmb > .rhtask:first-child, .rhsub + .rhtask, .okbox + .rhtask, .hint + .rhtask { border-top: 0; }
+.rhtask:not(details), details.rhtask > summary {
+  display: grid; grid-template-columns: auto 1fr 16px; gap: 11px; align-items: start;
+  padding: 10px 2px;
+}
+details.rhtask > summary { cursor: pointer; list-style: none; }
+details.rhtask > summary::-webkit-details-marker { display: none; }
+.rhtask .ix {
+  width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center;
+  margin-top: 1px; font-weight: 900; font-size: 11px;
+  background: color-mix(in srgb, var(--elc) 20%, transparent);
+  color: color-mix(in srgb, var(--elc) 55%, var(--ink));
+}
+.rhtask .tx { min-width: 0; }
+.rhtask h5 {
+  font-size: 13px; font-weight: 800; margin: 2px 0;
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+}
+.rhtask p { margin: 0; font-size: 11.5px; color: var(--ink2); }
+.rhtask .cv { color: var(--muted); font-size: 11px; margin-top: 7px; }
+.rhtask.lnk:hover h5, details.rhtask > summary:hover h5 { color: var(--acc); }
+details.rhtask[open] > summary .cv { color: var(--acc); }
+.rhtb { padding: 0 4px 12px 35px; }
+.rhtb .rqbody { padding: 0; }
+
+/* Chipsen under en uppgift + själsplånboken. */
+.rhtask .imp, .rhwallet { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.rhwallet { margin: 2px 0 10px; }
+.rhtask .imp > span, .rhwallet > span {
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 2px 9px; font-size: 10.5px; font-weight: 800; color: var(--ink2);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.rhtask .imp > span b, .rhwallet > span b { color: var(--ink); font-size: 11.5px; }
+.rhtask .imp .tag { flex: none; }
 
 .rqwhy {
   background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2);
@@ -1751,55 +2742,542 @@ details.dgroup summary .why { color: var(--muted); font-weight: 500; font-size: 
 .rqwhy > summary { cursor: pointer; font-size: 12.5px; font-weight: 800; color: var(--ink2); }
 .rqwhy .rswhy { margin: 9px 0 2px; background: none; padding: 0; }
 
-.rqhead, .rqrow > summary {
-  display: grid; align-items: center; gap: 10px;
-  grid-template-columns: 22px 28px minmax(110px, 1fr) 96px 54px 54px 46px 16px;
-}
-.rqhead {
-  padding: 2px 12px 6px; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--muted); font-weight: 800;
-}
-.rqlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.rqrow {
-  background: var(--panel2); border: 1px solid transparent; border-left: 3px solid var(--elc);
-  border-radius: var(--r1);
-}
-.rqrow[open] { background: var(--panel); border-color: var(--line); }
-/* Egen pil (.cv) i stället för webbläsarens triangel – den ligger till vänster
-   och skulle förskjuta hela rutnätet. */
-.rqrow > summary { padding: 7px 12px; cursor: pointer; list-style: none; }
-.rqrow > summary::-webkit-details-marker { display: none; }
-.rqrow > summary:hover .nm { color: var(--acc); }
-.rqrow .n, .rqrow .fd, .rqrow .sl, .rqrow .jm {
-  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-variant-numeric: tabular-nums;
-}
-.rqrow .n { font-size: 11px; color: var(--muted); font-weight: 800; text-align: center; }
-.rqrow .nm {
-  font-weight: 800; font-size: 13.5px; min-width: 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.rqrow .jm { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.rqrow .jm b { color: var(--gold); font-size: 15px; font-weight: 900; }
-.rqrow .jm i { font-style: normal; color: var(--ink2); margin: 0 3px; }
-.rqrow .fd { font-size: 12.5px; color: var(--ink); font-weight: 800; }
-.rqrow .sl { font-size: 12.5px; color: var(--green); font-weight: 900; }
-.rqrow .cv { color: var(--muted); font-size: 10px; text-align: center; }
-.rqrow[open] .cv { color: var(--acc); }
+/* Radens utfällda innehåll: "du behåller" | "det ger". */
 .rqbody {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
-  gap: 16px; padding: 2px 14px 13px 44px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 16px; padding: 4px 10px 14px 42px;
 }
 .rqfact { margin: 8px 0 0; font-size: 12px; color: var(--ink2); }
-@media (max-width: 860px) {
-  .rqhead { display: none; }
-  .rqrow > summary { grid-template-columns: 22px 28px minmax(90px, 1fr) 86px 46px; }
-  .rqrow > summary .sl, .rqrow > summary .cv { display: none; }
-  .rqbody { padding-left: 14px; }
+
+/* Modulinnehåll som kom från de gamla halvorna och behöver mindre luft nu när
+   det står i en ram i stället för i en 58 %-spalt. */
+.rhmb .dgroup { margin: 8px 0; }
+.rhmb .dgroup:first-child { margin-top: 0; }
+.rhmb .loadouts { gap: 10px; }
+.rhmb > .bfform, .rhmb > .trow { margin: 0; }
+
+/* ---------- smalare skärmar ----------
+   Nätet går från tolv spalter till sex och sedan till en. Modulerna behåller
+   sina ramar hela vägen – det är de som håller ihop innehållet, och en modul
+   utan ram på mobil vore samma lösa rader som förra versionen. */
+@media (max-width: 1180px) {
+  .rhgrid { grid-template-columns: minmax(0, 1fr); }
+  .s4, .s5, .s6, .s7, .s8, .s12 { grid-column: span 1; }
+}
+@media (max-width: 1000px) {
+  .rhdash { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rhhead .q { display: none; }
+}
+@media (max-width: 720px) {
+  /* Kön tappar mätaren och antalet, aldrig stjärnhoppet: hoppet ÄR raden. */
+  .cqhead { display: none; }
+  .cqrow > summary { grid-template-columns: 22px 28px minmax(0, 1fr) 62px 42px 14px; }
+  .cqrow .feed, .cqrow .cqbar, .cqrow .rswarn { display: none; }
+  .rqbody { padding-left: 10px; }
 }
 
 /* ============================================================
    SIDFOT
    ============================================================ */
+/* ============================================================
+   UPPDRAG – bosskort med motståndslag
+   ============================================================ */
+.qgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr)); gap: 12px; }
+.qcard {
+  border: 1px solid var(--line); border-top: 3px solid var(--elc, var(--line2));
+  border-radius: var(--r3); padding: 13px 16px;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--elc, var(--muted)) 13%, transparent), transparent 55%),
+    var(--panel);
+}
+.qcard.qbig { padding: 16px 20px; }
+.qtop { display: flex; align-items: flex-start; gap: 12px; }
+.qhead { display: flex; gap: 11px; align-items: center; min-width: 0; }
+/* Bossringen bär kortets elementfärg runt PORTRÄTTET. Ringen fanns här redan
+   när innehållet var en emoji (den gick inte att tinta), och gör samma jobb
+   nu: den binder bossen till kortets element. Glyfen finns kvar som
+   BossFace-fallback för en boss utan art i datasetet – därför font-size. */
+.qicon {
+  font-size: 26px; flex: none; width: 66px; height: 66px;
+  display: grid; place-items: center;
+  border-radius: 50%; border: 2.5px solid var(--elc, var(--line2));
+  background: color-mix(in srgb, var(--elc, var(--muted)) 18%, var(--panel));
+}
+.qhead .nm { font-weight: 800; font-size: 15px; }
+/* Nästa steg är sidans tes: bossens namn får bära som en rubrik. */
+.qcard.qbig .qhead .nm { font-size: 21px; line-height: 1.25; }
+.qhead .meta { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+.qel { display: inline-flex; align-items: center; gap: 4px; color: var(--c, var(--ink2)); margin-right: 6px; }
+.qverdict {
+  margin-left: auto; flex: none; font-size: 11px; font-weight: 800;
+  border-radius: 999px; padding: 4px 13px; border: 1px solid;
+}
+.qverdict.ready { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, transparent); background: color-mix(in srgb, var(--green) 12%, transparent); }
+.qverdict.close { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 50%, transparent); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.qverdict.risky { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, transparent); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.qverdict.done { color: var(--ink2); border-color: var(--line2); background: var(--panel2); }
+/* Besegrade strider är kvitton, inte att-göra: dämpade och utan lag. */
+.qcard.qdone { opacity: .75; }
+
+/* Lägesbandet: savens siffror mot kartans totaler. Länkbara till kartan. */
+.qstats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.qstat {
+  display: grid; gap: 2px; justify-items: center; text-align: center;
+  padding: 11px 8px; border: 1px solid var(--line); border-radius: var(--r2);
+  background: var(--panel); text-decoration: none; color: inherit;
+}
+.qstat b { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.qstat span span, .qstat > span:last-child {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+a.qstat:hover { border-color: var(--acc); }
+
+/* Partnerskillen som chip (namn synligt, spelets text i title) och som
+   löptext i stöd-/försvarsraderna. */
+.pskill {
+  display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 10px; font-weight: 800; color: var(--acc);
+}
+.psdesc { flex: 1; min-width: 240px; font-size: 11.5px; color: var(--ink2); }
+.psdesc b { color: var(--ink); }
+.rqsoul { cursor: pointer; font: inherit; color: inherit; text-align: left; width: 100%; }
+.rqsoul:hover { border-color: var(--acc); }
+
+/* Questloggen: savens riktiga poster. */
+.qlog { display: grid; gap: 6px; }
+.qlrow {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r2);
+  background: var(--panel2);
+}
+.qlrow .nm { font-weight: 700; }
+.qlrow .tag { flex: none; }
+/* Fyra platser = fyra kolumner, aldrig en föräldralös fjärde bricka. */
+.qsquad { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.qmember {
+  display: grid; justify-items: center; gap: 3px; padding: 10px 8px 8px; cursor: pointer;
+  border: 1px solid var(--line); border-left: 3px solid var(--elc, var(--line2));
+  border-radius: var(--r2); font-family: inherit; color: inherit;
+  /* Högre elementton än de andra korten: Dragon/Dark/Normal försvann i
+     Skymnings violetta botten (granskarens fynd). */
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--elc) 24%, transparent), transparent 70%),
+    var(--panel2);
+  transition: transform .12s ease, border-color .12s ease;
+}
+.qmember:hover { transform: translateY(-2px); border-color: var(--line2); }
+.qmember .nm { font-weight: 800; font-size: 11.5px; }
+.qmember .why { font-size: 9.5px; color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   UPPDRAG – Fältkartan + Instrumentbrädans moduler (Kens kombination
+   ur designrundan aug 2026: "helheten i ettan, detta från tvåan").
+   ============================================================ */
+
+/* Karthjälten: spelets karta med guldstämplade torn, resan som faser
+   till höger. Stämplarna sitter på mapPct-positioner – behållaren MÅSTE
+   hålla bildens proportion (kvadrat), annars glider de. */
+.qjhero { display: grid; grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); gap: 18px; margin-bottom: 18px; }
+.qjmap {
+  position: relative; display: block; aspect-ratio: 1; max-height: 430px;
+  border-radius: var(--r3); overflow: hidden; justify-self: center; width: 100%; max-width: 430px;
+  border: 1px solid var(--line2);
+}
+.qjmap img { width: 100%; height: 100%; display: block; }
+.qjmap:hover { border-color: var(--acc); }
+.qjstamp {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+  border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 900; color: #241c10;
+  background: rgba(10, 10, 16, .55); border: 2px solid rgba(255, 255, 255, .35);
+}
+/* Guldstämpeln: intjänad mark. Färgen är spelets banner-guld, inte temats –
+   den ska se likadan ut i ljust och mörkt läge, precis som kartan själv. */
+.qjstamp.done { background: #fcdf19; border-color: #fff6c4; box-shadow: 0 0 0 3px rgba(252, 223, 25, .25); }
+.qjbadge {
+  position: absolute; left: 10px; bottom: 10px;
+  background: rgba(10, 10, 16, .72); color: #f5efdd;
+  border-radius: 999px; padding: 5px 13px; font-size: 11.5px; font-weight: 800;
+}
+.qjphases { display: grid; gap: 7px; align-content: start; }
+.qjph {
+  display: grid; grid-template-columns: 22px minmax(0, auto) max-content 1fr; align-items: baseline; gap: 9px;
+  padding: 9px 13px; border-radius: var(--r2); text-decoration: none; color: inherit;
+  border: 1px solid var(--line); background: var(--panel);
+}
+.qjph .st { text-align: center; font-size: 12px; color: var(--muted); }
+.qjph .nm { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.qjph .ct { font-size: 13px; }
+.qjph .hook { font-size: 11px; color: var(--ink2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qjph.done { opacity: .78; }
+.qjph.done .st { color: var(--green); }
+/* Nästa fas är sidans tes: accentkant + varm ton, pilen i accent. */
+.qjph.next {
+  border-color: color-mix(in srgb, var(--acc) 45%, transparent);
+  background: linear-gradient(100deg, var(--acc-soft), transparent 65%), var(--panel);
+}
+.qjph.next .st { color: var(--acc); }
+.qjph:hover { border-color: var(--line2); }
+.qjph.next:hover { border-color: var(--acc); }
+.qjnote { font-size: 10.5px; color: var(--muted); padding: 2px 4px 0; }
+
+/* SEDAN-raden i nästa steg-kortet. */
+.qjafter {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+}
+.qjafter .k { font-size: 9.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.qjafter .nm { font-weight: 800; }
+
+/* Kampanjkvittona: porträtt + Lv + ✓×N. Avklarat är intjänad mark –
+   guldkvittot, inte en hopfälld grupp. */
+.qrcpts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); gap: 8px; }
+.qrcpt {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border: 1px solid var(--line); border-left: 3px solid var(--elc, var(--line2));
+  border-radius: var(--r2); background: var(--panel2);
+}
+.qrcpt .nm { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qrcpt .lv { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 800; flex: none; }
+.qrcpt .tag, .qrcpt .qverdict { flex: none; }
+.qrx { color: var(--gold); font-weight: 900; font-size: 13px; flex: none; }
+.qrcpt.done { opacity: .85; }
+.qverdict.sm { font-size: 9.5px; padding: 3px 9px; }
+.qface {
+  display: inline-grid; place-items: center; border-radius: 50%;
+  background: var(--inset); flex: none;
+}
+
+/* Hard mode som belöningskort: item-ikonen ÄR raden. */
+.qhgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 9px; }
+.qhcard {
+  display: grid; justify-items: center; gap: 3px; text-align: center;
+  padding: 13px 10px 11px; border: 1px solid var(--line); border-radius: var(--r2);
+  background: var(--panel2);
+}
+.qhcard .ic { height: 46px; display: grid; place-items: center; }
+.qhcard .ic .qface { width: 44px; height: 44px; font-size: 22px; color: var(--acc); background: none; }
+.qhcard .lv { font-size: 12px; }
+.qhcard .nm { font-size: 10.5px; color: var(--ink2); font-weight: 700; line-height: 1.3; }
+.qhcard.done { border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+
+/* Raidtavlan: äggtavla med porträtt; detaljerna fälls ut per kort. */
+.qrgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(196px, 100%), 1fr)); gap: 9px; align-items: start; }
+.qrcard {
+  border: 1px solid var(--line); border-radius: var(--r2);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--elc, var(--muted)) 12%, transparent), transparent 55%),
+    var(--panel2);
+}
+.qrcard.done { border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+.qrcard > summary {
+  display: grid; justify-items: center; gap: 5px; text-align: center;
+  padding: 13px 10px 11px; cursor: pointer; list-style: none;
+}
+.qrcard > summary::-webkit-details-marker { display: none; }
+.qrcard .por {
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  border: 2.5px solid var(--elc, var(--line2));
+  background: color-mix(in srgb, var(--elc, var(--muted)) 16%, var(--panel));
+}
+.qrcard .nm { font-weight: 800; font-size: 13px; }
+.qregg {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 800; color: var(--gold);
+}
+.qrbody { padding: 0 13px 12px; display: grid; gap: 4px; }
+/* Utfälld spänner kortet hela raden – motlagets fyra porträtt får aldrig
+   plats i en 200-pixelskolumn. */
+.qrcard[open] { grid-column: 1 / -1; }
+.qrcard[open] > summary {
+  border-bottom: 1px solid var(--line); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 12px; text-align: left;
+}
+
+/* Kvar i världen: mätare med belöningskroken – talet + varför man bryr sig. */
+.qwgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.qwcard {
+  display: grid; gap: 5px; align-content: start; padding: 12px 15px;
+  border: 1px solid var(--line); border-radius: var(--r2); background: var(--panel);
+  text-decoration: none; color: inherit;
+}
+.qwcard:hover { border-color: var(--acc); }
+.qwcard .k { font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.qwcard b { font-size: 22px; font-weight: 900; line-height: 1.1; }
+.qwcard b i { font-style: normal; font-size: 13px; color: var(--muted); font-weight: 800; }
+.qwcard .hook { font-size: 11px; color: var(--ink2); }
+.qwcard .go { font-size: 10.5px; font-weight: 800; color: var(--acc); }
+
+@media (max-width: 900px) {
+  .qjhero { grid-template-columns: 1fr; }
+  .qjmap { max-width: 100%; }
+  .qjph .hook { display: none; }
+}
+
+/* ---------- Bäst för: best-in-slot-mallarna ---------- */
+.biscard { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; }
+/* I en modul bär modulen ytan och rubriken – kortet blir bara platserna. */
+.rhmb > .biscard { background: none; border: 0; border-radius: 0; padding: 0; }
+.bisslot { display: grid; grid-template-columns: 1fr max-content; align-items: center; gap: 9px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.bisslot .prow { width: 100%; }
+.bisslot:last-of-type { border-bottom: 0; }
+.bisslot .prows { flex: 1; display: block; }
+.bisslot .bst { flex: none; font-size: 10.5px; font-weight: 800; }
+.bisslot .bst.have { color: var(--green); }
+.bisslot .bst.mis { color: var(--orange); }
+
+/* ============================================================
+   KARTAN – spelets riktiga karta med pan/zoom och lagerchips
+   ============================================================
+   Panorering/zoom sätts imperativt som transform på .wlayer (se MapView);
+   markörerna motskalas med --iz så de håller samma skärmstorlek. Bilden är
+   mörk oavsett tema – ramen är spelet, inte gränssnittet. */
+.wchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.wchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  background: var(--panel2); border: 1px solid var(--line); color: var(--muted);
+  font: 700 11.5px inherit;
+}
+.wchip img { display: block; }
+.wchip .num { font-size: 11px; color: inherit; }
+.wchip.on { color: var(--ink); border-color: var(--acc); background: var(--acc-soft); }
+.wchip:not(.on) img { filter: grayscale(1); opacity: .55; }
+.wonly { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); margin-left: auto; }
+.wonly input { accent-color: var(--acc); }
+
+.wmapwrap { display: flex; justify-content: center; }
+.wmap {
+  position: relative; overflow: hidden; touch-action: none; cursor: grab;
+  width: min(100%, 82vh); aspect-ratio: 1;
+  border-radius: var(--r3); border: 1px solid var(--line2);
+  background: #06070c; /* spelets hav – samma i båda temana, avsiktligt */
+}
+.wmap:active { cursor: grabbing; }
+/* Lagret står i bildens NATURLIGA storlek (8192²) och zoomas med skalor ≤ 1:
+   webbläsaren samplar då alltid den fulla källan och kartan är skarp på varje
+   nivå. Inget will-change – det cachar rastret i fel upplösning, vilket var
+   exakt suddigheten Ken såg. */
+.wlayer {
+  position: absolute; left: 0; top: 0; width: 8192px; height: 8192px;
+  transform-origin: 0 0;
+}
+.wimg { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
+.wmk {
+  position: absolute; transform: translate(-50%, -50%) scale(var(--iz, 1));
+  background: none; border: 0; padding: 2px; cursor: pointer; line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .8));
+}
+.wmk img { display: block; width: 20px; height: 20px; }
+.wmk.towers img { width: 30px; height: 30px; }
+.wmk.alphas img { width: 22px; height: 22px; }
+.wmk.effigies img, .wmk.relics img { width: 14px; height: 14px; }
+.wmk.dungeons img { width: 16px; height: 16px; }
+.wmk.ores img { width: 16px; height: 16px; }
+/* Hittad = historia: dämpad och bockad, så det ohittade är det som lyser. */
+.wmk.hit { opacity: .38; filter: grayscale(.7) drop-shadow(0 1px 2px rgba(0, 0, 0, .8)); }
+.wmk.hit::after {
+  content: "✓"; position: absolute; right: -3px; top: -5px;
+  font-size: 9px; font-weight: 900; color: #7ee2a8; line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+.wmk.sel { outline: 2px solid #fff; outline-offset: 1px; border-radius: 6px; }
+.wdot {
+  display: block; width: 11px; height: 11px; border-radius: 50%;
+  background: #8bd97a; border: 2px solid rgba(0, 0, 0, .55);
+}
+.wchip .wdot { width: 9px; height: 9px; }
+
+.wzoom {
+  position: absolute; right: 10px; top: 10px; display: grid; gap: 5px; z-index: 3;
+}
+.wzoom .ghost { width: 32px; height: 32px; padding: 0; font-size: 15px; }
+
+/* Markör-tooltip: fast panel i kartans hörn – robustare än en bubbla som
+   ska undvika kanterna, och den skymmer aldrig markören man klickade. */
+.wtip {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3;
+  min-width: 210px; max-width: min(320px, 70%);
+  background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r2);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .4); padding: 11px 13px;
+  display: grid; gap: 5px; justify-items: start;
+}
+.wtip .pmclose { top: 6px; right: 6px; width: 24px; height: 24px; }
+.wtiphd { display: flex; align-items: center; gap: 8px; padding-right: 26px; }
+.wtiphd b { font-size: 14px; }
+.wtip .fchip { text-decoration: none; }
+
+.mapfound { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.mtally {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 15px;
+}
+.mtally .k { font-weight: 800; font-size: 13px; flex: 1; }
+.mtally .v { font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.mtally .btns { display: flex; gap: 5px; }
+
+/* ============================================================
+   HITTA – Hjältebandet (designrundan aug 2026)
+   Detaljen är ett hero-band överst – samma elementtvätt som Boxens
+   hero – och träffarna en brickremsa under kategorichipsen. --elc
+   sätts i React från elementColor()/ELEMENT_META, aldrig här.
+   ============================================================ */
+.fhero {
+  position: relative; display: flex; gap: 18px; align-items: flex-start;
+  border: 1px solid var(--line); border-radius: var(--r4);
+  padding: 18px 20px 16px; margin-bottom: 14px; overflow: hidden;
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--elc, var(--acc)) 18%, transparent), color-mix(in srgb, var(--elc, var(--acc)) 5%, transparent) 45%, transparent 70%),
+    var(--panel);
+}
+/* Elementranden i kanten – färgen är information, inte dekoration. */
+.fhero::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--elc, var(--acc)); opacity: .75;
+}
+.fhero .fpor {
+  flex: none; width: 108px; height: 108px; border-radius: var(--r3);
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--elc, var(--acc)) 38%, transparent), transparent 74%);
+}
+.fhero .fpor > img { border-radius: 20px; }
+.fhero .fbody { flex: 1; min-width: 0; }
+.fhero .fname { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 19px; font-weight: 800; }
+.fhero .fname .meta { font-size: 12px; }
+.fhero .fsub { margin-top: 2px; font-size: 12.5px; color: var(--ink2); }
+.fhero .hint { margin-top: 10px; }
+.fhero .flinks { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.fhero .flinks .fchip { text-decoration: none; text-align: center; }
+.ffacts { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 12px; }
+.ffact .k { font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ffact .v {
+  margin-top: 3px; font-size: 13px; color: var(--ink2);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; max-width: 56ch;
+}
+.ffact .v .fws { display: inline-flex; align-items: center; gap: 5px; }
+.ffact .v .fschem { font-weight: 800; color: var(--ink); }
+/* ✓/ej nedlagd ur saven – semantiska tokens, finns i båda temana. */
+.ffact .v .fdone { color: var(--green); }
+.ffact .v .ftodo { color: var(--gold); }
+
+/* Art-chips med porträtt (drops, motpal, källa) – ägda är tända. */
+.fchip.fsp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 5px; }
+.fchip.fsp img { border-radius: 9px; }
+
+/* Kategorichips med räknare – fast ordning, bara de med träffar. */
+.fcats { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.fcats .num { margin-left: 6px; opacity: .75; }
+.num { font-family: "Zen Kaku Gothic New"; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Brickorna radbryter – sidscroll underkändes (Kens rättning: rullisten
+   gömde hälften av träffarna och såg främmande ut). */
+.fstrip { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 2px 6px; }
+.ftile {
+  flex: none; width: 104px; display: flex; flex-direction: column; align-items: center;
+  border: 1px solid var(--line); border-radius: var(--r2); padding: 9px 6px 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--elc, var(--acc)) 12%, transparent), transparent 62%),
+    var(--panel2);
+  cursor: pointer; font-family: inherit; color: inherit; text-align: center;
+  transition: transform .12s ease, border-color .12s ease;
+}
+.ftile:hover { transform: translateY(-2px); border-color: var(--line2); }
+.ftile .circ { height: 56px; display: flex; align-items: center; justify-content: center; }
+.ftile .nm { margin-top: 5px; font-size: 11px; font-weight: 800; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ftile .sub { margin-top: 1px; font-size: 9.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.ftile.sel { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+.ftile.sel .nm { color: var(--acc); }
+/* Fallback när ett namn saknar belagd ikon – hellre ett ärligt ? än en gissad bild. */
+.ftile .circ .fb { color: var(--muted); font-weight: 800; font-size: 18px; }
+
+/* Passivträffar som riktiga banners i rutnät, precis som väljarna –
+   hela färgskalan (regnbågen inräknad) ska synas på en gång. */
+.fprows {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 7px; padding: 8px 2px 6px; max-height: 230px; overflow-y: auto;
+}
+.fpbtn { background: none; border: 1px solid transparent; border-radius: 10px; padding: 2px; cursor: pointer; font-family: inherit; text-align: left; }
+.fpbtn .prow { width: 100%; }
+.fpbtn.sel { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+
+.fkbd { margin-top: 8px; font-size: 11px; color: var(--muted); }
+
+/* Art-chips i drops-heron delar radbrytning med gamla drops-raderna. */
+.dpals { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
+
+/* ---------- Hitta: auditens tillskott (aug 2026) ----------
+   Varuheron, platserna, partnerskills, expeditionerna, raiderna och
+   avelskombon. Allt bor i .fhero/.ffact som förut – det här är bara de nya
+   radtyperna. */
+
+/* Bred faktarad: tar hela `.ffacts`-bredden i stället för att konkurrera med
+   sina grannar. Utan den pressades en chiplista med 38 arter till en enda
+   kolumn på ~150 px medan grannrutan tog resten – flexen fördelar utrymme
+   efter innehåll, och en lång lista "får plats" i nästan ingen bredd. */
+.ffact.wide { flex-basis: 100%; }
+.ffact.wide > .v { max-width: none; }
+/* Etikett + mening i samma fakta staplas: `.fsrc` har ett läsbarhetstak i ch,
+   och ett max-width KLAMRAR flex-basis, så raden räknades som "passar bredvid"
+   fetstilen i stället för under den. Kolumn i stället för radbrytning. */
+.ffact.stack > .v { flex-direction: column; align-items: flex-start; gap: 3px; }
+
+/* Källrad: spelets egen prosa (belöningslistor, skill-text, summon-items).
+   Den får BRYTA RAD, till skillnad från chipsen: en expeditions belöningar är
+   en hel mening, och `.ffact .v` är en flexrad som annars trycker ihop den.
+
+   `flex: 1 0 100%` och inte bara `flex-basis`: med standard-shrink kramade
+   raden in sig BREDVID sin grannetikett (skillnamnet) i stället för att lägga
+   sig under den, och en treradig beskrivning stod då mittemot en fetstil. */
+.ffact .v .fsrc {
+  display: block; flex: 1 0 100%; max-width: 62ch;
+  line-height: 1.45; color: var(--ink2);
+}
+/* Artens egna siffror: grupperna behöver en avdelare, annars läses
+   "sprint 1 000 food 8/10" som en enda uppgift. Egen klass och inte `.fws`,
+   som också bär arbetsremsan och motpal-chipet – ett `·` framför "— din bästa
+   motpal" hade sett ut som ett fel. */
+.ffact .v .fstat { display: inline-flex; align-items: center; gap: 5px; }
+.ffact .v .fstat + .fstat::before {
+  content: "·"; color: var(--muted); margin-right: 5px; font-weight: 800;
+}
+/* Paldeck-texten under artnamnet – kursiv för att skilja spelets smak från
+   appens fakta, och klippt så heron inte växer okontrollerat. */
+.fhero .fsub.fdesc {
+  font-style: italic; max-width: 74ch; margin-top: 5px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* Koordinater som små monospace-lika brickor (siffertypsnittet via .num). */
+.ffact .v .fcoord {
+  padding: 2px 7px; border-radius: 999px; font-size: 11.5px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--ink2);
+}
+/* Föräldrapar: två porträtt med artnamnen emellan. Ägda par tänds, för
+   frågan "vilka blir X?" är i praktiken "vilka av MINA blir X?". */
+.ffact .v .fpair {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px; font-size: 11.5px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--ink2);
+}
+.ffact .v .fpair.on { border-color: var(--acc); color: var(--ink); background: var(--acc-soft); }
+.ffact .v .fpair img { border-radius: 8px; }
+/* Typord i stället för ikon – de kartlager och sajter som inte HAR en belagd
+   bild i spelet. Ett ord är ärligt; en lånad ikon vore en gissning. */
+.fpkind {
+  font-size: 10px; font-weight: 800; letter-spacing: .1em;
+  color: var(--muted); text-align: center; line-height: 1.2;
+}
+.fpkind.sm { font-size: 9px; }
+.ftile.ftext .circ { flex-direction: column; gap: 2px; }
+/* Kombo-heron: multiplikationstecknet mellan föräldrarna. */
+.fhero .fname .fx { color: var(--muted); font-weight: 800; padding: 0 2px; }
+/* "Visa fler" står under remsan och är medvetet inte ett chip i chipsraden –
+   den handlar om vad som RITAS, inte om var träffarna finns. */
+.fchip.fmore { margin-top: 2px; }
+
 footer {
   color: var(--muted); font-size: 11.5px; max-width: 1180px; margin: 24px auto 0;
   padding: 14px 0 20px; border-top: 1px solid var(--line);
@@ -1839,18 +3317,14 @@ footer {
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* ---------- smala skärmar: skenan blir en topprad ---------- */
+/* ---------- smala skärmar: toppraden bantas ---------- */
 @media (max-width: 900px) {
-  .shell { flex-direction: column; }
-  .rail {
-    position: static; width: 100%; height: auto; flex-direction: row; flex-wrap: wrap;
-    align-items: center; gap: 6px; padding: 12px 14px;
-    border-right: none; border-bottom: 1px solid var(--line);
-  }
+  .rail { position: static; gap: 6px; padding: 12px 14px; }
   .rail .brand { margin: 0 10px 0 0; font-size: 20px; }
   .rail a.ri { padding: 8px 12px; font-size: 12.5px; }
-  .rail .railfoot { margin-left: auto; flex-direction: row; align-items: center; }
   .rail .who { display: none; }
+  /* Svaret kan inte hänga under en rad som inte är sticky – låt det ta plats. */
+  .rail .rupdmsg { position: static; width: auto; }
   .content { padding: 16px 14px 32px; }
 }
 @media (max-width: 640px) {

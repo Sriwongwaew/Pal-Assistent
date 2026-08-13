@@ -60,21 +60,18 @@ strip.
 
 ![The box](docs/img/box.png)
 
-### Recommendations
+### Recommendations — the five roles
 
-What to condense **now**, ranked by biggest gain: the star jump you get, how many duplicates it
-consumes, how many box slots it frees — and what the one you keep is actually good at, so you
-don't feed away your best miner by accident.
-
-![Recommendations](docs/img/recommendations.png)
-
-### Best for…
-
-Attack team, base dream team, best workers per work type (both from your own box and globally),
-fishing pals and fastest mounts. Click a species you don't own and you land straight in a breeding
+What to do and what is best, split by role: **The box · Combat · The base · Mounts & fishing ·
+The player**. Every band pairs a numbered *do this* column computed from your own box — what to
+condense now (with the star jump, the slots you get back and what the keeper is actually good at,
+so you don't feed away your best miner by accident), which soul ranks are cheap, who is still
+standing in the box — with the *best & reference* half for the same role: attack team, best
+workers per work type, the ranch guide, fastest mounts, fishing helpers and the pals whose
+partner skills buff **you**. Click a species you don't own and you land straight in a breeding
 plan for it.
 
-![Best for](docs/img/best-for.png)
+![Recommendations](docs/img/recommendations.png)
 
 ### Live mode
 
@@ -142,7 +139,7 @@ npm run typecheck   # tsc --noEmit, strict
 npm test            # node:test over src/lib
 npm run lint
 npm run docs-images # every image the docs point at exists
-npm run docs-shots  # retake the six README screenshots
+npm run docs-shots  # retake the five README screenshots
 npm run package     # -> dist/PalAssistent-Setup.exe
 ```
 
@@ -151,7 +148,7 @@ plausible as a correct one, and neither the build, typecheck nor lint will catch
 
 The screenshots above are half of what this README is, so they have to follow the interface. Start a
 production build on port 3100 (`npm run build`, then `npm run start -- -p 3100`) and run
-`npm run docs-shots`: it drives your own Edge headless — no browser download — and rewrites all six
+`npm run docs-shots`: it drives your own Edge headless — no browser download — and rewrites all five
 files. `npm run docs-images` only proves the files exist; noticing that one is *old* is still a
 human's job, which is why retaking them has to cost one command.
 
@@ -205,7 +202,8 @@ Copyright © 2026 **Kensiwat Sriwongwaew**
 
 PalAssistent is free software: you can redistribute it and/or modify it under the terms of the
 **GNU Affero General Public License, version 3** as published by the Free Software Foundation.
-The full text is in [LICENSE](LICENSE).
+The full text is in [LICENSE](LICENSE), and the summary below is also kept as [NOTICE](NOTICE) —
+the file that ships inside the installer, since that is the only form most people ever see.
 
 It is distributed in the hope that it will be useful, but **without any warranty** — without even
 the implied warranty of merchantability or fitness for a particular purpose. See the licence for
@@ -232,7 +230,11 @@ repository** and nothing else:
 | Component | Used for | Terms |
 | --- | --- | --- |
 | [palworld-save-tools](https://github.com/cheahjs/palworld-save-tools) | Reading the GVAS save format | MIT |
-| [palworld-save-pal](https://github.com/oMaN-Rod/palworld-save-pal) | Species, breeding and passive metadata | GPL-3.0 |
+| [palworld-save-pal](https://github.com/oMaN-Rod/palworld-save-pal) | Species, breeding and passive metadata; relic/boss positions and the quest catalogue for the map; the game's item icons in Find (artwork © Pocketpair) | GPL-3.0 |
+| [PalworldSaveTools](https://github.com/deafdudecomputers/PalworldSaveTools) | The 1.0 world-map render (`public/img/worldmap.webp`, artwork © Pocketpair) and fast-travel positions | MIT (repo) |
+| [paldb.cc](https://paldb.cc/) | Datamined marker positions (camps, dungeons, effigies, ore, skill-fruit trees) and the game's compass icons; validation of the drop tables | Site data, PAK-extracted from the game (© Pocketpair); credited here, removed on request |
+| [pyPalworldAPI](https://github.com/stolenvw/pyPalworldAPI) | Per-species drop tables for Find (game data v1.0.1, © Pocketpair) | MIT (repo) |
+| [palworld-kb](https://github.com/beliarance/palworld-kb) | Drop-table fill for the ~22 species pyPalworldAPI misses — rows marked ≈ in the app | No licence stated; credited here, removed on request |
 | [zao/ooz](https://github.com/zao/ooz) → [powzix/ooz](https://github.com/powzix/ooz) | Oodle (`PlM`) decompression, as `tools/libooz.dll` | **No licence stated.** The upstream README describes it as "open source", but no repository in the fork chain carries a licence file. It is bundled because Palworld 1.0 saves cannot be read without it and no licensed alternative exists. Credit goes to the original author, **Lars Viklund** and **powzix**. If you are one of them and would rather it were not distributed here, open an issue and it comes out. |
 
 If you own rights to anything bundled here and want it removed, say so and it will be — quickly

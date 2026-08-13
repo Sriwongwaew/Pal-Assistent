@@ -134,13 +134,15 @@ export function ManualPairPanel({
   };
 
   return (
-    <details className="bsetup mpair">
-      <summary>
+    /* Modalkropp, inte details: öppnas från Verktygs-panelen och stängs av
+       modalen (Kens rättning aug 2026 — CSS-lyfta details blev en trång remsa). */
+    <section className="bsetup asmodal mpair">
+      <div className="bshd">
         <span className="ttl">{t("manual.title")}</span>
         <span className="num">{[a, b].filter(Boolean).length}/2</span>
         <span className="meta">{t("manual.subtitle")}</span>
         {a && b ? <Tag kind="keep">{t("manual.pairChosen")}</Tag> : <Tag kind="cond">{t("manual.pickTwo")}</Tag>}
-      </summary>
+      </div>
 
       <div className="hint">
         {rich("manual.intro", { you: <b>{t("manual.introYou")}</b>, plan: <i>{t("manual.introPlan")}</i> })}
@@ -177,6 +179,9 @@ export function ManualPairPanel({
                 onClick={() => onChange(slot, {
                   s: p.s, pv: [...p.pv], g: p.g,
                   label: p.nick || sp?.name || null,
+                  // Id:t följer med: en förälder ur boxen är en riktig individ
+                  // och kan därför driva hela passivplanen, se `mustUse`.
+                  id: p.id,
                 })}
               >
                 {sp && <SpeciesIcon sp={sp} size={26} radius={7} />}
@@ -199,7 +204,7 @@ export function ManualPairPanel({
                 key={g}
                 type="button"
                 className={`fchip ${editing.g === g ? "on" : ""}`}
-                onClick={() => set({ g, label: null })}
+                onClick={() => set({ g, label: null, id: undefined })}
               >
                 {g === "M" ? t("manual.male") : g === "F" ? t("manual.female") : t("manual.unknownGender")}
               </button>
@@ -209,7 +214,7 @@ export function ManualPairPanel({
             species={species}
             owned={owned}
             value={editing.s >= 0 ? editing.s : null}
-            onChange={(i) => set({ s: i ?? -1, label: null })}
+            onChange={(i) => set({ s: i ?? -1, label: null, id: undefined })}
           />
           <div className="bsgrp">{t("manual.carriedPassives")}</div>
           <PassivePicker
@@ -217,12 +222,12 @@ export function ManualPairPanel({
             counts={counts}
             implants={implants}
             value={editing.pv}
-            onChange={(ids) => set({ pv: ids, label: null })}
+            onChange={(ids) => set({ pv: ids, label: null, id: undefined })}
           />
         </div>
       )}
 
       {children}
-    </details>
+    </section>
   );
 }

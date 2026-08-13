@@ -39,9 +39,23 @@ describe("parseBreedingPrefs", () => {
   it("tar tillbaka en hel uppsättning oförändrad", () => {
     const p: BreedingPrefs = {
       target: 1, base: 0, wanted: ["Legend", "Noukin"], ivGoal: "perfect",
-      purpose: "work", work: "Mining", useImplants: false,
+      purpose: "work", work: "Mining", useImplants: false, chain: [],
     };
     assert.deepEqual(roundTrip(p), p);
+  });
+
+  /* Kedjan sparas som ARTKODER, inte index – index flyttar sig när den statiska
+     halvan görs om, och en kedja för fel arter ser inte trasig ut, bara fel. */
+  it("tar tillbaka en vald artkedja", () => {
+    const codes = data.species.slice(0, 2).map((s) => s.code);
+    const p: BreedingPrefs = { ...emptyBreedingPrefs(), chain: codes };
+    assert.deepEqual(roundTrip(p).chain, codes);
+  });
+
+  it("släpper kedjan helt när en av arterna inte finns kvar", () => {
+    const raw = JSON.stringify({ ...emptyBreedingPrefs(), chain: [data.species[0]!.code, "FinnsInte"] });
+    assert.deepEqual(parseBreedingPrefs(raw, data).chain, [],
+      "en halv kedja är inte den man valde – då är rekommendationen ärligare");
   });
 
   it("saknad useImplants blir PÅ, inte av", () => {

@@ -122,6 +122,21 @@ if (Test-Path $nodeLicense) {
     Copy-Item $nodeLicense (Join-Path $payload 'node\LICENSE') -Force
 }
 
+# Our own licence, plus the note on what is bundled. The AGPL says a copy of the
+# licence goes along with the program whenever it is conveyed, and this installer
+# is the only form most recipients ever see - the repository they never visit
+# cannot do that job for us. NOTICE is a separate file on purpose: appended text
+# in LICENSE stops GitHub recognising it as AGPL-3.0.
+#
+# Missing files are an error rather than a skip. A silent omission here is
+# exactly the kind that nobody notices until someone asks for the terms.
+Step 'Copying LICENSE and NOTICE'
+foreach ($name in 'LICENSE', 'NOTICE') {
+    $src = Join-Path $repo $name
+    if (-not (Test-Path $src)) { throw "$name is missing from the repository root." }
+    Copy-Item $src (Join-Path $payload "$name.txt") -Force
+}
+
 # --- 5. the empty box --------------------------------------------------------
 # The bundle contains your own box. The static half (species, breeding table,
 # passives, icons) is meant to ship, but pals/player/exported/implants are
@@ -145,9 +160,16 @@ data.exported = "";
 // fresh installation. `undefined` would have meant "do not know" and made the
 // app keep quiet about implants until the first import.
 data.implants = {};
+// Progress (towers defeated, effigies found, quest log) is as personal as the
+// box. Here `undefined` IS the right value: a fresh install has read nothing,
+// and the map/quests pages show their "read from the game" hint on undefined.
+delete data.progress;
+// The Pal Soul wallet comes from the same item containers as implants.
+delete data.souls;
 fs.writeFileSync(file, JSON.stringify(data));
 console.log("    species left: " + data.species.length + ", pals: " + data.pals.length
-  + ", implants: " + Object.keys(data.implants).length);
+  + ", implants: " + Object.keys(data.implants).length
+  + ", progress: " + (data.progress === undefined ? "removed" : "STILL PRESENT"));
 '@
 $blankFile = Join-Path $build 'blank-data.js'
 # Set-Content -Encoding utf8 adds a BOM in Windows PowerShell 5.1. Node copes

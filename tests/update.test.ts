@@ -7,8 +7,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, isTrustedAssetUrl, notesToBlocks,
-  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow, updateScript,
-  UPDATE_INSTALLER_NAME,
+  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow, SUCCESSOR_REPO, trustedRepos,
+  updateScript, UPDATE_INSTALLER_NAME,
   type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
 
@@ -186,6 +186,31 @@ describe("isTrustedAssetUrl", () => {
     );
   });
 
+  /* Namnbytet till PalCompanion. En app som byggdes före bytet bär det gamla
+   * repot i PA_REPO, medan GitHub svarar med utgåvans URL under det nya – utan
+   * det här ser den uppdateringen men kan aldrig installera den. */
+  it("godtar repot projektet flyttat till", () => {
+    const moved = `https://github.com/${SUCCESSOR_REPO}/releases/download/v3.0.0/PalCompanion-Setup.exe`;
+    assert.equal(isTrustedAssetUrl(moved, REPO), true);
+    assert.equal(isTrustedAssetUrl(moved, SUCCESSOR_REPO), true);
+    // Och det gamla namnet fortsätter fungera – övergångsutgåvan ligger kvar där.
+    assert.equal(isTrustedAssetUrl(asset, REPO), true);
+  });
+
+  it("låter inte en fork börja hämta binärer från oss", () => {
+    // En fork bygger med sitt eget PA_REPO och får sin egen källkodslänk. Att
+    // den skulle installera VÅRA utgåvor över sig själv vore precis fel.
+    const fork = "NagonAnnan/Pal-Assistent";
+    assert.deepEqual(trustedRepos(fork), [fork]);
+    assert.equal(
+      isTrustedAssetUrl(
+        `https://github.com/${SUCCESSOR_REPO}/releases/download/v3.0.0/PalCompanion-Setup.exe`,
+        fork,
+      ),
+      false,
+    );
+  });
+
   it("avvisar det som inte är en URL alls", () => {
     assert.equal(isTrustedAssetUrl("", REPO), false);
     assert.equal(isTrustedAssetUrl("javascript:alert(1)", REPO), false);
@@ -216,8 +241,26 @@ describe("updateScript", () => {
   });
 
   it("startar programmet igen efter installationen", () => {
-    assert.ok(script.indexOf(UPDATE_INSTALLER_NAME) < script.indexOf("%PA_APP_EXE%"));
+    // Just start-raden, inte första bästa %PA_APP_EXE%: variabeln läses även
+    // före installationen, för att få fram namnet att vänta på.
+    assert.ok(script.indexOf(UPDATE_INSTALLER_NAME) < script.indexOf('start "" "%PA_APP_EXE%"'));
     assert.match(script, /start "" "%PA_APP_EXE%"/);
+  });
+
+  /* Namnbytet: skriptet skrivs av den GAMLA versionen men kör den nya
+   * installern, så ingenstans i det får programmets namn stå som en konstant. */
+  it("väntar på launcherns eget namn, inte på ett inskrivet", () => {
+    assert.match(script, /for %%I in \("%PA_APP_EXE%"\) do set "PA_APP_NAME=%%~nxI"/);
+    assert.match(script, /imagename eq %PA_APP_NAME%/);
+    // Väntan får inte peka ut ett namn som inte längre gäller efter bytet.
+    assert.equal(/imagename eq PalAssistent\.exe/.test(script), false);
+  });
+
+  it("hittar programmet igen när installationen bytt namn på det", () => {
+    const install = script.indexOf(UPDATE_INSTALLER_NAME);
+    const fallback = script.indexOf("PalCompanion.exe");
+    assert.ok(fallback > install, "reservvägen står före installationen");
+    assert.ok(fallback < script.indexOf('start "" "%PA_APP_EXE%"'), "reservvägen står efter starten");
   });
 
   it("är helt fritt från sökvägar och från å, ä, ö", () => {

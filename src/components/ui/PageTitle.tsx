@@ -11,7 +11,9 @@ const TITLES: Record<string, MessageKey> = {
   "/box": "nav.box",
   "/breeding": "nav.breeding",
   "/recommendations": "nav.recommendations",
-  "/best-for": "nav.bestFor",
+  "/quests": "nav.quests",
+  "/map": "nav.map",
+  "/find": "nav.find",
 };
 
 export function PageTitle() {

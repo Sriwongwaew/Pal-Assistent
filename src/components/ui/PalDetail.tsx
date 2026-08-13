@@ -10,6 +10,7 @@
    skälen – är översatt. */
 /* eslint-disable @next/next/no-img-element */
 import { ELEMENT_ICON, ELEMENT_META, WORK_META, WORK_TYPES } from "@/lib/constants";
+import { partnerSkill } from "@/lib/partnerSkills";
 import type { DisplayStats } from "@/lib/scoring";
 import type { AppData, ScoredPal, Species } from "@/lib/types";
 import { useT } from "@/i18n/LocaleContext";
@@ -165,7 +166,23 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
         </div>
       </div>
 
-      {/* ===== Paldeck (samma inramning som Partner Skill i spelet) ===== */}
+      {/* ===== Partner Skill – spelets riktiga skilltext (vendrat ur paldb).
+             Ramen visade förut Paldeck-beskrivningen som ersättning; nu finns
+             datan, och Paldeck-texten ligger kvar under när den finns. ===== */}
+      {(() => {
+        const ps = partnerSkill(species.code);
+        return ps && (
+          <>
+            <div className="pd-ptitle">Partner Skill</div>
+            <div className="pd-skillrow">
+              <span className="sn">{ps.skill}</span>
+            </div>
+            <div className="pd-descbox">{ps.desc}</div>
+          </>
+        );
+      })()}
+
+      {/* ===== Paldeck (samma inramning som i spelet) ===== */}
       <div className="pd-ptitle">Paldeck</div>
       <div className="pd-skillrow">
         <span className="sn">{species.name}</span>

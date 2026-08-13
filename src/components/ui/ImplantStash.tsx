@@ -9,9 +9,10 @@
  * besvara i appen alls. Den här panelen är svaret, och den syns oavsett vad man
  * valt.
  *
- * Hopfälld som Avelsbas, av samma skäl: rubriken bär hela värdet ("2 st"), så
- * den kostar en rad tills man vill ha den. Greppet måste därför synas — samma
- * `.bsetup`-stil med chevron och VISA/DÖLJ.
+ * Öppnas som MODAL från Verktygs-panelen (Kens rättning aug 2026: den gamla
+ * details-varianten som lyftes med ren CSS blev en hoptryckt remsa i överkanten).
+ * Komponenten renderar därför modalens kropp: en statisk huvudrad (`.bshd`) i
+ * stället för summary — stängningen äger modalen, inte panelen.
  *
  * Raderna är klickbara och lägger passiven bland de önskade. Det är hela
  * poängen med att förrådet är synligt: se att du har Swift → klicka → planen
@@ -53,8 +54,8 @@ export function ImplantStash({ implants, passives, chosen, full, onPick }: Impla
   const total = rows.reduce((sum, r) => sum + r.n, 0);
 
   return (
-    <details className="bsetup impstash">
-      <summary>
+    <section className="bsetup asmodal impstash">
+      <div className="bshd">
         <span className="ttl">{t("implant.title")}</span>
         <span className="num">{total}</span>
         <span className="meta">
@@ -65,7 +66,7 @@ export function ImplantStash({ implants, passives, chosen, full, onPick }: Impla
         {rows.length > 0
           ? <Tag kind="keep">{t("implant.inStash")}</Tag>
           : <Tag kind="cond">{t("implant.empty")}</Tag>}
-      </summary>
+      </div>
 
       {rows.length === 0 ? (
         <div className="hint">
@@ -108,6 +109,6 @@ export function ImplantStash({ implants, passives, chosen, full, onPick }: Impla
           </div>
         </>
       )}
-    </details>
+    </section>
   );
 }

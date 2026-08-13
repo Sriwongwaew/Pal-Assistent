@@ -21,6 +21,8 @@ interface ImportOk {
   world: string;
   containers: string[];
   skipped: Record<string, number>;
+  /** Satt bara när den globala palboxen fanns men inte gick att läsa. */
+  globalBoxError?: string;
   savePath: string;
   modified: number;
 }
@@ -354,6 +356,13 @@ export function SaveImport() {
           })}
           {skippedCount > 0 && (
             <span className="meta">{t("save.skipped", { n: skippedCount })}</span>
+          )}
+          {/* Inläsningen lyckades ändå – världens box är huvudsaken – men den
+              globala palboxen saknas, och det får inte se ut som att den är tom. */}
+          {result.globalBoxError && (
+            <span className="meta">
+              {t("save.globalBoxFailed", { message: result.globalBoxError })}
+            </span>
           )}
         </div>
       )}

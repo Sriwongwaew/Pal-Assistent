@@ -68,6 +68,7 @@
 import { translate, type MessageKey, type Vars } from "../i18n";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import { inheritOdds } from "./breeding";
+import { PARTY, atBase } from "./constants";
 import { condenseReach } from "./scoring";
 import type { AppData, ScoredPal } from "./types";
 
@@ -150,11 +151,14 @@ export const CAP_FREE = eggRate(eggSpeed(0, 4), pickupFactor(true));
    Vad boxen har
    ============================================================ */
 
-/** Behållarna heter Palbox, Party och "Bas/övrigt N" (tools/palsave.py). En
- *  partnerskill som gäller "i basen" kräver att palen står i en av basarna –
- *  en Braloha i Palboxen gör ingenting. */
-const inBase = (c: string) => c !== "Palbox" && c !== "Party";
-const inParty = (c: string) => c === "Party";
+/** En partnerskill som gäller "i basen" kräver att palen står i ett basläger –
+ *  en Braloha i Palboxen gör ingenting, och en i den globala palboxen ännu
+ *  mindre: det lagret ligger utanför världen. Testet är därför `atBase`
+ *  (constants.ts) och inte ett `!== "Palbox"`, som räknade varje behållare som
+ *  inte var Palbox eller party som en bas — och då lovade appen en avelstakt
+ *  boxen inte har så fort en Braloha låg i det globala lagret. */
+const inBase = atBase;
+const inParty = (c: string) => c === PARTY;
 
 export interface PartnerPal {
   /** Art-index, eller null om arten saknas i datasetet (äldre bundle). */

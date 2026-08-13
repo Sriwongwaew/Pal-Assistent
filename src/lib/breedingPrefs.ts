@@ -45,13 +45,25 @@ export interface BreedingPrefs {
    * implantatet till en annan pal.
    */
   useImplants: boolean;
+  /**
+   * Vald artkedja i fas 2, som **artkoder** – inte index.
+   *
+   * Tomt = "ta den planeraren rekommenderar". Är den satt låser den fas 2 till
+   * just den rutten, så länge den fortfarande är en av de likvärdiga vägarna.
+   *
+   * Koder och inte index av samma skäl som `breedRate.ts` slår upp sina arter på
+   * `code`: index pekar rakt in i `data.species` och flyttar sig när den statiska
+   * halvan görs om. Ett index vore dessutom *tyst* fel här – kedjan skulle inte
+   * krascha, den skulle bara vara en annan kedja än den man valde.
+   */
+  chain: string[];
 }
 
 /** Ny tom uppsättning. Funktion, inte konstant, så ingen kan råka dela `wanted`. */
 export function emptyBreedingPrefs(): BreedingPrefs {
   return {
     target: null, base: null, wanted: [], ivGoal: "fast",
-    purpose: null, work: null, useImplants: true,
+    purpose: null, work: null, useImplants: true, chain: [],
   };
 }
 
@@ -95,7 +107,17 @@ export function parseBreedingPrefs(raw: string | null, data: AppData): BreedingP
     }
   }
 
-  out.ivGoal = o.ivGoal === "perfect" ? "perfect" : "fast";
+  /* Kedjan valideras bara som "koder som finns i den här bundlen". Att den
+     fortfarande är en gångbar väg avgörs av planeraren, som jämför mot de
+     alternativ den räknar fram – boxen kan ha ändrats sedan valet gjordes, och
+     då ska det tysta falla tillbaka på rekommendationen. */
+  if (Array.isArray(o.chain)) {
+    const codes = new Set(data.species.map((s) => s.code));
+    const picked = o.chain.filter((c): c is string => typeof c === "string" && codes.has(c));
+    if (picked.length === o.chain.length) out.chain = picked;
+  }
+
+  out.ivGoal = o.ivGoal === "perfect" || o.ivGoal === "near" ? o.ivGoal : "fast";
   /* Bara ett uttryckligt `false` stänger av det. En sparad uppsättning från före
      flaggan fanns saknar fältet, och då är standarden (på) rätt – annars hade
      alla gamla sessioner tystat rådet utan att någon bett om det. */

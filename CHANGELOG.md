@@ -13,6 +13,397 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **The box can be sorted by condense stars.** The stars were on every tile but there was no way
+  to bring them together — so "what have I already condensed?" meant scrolling past two hundred
+  pals. Pick *Sort: Condense stars*; equal stars keep their usual order by score.
+
+- **The app is about to be renamed to PalCompanion, and this version is the one that survives it.**
+  The next release moves to a new name and a new address, and an installed copy that only knows the
+  old one would see the update, announce it, and then refuse to install it — for good. This version
+  accepts both, so the rename arrives like any other update: you click install and the new name is
+  there afterwards. Nothing you have set is lost in the move.
+
+- **The installer now carries the licence it is given under.** The program is AGPL-3.0 and always
+  has been, but the copy you install said so nowhere — the terms and the list of what belongs to
+  Pocketpair and to the other projects this is built on only existed on GitHub. `LICENSE.txt` and
+  `NOTICE.txt` now sit in the program folder, and the read-me points at them.
+
+- **The ranch list was missing more than half the pals — it is complete now.** Find and the ranch
+  guide knew 12 producers; the game has 29. Ice Organ from Mau Cryst and Foxcicle, Bone from
+  Sootseer and Cawgnito, Venom Gland from Caprity Noct and Depresso, Electric Organ from Sparkit,
+  Flame Organ from Rooby and Kelpsea Ignis, Aquatic Pal Fluids from Kelpsea, Leather from Surfent,
+  Mushroom from Shroomer, Caramel Cotton Candy from Woolipop Terra, seeds from Vaelet — and Wool
+  from Lamball, which was missing for a second reason: the species data gives it no Farming level
+  at all, so anything driven by that number could never find it. None of this is guesswork: every
+  ranch pal's own partner skill names its product outright, and that text was already in the app.
+  Two rows got more honest along the way — Shroomer drops Mushroom *or* Cavern Mushroom, and Vixy
+  digs up buried items rather than the Pal Spheres we used to claim.
+
+- **Find answers "where do I get this?" once, not six times.** Pal drops, the ranch, mining nodes,
+  expeditions, raids and merchant prices are now one answer per item. Ask for Flame Organ and you
+  get the 38 species that drop it *and* the three that lay it in the ranch. Sulfur, Ore, Coal and
+  Pure Quartz finally have an answer at all — no pal drops them, so the page used to have nothing
+  to say. Life, Power and Stout Fruit show their prices and what they do to a pal's IVs, and the
+  pal souls explain what the Statue of Power charges per rank.
+
+- **Four new things to search: partner skills, places, expeditions and raids.** Partner skills
+  cover 298 species and are searchable by what they do, so "night vision" finds Cawgnito; every
+  species page now shows its skill too. Places make the map answerable — fast travel points,
+  dungeons with their level, camps, mining nodes and skill fruit trees, with the game's own
+  coordinates and, where your save can tell, what you have already found. Expeditions can be
+  searched by their rewards, which is the only way to find Kinship Peach or Sol Sphere, and they
+  say whether the site is unlocked and whether your idle box is strong enough. Raids show the slab
+  that summons them, what they drop, and how many times you have cleared them.
+
+- **A schematic now tells you where to go, not just a source name.** "Snow enemy camp" was the
+  whole answer for the Advanced Fishing Rod, which is not much to go on. Every source we can pin
+  down now shows the region in the game's own words with its level range, the actual coordinates,
+  a link to the map, and a line on how that kind of source is farmed — so the fishing rod becomes
+  three camps in the Astral Mountains (Lv 35–50) at (−194, 255), (−299, 459) and (−394, 446),
+  with a note that the camp and its chest come back after a while. The oil rig schematics point at
+  the right rig and its 22 golden chests, treasure-map schematics at all 42 dig spots, the hard
+  mode towers at the tower itself, and the arena rewards at the arena. That is 82 of the 89 rows.
+  The seven that are left have no fixed place to give: the Moon Lord raid is summoned at an altar
+  you build yourself, the Medal Merchant wanders, and one alpha has no spawn in the map data at
+  all — each says which of those it is rather than leaving you guessing. Where a source lists
+  several ways in, the coordinates are labelled as one of them, not as the whole answer.
+
+- **Picking an element now does something.** It used to show the type chart — which you know by
+  heart after a week — and link to a generic page. It now answers the two questions you actually
+  have: what you own of that element (the count, your strongest four, and a jump to every species
+  of it) and what to bring *against* it, which is your best pal of the element that beats it. It
+  also lists the expeditions that count pals of that element against how many you have idle, since
+  that is the one place in the game where the number matters: 43 idle Dragon pals against the 20
+  Sunreach Isle asks for.
+
+- **The map gained oil rig chests, treasure map spots and named regions** as three new layers, and
+  enemy camps now show which Syndicate faction runs them.
+
+- **Hover an item or a schematic to see what the thing actually does.** The game's own description
+  plus its numbers — attack and magazine size for a weapon, defense and HP for armor, durability,
+  weight and gold value for both. It works on the schematic tiles, on every item in Find and on the
+  drops and ranch products listed on a species. Two things the box tells you straight out rather
+  than glossing over: the numbers are the **base version**, because a Schematic 4 builds a stronger
+  one and the higher tiers are in no datamined source, and the Flamethrower only has its
+  schematic's text since the weapon itself is missing from the item data.
+
+- **Type two species with an x between them** — "Anubis x Lamball" — and Find tells you what the
+  pair produces.
+
+- **Species pages say a lot more.** The Paldeck description, the species' own stat scaling, sprint
+  speed, food and stomach size, the male/female split, whether it works at night, and every parent
+  pair that produces it with the ones you own listed first.
+
+- **Passives match their description, not just their name.** Searching "attack", "work speed" or
+  "stamina" now finds the passives that do those things. If you own the surgery implant for a
+  passive, Find says what that saves you.
+
+- **The hit counters told the truth about how many hits there were.** They counted what fitted on
+  screen, so searching "Schematic 4" reported 12 when 85 matched. Now the count is the real number
+  and a "show more" button says how many are left.
+
+- **The plan now spots the pair that does the whole job in one go.** When two pals in your box
+  together carry all the wanted passives *and* their child happens to be the target species, that
+  single pairing replaces both halves of the plan — the gathering and the species route. The
+  planner used to pick whichever pal carried the most wanted passives on its own and then breed
+  its way across to the target, because it counted carriers rather than eggs: for Helzephyr Lux
+  that meant a Digtoise with all four and two species steps, 20 eggs, where your Helzephyr ♀ and
+  Beakon ♂ get there in one, 10 eggs. Carrier sets are now priced over the whole plan, so the pair
+  wins when it is cheaper and the lone carrier stays when it is not. Two pals of *different*
+  species were never even considered as a pair before — they are now, both in the plan and in
+  "You could also do it this way" below it, which is where they show up when manual mode has
+  locked the plan to a particular pal.
+
+- **A third IV goal: near perfect.** "Perfect" now means what it says — 100/100/100 bred the whole
+  way — and next to it sits **Near perfect 90+**, which breeds each stat to within *one IV fruit* of
+  perfect and lets a fruit finish the job. That is not a softer attitude, it is a different lottery:
+  a rerolled stat lands on 90-or-better eleven times as often as on exactly 100 (4.4 % against
+  0.4 %). For a Helzephyr Lux with no passives in play that is **36 eggs instead of 60**, and the
+  plan then says what remains: *"then 3 fruits, at most one per stat"*. The whole panel follows the
+  goal — the coverage cards count pals at 90+, each step says "HP + Attack 90+", and the goal card
+  shows 90+ per stat instead of 100.
+
+- **One route, steps 1 → N.** Chasing a perfect pal used to mean reading three plans for the same
+  animal: "Do this first" for bringing a 100 in, "Shortest path" for gathering the 100s, and a
+  separate "Passive plan" underneath — three headings, three numberings. They are one route now.
+  Every step is a real pairing you go and do, numbered straight through, and what a step is *for*
+  is a colour-coded chip in its header instead of a heading of its own: **bring in a 100** (violet),
+  **gather 100s** (blue), **gather passives** (gold), **goal** (green). The species steps that carry
+  an imported 100 are rows in the same route, so "result from step 2" always points at a step you
+  can see. The separate passive plan is only shown when it does something the route cannot — when
+  the IV goal is "fast", or when a wanted passive has to be fetched from another species.
+
+- **The breeding plan and the condense queue stopped contradicting each other.** The planner would
+  point at a pal as step 1 of your route while the queue listed the same pal as fodder — measured
+  against your box, **six of the eleven** pals the active plan needed were in the feed lists, one of
+  them under "do this now". The queue now knows what the plan has booked: those pals are left out of
+  the feed, and the row says how many and why. It is the one mistake in the app that cannot be
+  undone, so it is the one that had to go first.
+
+- **A single 100 is a building block, not a failed roll.** The keep rules measured the IV *average*
+  (240/270) or all three stats at 100, so a Warsect at 15/100/100 — the exact two-in-one donor the
+  planner recommends — counted as fodder. Now a pal that carries a 100 in any stat is kept as an
+  **IV building block**, up to two per species and stat, cleanest first and preferably one of each
+  gender. In your box that went from **11 unprotected pals to none**, and they have their own group
+  in the keep band.
+
+- **The condense queue ranks by what the stars are worth, not just by whether they are reachable.**
+  It used to sort on star gain and freed slots, which is why a Souffline with no role in your box
+  outranked species you actually deploy. Priority now weighs what the species is used for — best in
+  the box, a real role, or nothing — against what the stars give in real stats and what they cost in
+  pals, and the row says it in plain words: *"best in the box at what it does — stars pay off here"*
+  or *"no role in the box — the stars do nothing for you"*. Your queue now opens with Jetragon and
+  Lyleen instead of species you never take out.
+
+- **The pal you keep is picked for its role, not for its score.** "Best of its species" was decided
+  by a score that rewards high passive tiers even when the passive is junk — for Digtoise it chose
+  79/74/21 with four passives over 86/44/83 with two. It now goes by *fitting* gold passives, then
+  IV, then cleanliness, then stars already banked. That is the pal you feed 48 others into, so it is
+  worth getting right.
+
+- **The app tells you when you got it.** With live mode on, the save is re-read the moment the game
+  saves — so the app knows before you do that the egg you just hatched *is* the pal the planner is
+  aiming at. A band under the page title now says so, on whatever page you happen to be on: **"You
+  got it"** when the pal matches your breeding goal, or **"Nearly there"** when it carries every
+  wanted passive and only the numbers are missing — with the count that matters: *"12 IV fruits
+  finish it: 8× Power Fruit, 4× Stout Fruit."* Only pals that are actually new since the last read
+  are announced, the first run is silent instead of greeting you with your whole box, and each
+  message can be dismissed for good.
+
+- **IV fruits are counted, not just mentioned.** Life, Power and Stout Fruit give +10 IV each up to
+  100, so what a pal needs is a number: `ceil((100 − IV) / 10)` per stat. The app says the number
+  rather than "feed it fruit" — and never calls them free, because the fruits cost endgame material
+  or merchant currency.
+
+- **A missing 100 is now bred in from another species instead of rerolled.** When none of your pals
+  of the target species has 100 in a stat, that stat could only come from the game's 40 % reroll —
+  about one egg in a hundred, ≈253 eggs for that stat alone, and in practice the whole cost of a
+  perfect plan. But a 100 can be *carried in* through the species chain: each step the child
+  inherits it with ≈30 % odds, so a couple of steps cost a handful of eggs. For Helzephyr Lux with
+  no Attack 100 in the box, the plan went from **7 steps and ~524 eggs to 4 steps and ~239** — the
+  100 comes from a clean Skutlass two steps away. The route to fetch it stands first in the plan
+  under "Do this first", with the donor, the species steps and what it costs, and the IV card for
+  that stat now says "can be bred in" instead of "has to be rerolled". Donors are ranked by fewest
+  steps and then by fewest passives, because whatever the donor carries lands in the passive pool.
+  It looks for donors across your **whole** box, the global Dimensional Pal Storage included — that
+  is where the best IVs usually sit — and the card says which container to fetch it from. Donors
+  that carry two 100s at once (a Warsect at 15/100/100) are offered both as one import that brings
+  both and as one per stat, and the plan takes whichever works out cheaper. It is offered for a stat
+  you already have a 100 in, too: if your only carrier of it drags four passives along, a clean one
+  bred in can still be the cheaper parent. And the price counts the 100s on the pals you pair *with*:
+  when the partner in a step also has 100 in the stat being carried, the odds go from ≈30 % to ≈60 %
+  — half the eggs for that step — so the route is priced step by step, with each step's odds shown,
+  and the partner picked for its 100 rather than only for being clean.
+
+- **Passives show as banners in the perfect-IV plan too.** Each step used to name them in running
+  text ("Demon God + Musclehead + Legend") in the middle of the IV line. They are banners now, on
+  their own row per step, the same as everywhere else in the app — the tier colour is the
+  information, so the same passive should look the same wherever it appears.
+
+- **The perfect-IV plan is drawn as a route, not a numbered list.** Same connector lines as the
+  passive plan: the pals that start the line stand at the top, every later step shows its parents
+  where the step is, and the last node carries the goal ring. The list of seven near-identical
+  boxes was hard to read your way through — which was the point of the route view in the first
+  place. The panel's remaining Swedish labels ("Etappvis", "Vinst", "× billigare") are translated
+  now too.
+
+- **Already bred it? You still get to see the route.** When a pal in your box already carries all
+  the wanted passives and is the target species, the plan costs nothing — and the whole route used
+  to vanish, with "Expected · whole route" falling back to "Pick a target and passives" as if the
+  planner had lost your plan. Now it says the goal is met, prices what another one would cost, and
+  shows that route below — built from the pals you have, with the finished one as a *parent* rather
+  than as the answer. So if you own two Helzephyr Lux that together carry everything, the plan
+  pairs those two, instead of sending you through two other species for the same number of eggs.
+  And when there genuinely is no route from the pals you own, or nobody in the box carries the
+  wanted passives, the card says that instead of showing a blank.
+
+- **Ties now go to parents of the target species.** When two routes cost the same number of eggs,
+  the planner picks the pair that is already the species you are breeding: the offspring can be
+  paired straight back with either parent, and you do not need to keep two other species around
+  for the next attempt. Nothing gets more expensive from this — it only decides equals.
+
+- **Legendary passive banners catch the light.** A rank 4 banner now gets a slow sheen travelling
+  across it and its edge stripe pulses, like in the game — gold, grey and negative banners stay
+  still, and World Tree passives keep their rainbow. It is mostly pause and the banners are
+  phase-shifted, so several in one panel glint one after another instead of blinking in unison.
+  The box grid stays still: it draws over two hundred banners at once, and most of them are
+  legendary in a box like yours. Turning on "reduce motion" in Windows stops all of it, as before.
+
+- **You can pick which breeding route to take.** When several species chains reach your target in
+  the same number of steps, they are all listed above the plan — each as its route of portraits
+  with the eggs it costs, cheapest marked. Click one to use it and the whole plan rebuilds around
+  it; the choice is remembered with the rest of your breeding setup. Useful when the cheapest
+  route goes through a species you cannot get hold of, or when you happen to own five of the
+  partner another route needs. If your box changes so much that the route you picked is no longer
+  one of the options, the plan quietly goes back to recommending the cheapest.
+
+- **Pick one pal and the whole plan is built around it.** Choosing a single parent in manual mode
+  no longer just prices a pair — it locks the passive plan to that pal. The planner keeps choosing
+  the other carriers, the merge order, the partners and the species route as usual, but yours is
+  in there, and the plan says at the top that it is locked and why. Useful when you want a
+  specific individual used, not merely a good one. Pick a pal that carries none of the wanted
+  passives and it says so plainly, because that plan will be dearer than the one it would have
+  chosen. Filling both slots still answers the old question: what do exactly these two cost?
+
+- **The recommended breeding chain stops changing on its own.** When two routes to the target
+  cost exactly the same, the planner used to pick whichever it happened to try first — and that
+  depended on the order your pals came out of the save. Reading the save again, a new base camp
+  or a new container was enough to make the plan suggest a different chain, with nothing that
+  actually mattered having changed. Ties are now settled the same way every time, so the same box
+  gives the same plan. The cheapest route still wins; only genuinely equal ones are affected. The
+  same fix applies to which individual pal a step points at when two of them are equally good.
+
+- **The global palbox is read too.** Pals you park in the game's Dimensional Pal Storage now
+  show up like any others — in the box, as breeding carriers, as duplicates in the condense
+  queue — labelled *Global palbox* so you can see where they are. That storage lives in its
+  own file outside the world save, so until now every pal you set aside there was invisible to
+  the app, and a breeding plan could tell you to catch a carrier you already owned. Pals kept
+  there are counted as stored rather than deployed: they do not earn a base's partner-skill
+  bonus, and they are left out of the expedition squad, because neither works until you fetch
+  them back out.
+
+- **Recommendations and "Best for…" are now one page: the five roles.** Five tabs — The box,
+  Combat, The base, Mounts & fishing, The player — each pairing the tasks computed from your own
+  box with the best-of and reference lists for the same role. The condense queue, keep list,
+  expeditions, souls advisor and butcher guide sit next to the attack team, best workers, ranch
+  guide, mounts, fishing helpers and support pals they justify. The five cards at the top are the
+  tabs: each carries its role's game icon and key numbers, one role shows at a time, and the back
+  button returns to the previous tab. Old *Best for…* links and bookmarks redirect to the new page.
+
+- **The five roles are now instruments instead of a wall of chips.** Every list on the page sits
+  in its own framed module with a title and a count, so you can tell where one thing ends and the
+  next begins — and each role's headline number sits in a gauge at the top with a meter behind it.
+  Two things changed shape completely:
+
+  The **condense queue** is one row per species. The star jump is four lamps (filled = stars it
+  already has, lit = stars this feeding gives), and the gain is a meter measured against the
+  +20 % a fourth star is worth, so a 1★ row can no longer look as strong as a 3★ one. Click a row
+  for what you keep and what the stars are worth in HP, attack and defence.
+
+  **Keep these** is a single bar split by reason instead of nine collapsed headings: how big
+  *clean carrier* is next to *already condensed* is now something you see rather than count.
+  Click a reason to see the pals in it. The colours group the reasons by kind — gold when the
+  passive is the reason, blue for IVs, violet for the pal's own state.
+
+- **The top bar has icons and a center.** Navigation now sits centered with the game's own
+  icons on every page — the Pal Sphere for the Box, the egg for Breeding, the passive rank
+  arrow for Recommendations, the map's tower and fast-travel glyphs for Quests and the Map —
+  with the brand on the left and your player card on the right.
+
+- **Combat and mount tasks are actionable.** The page now tells you which best-in-slot passives
+  your attack team and fastest mounts are still missing — one click opens a breeding plan with
+  them pre-filled, and if you own a Surgery Table module for one it says "can be implanted"
+  instead of sending you breeding for nothing.
+
+- **Find is redesigned around a hero band.** The selected hit sits in a big band at the top —
+  tinted by its element, like the Box — and updates as you browse: ↑/↓ steps through the hits,
+  Tab switches category, Enter opens the primary action. Category chips under the search box
+  carry hit counts in a fixed order, and the hits themselves are tiles with real portraits
+  (passives stay as their in-game banners). A species answers everything at once: how to get it
+  (your box, breeding steps, or the alpha boss with a ✓ from your save), what it drops, its
+  ranch product, top work suitabilities, its legendary schematic and what it is weak to — with
+  your best counter pal from the box. Hits wrap into rows instead of scrolling sideways, and
+  materials, ranch goods and schematics show the game's real item icons — the schematic rows
+  carry the weapon they unlock.
+
+- **Elements are now searchable.** Type "fire" (or browse with an empty search) and the element
+  card answers what it is strong against, what beats it, and which pal in your box is your best
+  of that element. Species search also matches the game's element names — "grass" and "ground"
+  now work, not just the dataset's internal names.
+
+- **The Map is now the real Palworld map.** The game's own 1.0 world render with datamined
+  positions for towers, fast travel statues, Lifmunk Effigies (all 140 on the main map), other
+  effigy types, alpha bosses, enemy camps, dungeons, skill-fruit trees and ore clusters. Scroll to
+  zoom, drag to pan, click a marker for details. Layers toggle on chips that also show your tally,
+  and "Only what I have not found" hides everything you already picked up. The World Tree is its
+  own in-game map and is not covered yet.
+
+- **The app now reads your progression from the save** — the same "Read from the game" button as
+  before, nothing new to set up. Towers defeated, effigies collected, fast travel points unlocked
+  and alpha bosses beaten are matched per instance, so the map ticks off exactly the ones *you*
+  found. Camps, dungeons, oil rigs, predators and treasure are shown as the save's own counters.
+  Your progression is as personal as your box: it is blanked from the installer payload the same
+  way, and a release refuses to ship if it leaks.
+
+- **Quests is your journey over the world.** The page opens with the real world map, gold-stamped
+  where your save has beaten a tower, and the journey as phases next to it — the towers,
+  Panthalus, the World Tree, hard mode, the raids and the Paldeck — with the next phase lit up.
+  "Next fight" leads with the boss's own portrait in its element's colours, so you see who you
+  are up against before you read a word of it.
+  The campaign shows every fight as a receipt (portrait, level, ✓ ×N from the save's own
+  counters), hard mode shows its legendary schematics as real item icons instead of text, and
+  the raid board shows each boss with an "egg missing" mark when your deck lacks the species
+  only that raid can hatch — click one for the summon item, the phases and your counter squad.
+  "Left in the world" turns the tallies into reasons: unused effigies to offer at a Statue of
+  Power, alpha bosses worth 5 Ancient Technology points each — every meter opens the map.
+
+- **The journey now goes through Panthalus.** The page used to point at Zenara & Astralym next,
+  but the World Tree opens by *catching* Panthalus — the level sort happened to flip the real
+  order. Fixed, and the raw quest log moved to the bottom as a compact strip.
+
+- **Quests starts with what is actually next for you.** Your real quest log straight from the
+  save (main quests first, the game's own names), and "Next fight" is the lowest boss your save
+  has not beaten — including the World Tree bosses and Panthalus, which are new on the page.
+  If your save was read before this existed, the page tells you to read it again instead of
+  guessing.
+
+- **Find answers "who drops X" and "where does this schematic come from" — for everything.**
+  Datamined 1.0 drop tables now cover all 98 materials pals drop (quantities and drop chances
+  per species, ✓ on species you already own), and the legendary schematic table grew from 32 to
+  77 substantiated rows: alpha bosses (≈3 % per kill), hard-mode towers (≈10 %), treasure maps
+  and chests, the oil rigs' gold chests, the Moon Lord raid and the Arena/merchant stock. 1.0
+  shuffled the boss drops and old guides still disagree; rows where the 1.0 sources conflict or
+  stand alone are flagged instead of presented as fact. Species search also matches work
+  suitability now — type "mining" and the best miners come out sorted by level.
+
+- **The Box filters are one button now.** Search, sort and hit count stay in the row; quick
+  filters, IV thresholds and the passive picker live in one Filter panel, and your active choices
+  show as removable chips under the row. Same filters, a third of the clutter.
+
+- **The breeding tools open as proper dialogs.** Implants, manual mode and the breeding setup
+  used to expand awkwardly in place (and briefly as a squeezed top strip); they are now real
+  centered dialogs with a close button, Escape and click-outside — same as the species and
+  passive pickers.
+
+- **"Star of the box" is your strongest fighter, not a scoring quirk.** The old pick used the
+  keep-score, which favours clean breeding stock and happily crowned a level-32 duplicate. The
+  hero now shows your highest combat power and says so; the strength card that duplicated it
+  shows your best gold-passive carrier instead.
+
+- **The map is sharp at every zoom level.** It used to rasterise at screen size and stretch —
+  blurry exactly when you leaned in. It now renders from the full 8192-pixel source at all times.
+
+- **Partner skills are in the app.** Every species' partner skill (the game's own text, datamined)
+  shows in Base Info's Partner Skill frame — which used to show the Paldeck description as a
+  stand-in — and as a chip on every Best for… portrait, answering "why this one?" for real:
+  Jetragon's missiles, Anubis's player buff, Eidrolon's party stacking. Two new sections use
+  them: **Best for the player** (pals whose skill buffs you — Solenne, the Gobfin stack, element
+  mounts) and **Base defense** (Panthalus's skill literally is air defense).
+
+- **Recommendations puts your box to work.** Three new tools for an endgame box:
+  **Expeditions** — your idle pals' total ≈Firepower against every 1.0 site's requirement and
+  element headcount (a 4★ is worth 25× a 0★, which is what condensing spares are for);
+  **Pal Souls** — your soul wallet from the save plus which keepers still miss the cheap ranks
+  (1–10 cost small/medium/large for +30 %; 11–20 cost 30 Giants for the same again);
+  **Worth butchering** — the third channel besides feeding, with the ≈100 %-Giant-soul trio
+  called out. Condensing also now credits already-starred duplicates at their full fed value
+  (a 1★ spare counts as 5 sacrifices, as in the game) — "almost there" was too pessimistic.
+
+- **Quests covers the actual endgame.** Hard-mode towers (Lv 72–80, with their legendary
+  schematics, clears read from the save once you beat one), the full raid board — all six bosses
+  with summon items, phase mechanics (Blazamut Ryu swaps element at 10 % HP; Moon Lord is
+  typeless and gated on pressure points) and your clear receipts — plus a Paldeck meter with a
+  path to every missing species. Panthalus's card now warns it must be CAPTURED, heat/cold armor
+  gates are shown, and Zenara & Astralym honestly says "no elemental weakness" instead of a
+  guessed counter-squad.
+
+- **"CATCH" tells you how.** Recommending a legendary or raid pal with a bare CATCH promised a
+  wild spawn that does not exist. Those tags now read "ALPHA BOSS Lv 70" (the fixed spawn) or
+  "RAID EGG", everywhere species are suggested. Astralym — the uncatchable final boss — no
+  longer tops the attack rankings.
+
 ## 2.3.0 – 2026-08-09
 
 - **Condensing asked for more than twice the pals the game actually wants.** The costs were the

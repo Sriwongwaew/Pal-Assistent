@@ -57,6 +57,16 @@ export interface ManualParent {
   g: Gender;
   /** Namn på exemplaret när det kommer ur boxen, annars null. */
   label: string | null;
+  /**
+   * Instans-id när föräldern ÄR en pal ur boxen.
+   *
+   * Behövs för att en enda vald förälder ska kunna driva hela passivplanen:
+   * planeraren arbetar med riktiga individer ur boxen, och en handbyggd
+   * förälder (art + passiver man tänker sig) finns inte där. Utan id:t går det
+   * inte att skilja de två fallen åt – och att matcha på art + passiver hade
+   * pekat ut fel exemplar så fort man äger två likadana.
+   */
+  id?: string;
 }
 
 export type ManualBlock =

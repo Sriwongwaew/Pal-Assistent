@@ -1,18 +1,29 @@
 /* Dumb byggstenar för rekommendationssidan: spara-listan, kondenseringskön och
  * delarna de består av.
  *
- * Sidan är en **arbetsordning**: först vad du inte får mata, sedan en rad per
- * art med vad som händer om du matar den. Detaljerna fälls ut på den rad man
- * håller på med – tolv kort samtidigt är tolv beslut samtidigt, och det var
- * det som gjorde den gamla sidan bökig.
+ * Sedan "Konsolen" (Kens val ur fyra designförslag aug 2026, omdesignrunda 2)
+ * är de två stora delarna instrument i stället för listor:
  *
- * Ordningen är inte kosmetisk: matningen går inte att ångra, så spara-listan
- * står före kön med flit. Att den inte går att ångra sägs i `WhyCondense`;
- * varningsrutan som stod överst är borttagen.
+ * - **Kön** är radlista (`CondenseRow`): löpnummer, porträtt, art,
+ *   LED-stjärnor som visar hoppet, antal att mata, vinstmätare och
+ *   varningsprickar. Detaljerna fälls ut på den rad man håller på med – tolv
+ *   utfällda kort samtidigt är tolv beslut samtidigt, och det var det som
+ *   gjorde första versionen bökig.
+ * - **Sparade** är ett segmentband (`KeepConsole`): 291 pals som EN bild,
+ *   delad på skäl, med skälen som väljbara brickor under. Nio hopfällda
+ *   rubriker sa aldrig hur stor någon grupp var i förhållande till de andra.
+ *
+ * Segmentens färg är inte dekoration: den säger vilken FAMILJ av skäl gruppen
+ * hör till (passiv / IV / status / artens bästa), och tonen kommer ur temats
+ * egna tokens så båda lägena fungerar. Element­färgen är reserverad för pals.
+ *
+ * Ordningen är inte kosmetisk: matningen går inte att ångra, så det som ska
+ * sparas redovisas i samma flik. Att matningen inte går att ångra sägs i
+ * `WhyCondense`; varningsrutan som stod överst är borttagen på Kens begäran.
  */
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useT } from "@/i18n/LocaleContext";
 import { useRichT } from "@/i18n/rich";
 import { formatNumber, type MessageKey } from "@/i18n";
@@ -22,7 +33,7 @@ import {
 } from "@/lib/condense";
 import { STAR_COST } from "@/lib/constants";
 import type { AppData, ScoredPal, Species } from "@/lib/types";
-import { MaskIcon } from "./GameIcon";
+import { GameIcon, MaskIcon } from "./GameIcon";
 import { PassiveList } from "./PassiveRow";
 import { WorkIcon } from "./WorkIcon";
 import { elementColor } from "./PalHero";
@@ -32,9 +43,19 @@ import { ElementIcons, GenderSymbol, SpeciesIcon, Stars, Tag, elementBg } from "
    Modellen – räknad en gång i containern
    ============================================================ */
 
+/**
+ * Familjen ett spara-skäl hör till. Segmentbandets färg kommer härifrån, och
+ * det är information: `pv` = passiven är skälet, `iv` = IV är skälet, `st` =
+ * palens tillstånd (lucky, redan kondenserad, i partyt), `rest` = inget
+ * utmärkande men artens bästa exemplar. Utan familjerna hade bandet behövt nio
+ * godtyckliga färger, och en godtycklig färg ser ut som att den betyder något.
+ */
+export type KeepFamily = "pv" | "iv" | "st" | "rest";
+
 export interface KeepGroup {
   title: MessageKey;
   hint: MessageKey;
+  fam: KeepFamily;
   list: ScoredPal[];
 }
 
@@ -48,9 +69,8 @@ export interface RecoModel {
   /** Långt kvar eller redan 4★. */
   later: CondensePlan[];
   summary: CondenseSummary;
+  /** Spara-grupperna, sista gruppen är "artens bästa (övriga)". */
   keepGroups: KeepGroup[];
-  /** Sparade utan utmärkande egenskap – artens bästa exemplar. */
-  rest: ScoredPal[];
   totalPals: number;
   dupeCount: number;
   select: (p: ScoredPal) => void;
@@ -327,57 +347,104 @@ export function WaitLists({ m, heading = true }: RecoProps & { heading?: boolean
   );
 }
 
-/** En sparad pal som rad. */
-export function KeepRow({ m, p }: RecoProps & { p: ScoredPal }) {
+/** Hur många exemplar en vald grupp visar innan "visa alla". */
+const KEEP_PREVIEW = 12;
+
+/** Det starkaste skälet gruppen handlar om – bannern som ska synas i brickan. */
+const topPassive = (m: RecoModel, p: ScoredPal) => {
+  const items = passiveItems(m, p);
+  if (!items.length) return null;
+  return items.reduce((best, cur) => (cur.tier > best.tier ? cur : best));
+};
+
+/** En sparad pal som bricka: porträtt, namn, IV och det skäl den sparas för. */
+export function KeepCell({ m, p }: RecoProps & { p: ScoredPal }) {
   const t = useT();
   const sp = m.data.species[p.s]!;
+  const top = topPassive(m, p);
   return (
-    <button type="button" className="krow" style={elc(sp)}
+    <button type="button" className="kscell" style={elc(sp)}
       onClick={() => m.select(p)} title={t("reco.row.baseInfo")}>
-      <span className="ava sm" style={{ background: elementBg(sp) }}>
-        <SpeciesIcon sp={sp} size={26} radius={13} />
+      <span className="ava" style={{ background: elementBg(sp), width: 44, height: 44 }}>
+        <SpeciesIcon sp={sp} size={44} radius={22} />
       </span>
-      <span className="knm">
-        <b>{sp.name}</b>
+      {/* Spelets egna märken, inte förkortningar: brickan är 118 px bred, och
+          "A"/"L" var obegripligt medan "ALPHA"/"LUCKY" tryckte bort namnet.
+          Ikonen är samma som i Base Info, alltså redan inlärd. */}
+      <span className="nm">
+        {sp.name}
         <GenderSymbol g={p.g} />
-        <Stars count={p.stars} />
-        {p.boss && <Tag kind="alpha">ALPHA</Tag>}
-        {p.lucky && <Tag kind="lucky">LUCKY</Tag>}
+        {p.boss && <GameIcon name="alpha" size={13} />}
+        {p.lucky && <GameIcon name="lucky" size={12} />}
       </span>
-      <span className="ivt">{t("pal.lv", { n: p.lv })} · {p.iv.join("/")}</span>
-      <UseChips m={m} p={p} limit={2} compact />
-      <span className="kpv">
-        <PassiveList items={passiveItems(m, p)} />
-        <Misfit m={m} p={p} />
+      <span className="ivt num">
+        {t("pal.lv", { n: p.lv })} · {p.iv.join("/")}
+        {p.stars > 0 && <Stars count={p.stars} />}
       </span>
+      {top && <PassiveList items={[top]} />}
     </button>
   );
 }
 
-/** Spara-listan grupperad efter anledning – en pal visas bara i sin första grupp. */
-export function KeepGroups({ m, openFirst = 2 }: RecoProps & { openFirst?: number }) {
+/**
+ * Sparade som instrument: segmentbandet visar hela mängden delad på skäl,
+ * brickorna under är väljare, och den valda gruppens exemplar ritas som celler.
+ *
+ * Valet bor lokalt med flit – det är ett filter över samma data, precis som en
+ * sökruta, och ingen annan del av sidan behöver veta vilket skäl man tittar på.
+ * Familjetonen (`fam`) styr färgen; stegen inom en familj skiljer grupperna åt
+ * utan att införa nya hues.
+ */
+export function KeepConsole({ m }: RecoProps) {
   const t = useT();
+  const groups = m.keepGroups;
+  const total = groups.reduce((a, g) => a + g.list.length, 0);
+  const [sel, setSel] = useState<MessageKey | null>(groups[0]?.title ?? null);
+  const [all, setAll] = useState(false);
+
+  /* Steg inom familjen: två grupper med samma ton skiljs på ljushet, inte på en
+     ny färg. Räknas här så ordningen i GROUPS är det enda som styr. */
+  const seen = new Map<KeepFamily, number>();
+  const toned = groups.map((g) => {
+    const step = Math.min(seen.get(g.fam) ?? 0, 2);
+    seen.set(g.fam, step + 1);
+    return { ...g, cls: `kfam-${g.fam} kstep${step + 1}` };
+  });
+
+  const active = toned.find((g) => g.title === sel) ?? toned[0];
+  const shown = active && (all ? active.list : active.list.slice(0, KEEP_PREVIEW));
+
+  if (!total || !active) return null;
+
   return (
-    <>
-      {m.keepGroups.map(({ title, hint, list }, gi) => (
-        <details key={title} className="dgroup" open={gi < openFirst}>
-          <summary>
-            {t(title)} <span className="n">({list.length})</span>
-            {hint && <span className="why">{t(hint)}</span>}
-          </summary>
-          <div className="kgrid">{list.map((p) => <KeepRow key={p.id} m={m} p={p} />)}</div>
-        </details>
-      ))}
-      {m.rest.length > 0 && (
-        <details className="dgroup">
-          <summary>
-            {t("reco.keep.restTitle")} <span className="n">({m.rest.length})</span>
-            <span className="why">{t("reco.keep.restWhy")}</span>
-          </summary>
-          <div className="kgrid">{m.rest.map((p) => <KeepRow key={p.id} m={m} p={p} />)}</div>
-        </details>
+    <div className="kscon">
+      <div className="ksband" role="img"
+        aria-label={t("reco.keep.bandAria", { n: total })}>
+        {toned.map((g) => (
+          <i key={g.title} className={`${g.cls}${g.title === active.title ? " on" : ""}`}
+            style={{ width: `${(g.list.length / total) * 100}%` }}
+            title={`${t(g.title)} — ${g.list.length}`} />
+        ))}
+      </div>
+      <div className="kslegend">
+        {toned.map((g) => (
+          <button type="button" key={g.title} className={`kschip ${g.cls}${g.title === active.title ? " on" : ""}`}
+            aria-pressed={g.title === active.title}
+            onClick={() => { setSel(g.title); setAll(false); }}>
+            <i />{t(g.title)} <b className="num">{g.list.length}</b>
+          </button>
+        ))}
+      </div>
+      <p className="kswhy"><b>{t(active.title)}</b> — {t(active.hint)}</p>
+      <div className="kscells">{shown?.map((p) => <KeepCell key={p.id} m={m} p={p} />)}</div>
+      {active.list.length > KEEP_PREVIEW && (
+        <button type="button" className="ghost comore" onClick={() => setAll((v) => !v)}>
+          {all
+            ? t("reco.keep.showFewer", { n: KEEP_PREVIEW })
+            : t("reco.keep.showAll", { n: active.list.length })}
+        </button>
       )}
-    </>
+    </div>
   );
 }
 
@@ -387,83 +454,88 @@ export function NothingToDo({ children }: { children: ReactNode }) {
 }
 
 /* ============================================================
-   Kön – bandet och en rad per art
+   Kön – en rad per art i konsolens köinstrument
    ============================================================ */
 
-/** Summan av allt som går att göra nu, i en rad. */
-export function QueueBand({ m }: RecoProps) {
+/**
+ * Stjärnhoppet som LED-remsa: fyllda lampor är stjärnor arten redan har,
+ * lysande är de man får nu, släckta är taket man inte når.
+ *
+ * Fyra lampor är hela sanningen – `STAR_COST` har fyra steg och 1.0:s tak är
+ * 4★. Läs aldrig antalet ur något annat: en femte lampa vore ett löfte spelet
+ * inte kan hålla.
+ */
+export function StarLeds({ from, to }: { from: number; to: number }) {
   const t = useT();
   return (
-    <div className="rqband">
-      <span className="k">{t("reco.band.todo")}</span>
-      <span className="v">
-        {t("reco.band.value", {
-          species: m.summary.species, feed: m.summary.feed,
-          stars: m.summary.stars, slots: m.summary.feed,
-        })}
-      </span>
-      <span className="s">{t("reco.band.dupes", { dupes: m.dupeCount, total: m.totalPals })}</span>
-    </div>
+    <span className="cqleds" role="img" aria-label={t("reco.queue.ledAria", { from, to })}>
+      {STAR_COST.map((_, i) => (
+        <i key={i} className={i < from ? "was" : i < to ? "new" : ""} />
+      ))}
+    </span>
   );
 }
 
-/** Kolumnrubrikerna – samma åtta kolumner som raderna, annars glider de isär. */
-export function QueueHead() {
-  const t = useT();
-  return (
-    <div className="rqhead">
-      <span>#</span><span /><span>{t("reco.head.species")}</span><span>{t("reco.head.becomes")}</span>
-      <span>{t("reco.head.feed")}</span><span>{t("reco.head.slots")}</span>
-      <span>{t("reco.head.watch")}</span><span />
-    </div>
-  );
-}
+/** Vinstmätaren: procenten mot taket (4★ = +20 %), så raderna går att jämföra. */
+const MAX_GAIN_PCT = STAR_COST.length * 5;
 
 /**
- * En art som en rad. Stängd säger den vad som händer; utfälld säger den vem du
- * behåller, vad stjärnorna är värda i stats och vad du bör se upp med.
+ * En art som konsolrad. Stängd säger den vad som händer (stjärnhopp, antal,
+ * vinst, varningar); utfälld vem du behåller, vad stjärnorna är värda i
+ * spelets stats och vad du bör se upp med.
  */
-export function QueueRow({ m, plan, n }: RecoProps & { plan: CondensePlan; n: number }) {
+export function CondenseRow({ m, plan, n, open }: RecoProps & {
+  plan: CondensePlan; n: number; open?: boolean;
+}) {
   const t = useT();
   const sp = speciesOf(m, plan);
   const gain = gainOf(m, plan);
   const k = plan.keeper;
   return (
-    <li>
-      <details className="rqrow" style={elc(sp)}>
-        <summary>
-          <span className="n">{n}</span>
-          <Portrait sp={sp} size={28} />
-          <span className="nm">{sp.name}</span>
-          <span className="jm">{plan.fromStars}★ <i>→</i> <b>{plan.reach}★</b></span>
-          <span className="fd">{t("reco.queue.count", { n: plan.feed })}</span>
-          <span className="sl">+{plan.feed}</span>
-          <WarnDots plan={plan} />
-          <span className="cv" aria-hidden>▾</span>
-        </summary>
-
-        <div className="rqbody">
-          <div className="c">
-            <span className="rsk">{t("reco.row.youKeep")}</span>
-            <button type="button" className="rqkeep" onClick={() => m.select(k)} title={t("reco.row.baseInfo")}>
-              <PalLine p={k} />
-            </button>
-            <PassiveList items={passiveItems(m, k)} />
-            <Misfit m={m} p={k} />
-            <div className="rquses"><UseChips m={m} p={k} /></div>
-          </div>
-          <div className="c">
-            <span className="rsk">{t("reco.row.itGives")}</span>
-            <GainStats gain={gain} />
-            <p className="rqfact">
-              {t("reco.row.fact", { pct: gain.pct, slots: plan.feed })}
-              {plan.leftover > 0 && t("reco.row.leftover", { n: plan.leftover })}
-            </p>
-            <WarnNotes plan={plan} inline />
-            <NextStar plan={plan} />
-          </div>
+    <details className="cqrow" style={elc(sp)} open={open}>
+      <summary>
+        <span className="ix num">{String(n).padStart(2, "0")}</span>
+        <Portrait sp={sp} size={30} />
+        <span className="nm">{sp.name}</span>
+        <StarLeds from={plan.fromStars} to={plan.reach} />
+        <span className="feed num">{t("reco.queue.count", { n: plan.feed })}</span>
+        <span className="cqbar" title={t("hub.chip.pct", { pct: gain.pct })}>
+          <i style={{ width: `${Math.min(100, (gain.pct / MAX_GAIN_PCT) * 100)}%` }} />
+        </span>
+        <span className="pct num">+{gain.pct} %</span>
+        <WarnDots plan={plan} />
+        <span className="cv" aria-hidden>▾</span>
+      </summary>
+      <div className="rqbody">
+        <div className="c">
+          <span className="rsk">{t("reco.row.youKeep")}</span>
+          <button type="button" className="rqkeep" onClick={() => m.select(k)} title={t("reco.row.baseInfo")}>
+            <PalLine p={k} />
+          </button>
+          <PassiveList items={passiveItems(m, k)} />
+          <Misfit m={m} p={k} />
+          <div className="rquses"><UseChips m={m} p={k} /></div>
         </div>
-      </details>
-    </li>
+        <div className="c">
+          <span className="rsk">{t("reco.row.itGives")}</span>
+          {/* Varför just den här arten står här. Prioriteten är räknad ur vad
+              arten används TILL (`palUses`) × vad stjärnorna ger i stats ÷ vad
+              det kostar i pals – en art utan roll får noll och hamnar sist, och
+              det ska stå i klartext (helhetsutredningen aug 2026). */}
+          {plan.why.length > 0 && (
+            <p className={`rqwhy${plan.priority <= 0 ? " none" : ""}`}>
+              {plan.why.map((w) => t.msg(w)).join(" · ")}
+            </p>
+          )}
+          <GainStats gain={gain} />
+          <p className="rqfact">
+            {t("reco.row.fact", { pct: gain.pct, slots: plan.feed })}
+            {plan.leftover > 0 && t("reco.row.leftover", { n: plan.leftover })}
+          </p>
+          <WarnNotes plan={plan} inline />
+          <NextStar plan={plan} />
+        </div>
+      </div>
+    </details>
   );
 }

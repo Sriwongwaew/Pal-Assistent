@@ -1,0 +1,77 @@
+PalAssistent
+Copyright (C) 2026 Kensiwat Sriwongwaew
+
+This program is free software under the GNU Affero General Public License,
+version 3. The full terms are in LICENSE, and also at
+<https://www.gnu.org/licenses/agpl-3.0.html>. The source is at the address the
+program links to in its own footer.
+
+The terms in LICENSE cover the source code of this project. You can only
+license what you own, so they do not cover the following, which is bundled
+with it.
+
+
+PALWORLD CONTENT
+----------------
+
+Palworld icons, artwork, species names, stats and in-game text belong to
+Pocketpair, Inc. <https://www.pocketpair.jp/>. They are included so the tool
+can show the game's own symbols next to your own save data. They are not
+licensed under the AGPL and are not mine to license.
+
+This project is not affiliated with, endorsed by, or sponsored by Pocketpair,
+and no money changes hands for it.
+
+
+THIRD-PARTY COMPONENTS
+----------------------
+
+palworld-save-tools - MIT
+    Reading the GVAS save format.
+    https://github.com/cheahjs/palworld-save-tools
+
+palworld-save-pal - GPL-3.0
+    Species, breeding and passive metadata; relic and boss positions; the
+    quest catalogue; the game's item icons (artwork (C) Pocketpair).
+    https://github.com/oMaN-Rod/palworld-save-pal
+
+PalworldSaveTools - MIT (repository)
+    The 1.0 world-map render (public/img/worldmap.webp, artwork (C) Pocketpair)
+    and fast-travel positions.
+    https://github.com/deafdudecomputers/PalworldSaveTools
+
+pyPalworldAPI - MIT (repository)
+    Per-species drop tables and item stats (game data (C) Pocketpair).
+    https://github.com/stolenvw/pyPalworldAPI
+
+palworld-kb - no licence stated; credited here, removed on request
+    Drop-table fill for the species pyPalworldAPI misses.
+    https://github.com/beliarance/palworld-kb
+
+paldb.cc - site data, PAK-extracted from the game ((C) Pocketpair);
+    credited here, removed on request
+    Datamined marker positions (camps, dungeons, effigies, ore, skill-fruit
+    trees) and the game's compass icons.
+    https://paldb.cc/
+
+zao/ooz, after powzix/ooz - NO LICENCE STATED
+    Oodle (PlM) decompression, bundled as tools/libooz.dll. The upstream
+    README describes it as open source, but no repository in the fork chain
+    carries a licence file. It is bundled because Palworld 1.0 saves cannot be
+    read without it and no licensed alternative exists. Credit goes to the
+    original author, Lars Viklund, and to powzix. If you are one of them and
+    would rather it were not distributed here, open an issue and it comes out.
+    https://github.com/zao/ooz
+
+Node.js - MIT
+    The runtime. Shipped in the installer under node\, with its own licence
+    text beside it.
+    https://nodejs.org/
+
+M PLUS Rounded 1c, Zen Kaku Gothic New - SIL Open Font License 1.1
+    The interface fonts, via @fontsource.
+    https://fontsource.org/
+
+
+If you own rights to anything bundled here and want it removed, say so and it
+will be - quickly and without argument.

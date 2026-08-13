@@ -316,15 +316,18 @@ def scan_saves(root: Path) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------- Extrahering
 
 
-def _container_names(
-    containers: list[dict[str, Any]], world_dir: Path
-) -> dict[str, str]:
-    """Ger varje container-GUID ett namn: Palbox, Party eller Bas/övrigt N.
+def _player_save_data(world_dir: Path) -> tuple[Path, dict[str, Any]] | None:
+    """Spelarens .sav: filen och dess SaveData (~50 kB, så den läses helt).
 
-    Spelarens .sav pekar ut Palbox och Party exakt; övriga containrar är
-    basläger/förvaring och numreras i den ordning de ligger i saven.
+    Filen bär tre saker vi vill ha: container-id:n (Palbox/Party), hela
+    progressionen (RecordData + questarrayerna) – och genom sitt eget namn vägen
+    till den globala palboxen, som ligger som `<samma guid>_dps.sav` bredvid.
+    Därför returneras sökvägen och inte bara datan.
+
+    Den parsas i sin helhet med bibliotekets vanliga läsare – till skillnad från
+    Level.sav finns här inga trasiga rawdata-typer, verifierat mot en riktig
+    1.0-save 2026-08-11.
     """
-    palbox_id = party_id = None
     for player_sav in sorted((world_dir / "Players").glob("*.sav")):
         if player_sav.name.endswith("_dps.sav"):
             continue
@@ -336,12 +339,127 @@ def _container_names(
                 gvas = GvasFile.read(
                     decompress_sav(player_sav), PALWORLD_TYPE_HINTS, {}
                 )
-            save_data = gvas.properties["SaveData"]["value"]
+            return player_sav, gvas.properties["SaveData"]["value"]
+        except Exception:
+            continue  # kan inte läsa spelarfilen – nästa, eller fall tillbaka
+    return None
+
+
+def _progress(save_data: dict[str, Any]) -> dict[str, Any]:
+    """Spelarens progression ur RecordData + questarrayerna.
+
+    Nyckelformaten (uppmätta mot en riktig 1.0-save):
+    - `TowerBossDefeatFlag`: läsbara namn, `BOSS_BATTLE_NAME_ElectricBoss` …
+      Prefixet skalas av här så appen slipper känna till det.
+    - `RelicObtainForInstanceFlag` (effigies) och `FastTravelPointUnlockFlag`:
+      GUID-hex utan streck, versaler – SAMMA id:n som uppströms
+      `relics.json`/`fast_travel_points.json` i palworld-save-pal, så kartan
+      kan pricka av exakt vilka som hittats.
+    - `NormalBossDefeatFlag`: spawner-id:n (`81_1_grass_FBOSS_20`), matchar
+      `bosses.json`-spawners för alfabossar på kartan.
+    - Questarrayerna ligger UTANFÖR RecordData, direkt i SaveData.
+      `Hidden_*` är spelets interna triggrar och filtreras bort.
+
+    Bara sanna flaggor tas med, och allt sorteras så att två inläsningar av
+    samma save ger byte-identisk JSON.
+    """
+    rd = save_data.get("RecordData", {}).get("value", {})
+
+    def flags(name: str, strip: str = "") -> list[str]:
+        rows = rd.get(name, {}).get("value", [])
+        keys = (str(r.get("key", "")) for r in rows if r.get("value"))
+        return sorted(k[len(strip):] if strip and k.startswith(strip) else k for k in keys if k)
+
+    def count(name: str) -> int:
+        value = _scalar(rd.get(name), 0)
+        return int(value) if isinstance(value, (int, float)) else 0
+
+    raids: dict[str, int] = {}
+    for row in rd.get("RaidBossDefeatCount", {}).get("value", []):
+        key = str(row.get("key", ""))
+        if key and isinstance(row.get("value"), (int, float)) and row["value"] > 0:
+            raids[key] = int(row["value"])
+
+    # 1.0 delade upp relikerna i typer (effigies = CapturePower, hopp, glid …).
+    # Den platta flaggkartan speglar BARA CapturePower; resten ligger i
+    # by-type-arrayen. Unionen av alla sanna GUID:n är det kartan vill ha —
+    # varje relik-instans prickas av oavsett typ.
+    relic_guids = set(flags("RelicObtainForInstanceFlag"))
+    for entry in rd.get("RelicObtainForInstanceFlagByType", {}).get("value", {}).get("values", []):
+        if not isinstance(entry, dict):
+            continue
+        for row in entry.get("Flags", {}).get("value", []):
+            if row.get("value") and row.get("key"):
+                relic_guids.add(str(row["key"]))
+
+    def quest_ids(name: str) -> list[str]:
+        # 1.0 döpte om arrayerna med suffixet _FullRelease; en pre-1.0-save har
+        # bara de nakna namnen och ingen save bär båda. Ta det som finns.
+        raw = save_data.get(f"{name}_FullRelease", save_data.get(name, {})).get("value", {})
+        values = raw.get("values", []) if isinstance(raw, dict) else []
+        out: list[str] = []
+        for row in values:
+            # Aktiva quests är structs med QuestName; avklarade är rena namn.
+            qid = (
+                _scalar(row.get("QuestName"), "")
+                if isinstance(row, dict)
+                else str(row or "")
+            )
+            if qid and not qid.startswith("Hidden_"):
+                out.append(qid)
+        return out
+
+    # Nedläggsräknare per torn OCH svårighetsgrad – nycklarna bär suffixet
+    # ("GrassBoss_Normal", förväntat "GrassBoss_Hard"). Exporteras ordagrant:
+    # hard-suffixet är härlett ur speldatan men ännu inte observerat i en save,
+    # så appen tolkar suffixet i stället för att vi gissar här.
+    tower_clears: dict[str, int] = {}
+    for row in rd.get("TowerBossDefeatCount", {}).get("value", []):
+        key = str(row.get("key", ""))
+        if key and isinstance(row.get("value"), (int, float)) and row["value"] > 0:
+            tower_clears[key] = int(row["value"])
+
+    return {
+        "towers": flags("TowerBossDefeatFlag", strip="BOSS_BATTLE_NAME_"),
+        "towerClears": dict(sorted(tower_clears.items())),
+        "raids": dict(sorted(raids.items())),
+        "relics": sorted(relic_guids),
+        "relicHeld": count("RelicPossessNum"),
+        "travels": flags("FastTravelPointUnlockFlag"),
+        "fieldBosses": flags("NormalBossDefeatFlag"),
+        "counts": {
+            "dungeons": count("NormalDungeonClearCount"),
+            "fixedDungeons": count("FixedDungeonClearCount"),
+            "oilrigs": count("OilrigClearCount"),
+            "camps": count("CampConqueredCount"),
+            "predators": count("PredatorDefeatCount"),
+            "treasure": count("FoundTreasureCount"),
+        },
+        "quests": {
+            "active": quest_ids("OrderedQuestArray"),
+            "completed": quest_ids("CompletedQuestArray"),
+        },
+        # Paldeck-posterna är artkoder (samma som Species.code) – "upptäckt",
+        # vilket är mer än "äger just nu": en bortmatad art är fortfarande sedd.
+        "deck": flags("PaldeckUnlockFlag"),
+    }
+
+
+def _container_names(
+    containers: list[dict[str, Any]], save_data: dict[str, Any] | None
+) -> dict[str, str]:
+    """Ger varje container-GUID ett namn: Palbox, Party eller Bas/övrigt N.
+
+    Spelarens .sav pekar ut Palbox och Party exakt; övriga containrar är
+    basläger/förvaring och numreras i den ordning de ligger i saven.
+    """
+    palbox_id = party_id = None
+    if save_data is not None:
+        try:
             palbox_id = _guid(save_data["PalStorageContainerId"]["value"]["ID"])
             party_id = _guid(save_data["OtomoCharacterContainerId"]["value"]["ID"])
-            break
-        except Exception:
-            continue  # kan inte läsa spelarfilen – vi faller tillbaka på storlek
+        except (KeyError, TypeError):
+            pass  # ovanlig spelarfil – vi faller tillbaka på storlek
 
     names: dict[str, str] = {}
     fallback_palbox = None
@@ -417,16 +535,27 @@ def _slot_item(blob: Any) -> tuple[str, int] | None:
     return raw.decode("ascii"), count
 
 
-def _implants(containers: Any) -> dict[str, int]:
-    """Passiv-id → antal implantat du äger, summerat över alla item-behållare.
+#: Pal Souls (Statue of Power-valutan), verifierade mot items.json aug 2026.
+_SOUL_IDS = {
+    "PalUpgradeStone": "s",  # Small
+    "PalUpgradeStone2": "m",  # Medium
+    "PalUpgradeStone3": "l",  # Large
+    "PalUpgradeStone4": "g",  # Giant
+}
+
+
+def _stash_items(containers: Any) -> tuple[dict[str, int], dict[str, int]]:
+    """(implantat, själar) ur alla item-behållare i världen.
 
     Alla behållare räknas, inte bara spelarens: ett implantat i en kista hemma i
     basen är lika mycket ditt som ett i ryggsäcken. Det som INTE görs är att läsa
-    ut hela inventariet – bara implantaten. Dels för att resten inte används av
-    någonting, dels för att `pal-data.json` följer med i installern och 526
-    item-id:n ur någons värld inte hör dit.
+    ut hela inventariet – bara implantaten och Pal Souls (själsrådgivningen
+    behöver plånboken). Dels för att resten inte används av någonting, dels för
+    att `pal-data.json` följer med i installern och 526 item-id:n ur någons
+    värld inte hör dit.
     """
     owned: dict[str, int] = {}
+    souls = {"s": 0, "m": 0, "l": 0, "g": 0}
     for entry in containers:
         slots = entry.get("value", {}).get("Slots", {}).get("value", {}).get("values", [])
         for slot in slots:
@@ -437,12 +566,238 @@ def _implants(containers: Any) -> dict[str, int]:
             if got is None:
                 continue
             item_id, count = got
-            if count <= 0 or not item_id.startswith(_IMPLANT_PREFIX):
+            if count <= 0:
                 continue
-            passive = item_id[len(_IMPLANT_PREFIX) :]
-            if passive:
-                owned[passive] = owned.get(passive, 0) + count
-    return owned
+            if item_id.startswith(_IMPLANT_PREFIX):
+                passive = item_id[len(_IMPLANT_PREFIX) :]
+                if passive:
+                    owned[passive] = owned.get(passive, 0) + count
+            elif item_id in _SOUL_IDS:
+                souls[_SOUL_IDS[item_id]] += count
+    return owned, souls
+
+
+# ------------------------------------------------- Globala palboxen (_dps.sav)
+
+#: Behållarnamnet den globala palboxen får i `OwnedPal.c`. Appen matchar på
+#: strängen (se `inBase` i src/lib/breedRate.ts, som måste veta att lagret INTE
+#: är en bas) – byt den inte utan att söka igenom src/.
+_GLOBAL_CONTAINER = "Global palbox"
+
+#: Fälten vi tolkar ur varje post. Allt annat passeras oläst – se `_read_dps`.
+_DPS_FIELDS = frozenset({
+    "CharacterID", "Gender", "Level", "Exp", "NickName", "IsPlayer", "IsRarePal",
+    "Talent_HP", "Talent_Shot", "Talent_Defense", "PassiveSkillList", "Rank",
+    "Rank_HP", "Rank_Attack", "Rank_Defence", "Rank_CraftSpeed",
+    "FullStomach", "SanityValue",
+})
+
+#: Typer där headern efter storleksfältet bara är en optional_guid.
+_PLAIN_PROPS = frozenset({
+    "IntProperty", "UInt16Property", "UInt32Property", "Int64Property",
+    "FixedPoint64Property", "FloatProperty", "StrProperty", "NameProperty",
+})
+
+
+def _skip_property(reader: Any, type_name: str, size: int) -> None:
+    """Går förbi en property utan att tolka den.
+
+    `size` täcker bara *värdet*. Varje typ har en egen header före det, och den
+    måste läsas för att nästa property ska börja på rätt byte – tabellen nedan är
+    avläst ur bibliotekets egen `FArchiveReader.property`.
+
+    En okänd typ kastar hellre än gissar: en felräknad byte här ger inte ett fel
+    utan en pal med påhittade siffror, och det är inget någon upptäcker.
+    """
+    if type_name == "BoolProperty":
+        # Enda typen vars värde ligger i headern; `size` är 0.
+        reader.bool()
+        reader.optional_guid()
+        return
+    if type_name == "StructProperty":
+        reader.fstring()
+        reader.guid()
+        reader.optional_guid()
+    elif type_name == "MapProperty":
+        reader.fstring()
+        reader.fstring()
+        reader.optional_guid()
+    elif type_name in ("ArrayProperty", "EnumProperty", "ByteProperty"):
+        reader.fstring()
+        reader.optional_guid()
+    elif type_name in _PLAIN_PROPS:
+        reader.optional_guid()
+    else:
+        raise RuntimeError(f"Okänd property-typ {type_name!r} i den globala palboxen.")
+    reader.skip(size)
+
+
+def _skim_properties(reader: Any, wanted: frozenset[str]) -> dict[str, Any]:
+    """Läser en property-lista men tolkar bara `wanted`; resten passeras."""
+    props: dict[str, Any] = {}
+    while True:
+        name = reader.fstring()
+        if name == "None":
+            break
+        type_name = reader.fstring()
+        size = reader.u64()
+        if name in wanted:
+            # Bibliotekets egen läsare för fälten vi behöver, så vår skiptabell
+            # aldrig kan glida isär från hur värdena faktiskt tolkas.
+            props[name] = reader.property(type_name, size, f".{name}")
+        else:
+            _skip_property(reader, type_name, size)
+    return props
+
+
+def _read_dps(dps_path: Path) -> list[dict[str, Any]]:
+    """Pals ur den globala palboxen (Dimensional Pal Storage), i appens format.
+
+    Lagret är världsöverskridande och ligger i spelarens egen `<guid>_dps.sav` –
+    alltså varken i Level.sav eller i någon av världens containrar. Pals man lagt
+    undan där syns ingen annanstans: verifierat mot en riktig 1.0-save, noll
+    överlapp i instans-GUID mot Level.sav. Ingen dedup behövs alltså.
+
+    Filen skimmas i stället för att parsas helt, och det är en förutsättning
+    snarare än en finess. Alla 9 600 slottar ligger fullt utskrivna i filen även
+    när de är tomma (`CharacterID` = "None") – i Kens save är 33 använda – vilket
+    ger 73 MB uppackad GVAS. Bibliotekets vanliga läsare klarar filen men bygger
+    ett objektträd för allihop: uppmätt 5,7 s och 554 MB, mot 1,7 s och 147 MB
+    för att bara tolka fälten vi använder. Det här är ett paketerat program som
+    andra kör, så både sekunderna och halvgigat är verkliga.
+
+    Skimningen är verifierad fält för fält mot bibliotekets läsare på samma save:
+    samma 33 pals, samma värden, samma instans-GUID:n.
+    """
+    from palworld_save_tools.archive import FArchiveReader
+    from palworld_save_tools.gvas import GvasHeader
+
+    reader = FArchiveReader(decompress_sav(dps_path), {}, debug=False)
+    GvasHeader.read(reader)
+
+    name = reader.fstring()
+    type_name = reader.fstring()
+    reader.u64()
+    if name != "SaveParameterArray" or type_name != "ArrayProperty":
+        raise RuntimeError(
+            f"{dps_path.name} börjar med {name!r} ({type_name}); "
+            "väntade SaveParameterArray som ArrayProperty."
+        )
+    array_type = reader.fstring()
+    if array_type != "StructProperty":
+        raise RuntimeError(f"{dps_path.name}: oväntad arraytyp {array_type!r}.")
+    reader.optional_guid()
+    slots = reader.u32()
+    reader.fstring()  # prop_name
+    reader.fstring()  # prop_type
+    reader.u64()
+    reader.fstring()  # struct-typ: PalDimensionPalStorageSaveParameter
+    reader.guid()
+    reader.skip(1)
+
+    pals: list[dict[str, Any]] = []
+    for slot in range(slots):
+        param: dict[str, Any] | None = None
+        instance: str | None = None
+        while True:
+            field = reader.fstring()
+            if field == "None":
+                break
+            field_type = reader.fstring()
+            size = reader.u64()
+            if field == "SaveParameter":
+                reader.fstring()
+                reader.guid()
+                reader.optional_guid()
+                param = _skim_properties(reader, _DPS_FIELDS)
+            elif field == "InstanceId":
+                # Structen bär spelar-uid, instans-id och ett felsökningsnamn.
+                inner = reader.property(field_type, size, ".InstanceId")
+                instance = _guid(inner.get("value", {}).get("InstanceId"))
+            else:
+                _skip_property(reader, field_type, size)
+        if param is None:
+            continue
+        # Sloten är postens plats i arrayen, inte `SlotId.SlotIndex`: det fältet
+        # följer med palen från där den låg förut och är inte unikt här (två par
+        # delade index i Kens save). Vi vill ha en stabil sortering.
+        row = _pal_row(param, instance, _GLOBAL_CONTAINER, slot)
+        if row is not None:
+            pals.append(row)
+    return pals
+
+
+# ---------------------------------------------------------------- Pal → appen
+
+
+def _species_code(character_id: str) -> tuple[str, bool]:
+    """Artkod + alfaflagga ur savens CharacterID.
+
+    Prefixen kan ligga i lager, och saven blandar skiftlägen ("Boss_Anubis",
+    "BOSS_…") – därför loopen och jämförelsen i gemener.
+    """
+    code = character_id
+    boss = False
+    changed = True
+    while changed:
+        changed = False
+        for prefix in _SPECIES_PREFIXES:
+            if code.lower().startswith(prefix):
+                boss = boss or prefix == "boss_"
+                code = code[len(prefix):]
+                changed = True
+    return code, boss
+
+
+def _pal_row(
+    param: dict[str, Any], instance: str | None, container: str, slot: int
+) -> dict[str, Any] | None:
+    """En pal i appens format – delad av Level.sav och den globala palboxen.
+
+    Att båda läsarna går genom den här är hela poängen: fälten ska inte kunna
+    glida isär så att en pal betyder olika saker beroende på var den låg.
+
+    None betyder "det här är ingen pal": en tom lagerslot (`CharacterID` saknas
+    eller är "None") eller en spelare.
+    """
+    if _scalar(param.get("IsPlayer"), False):
+        return None
+    character_id = _scalar(param.get("CharacterID"), "") or ""
+    if not character_id or character_id == "None":
+        return None
+
+    code, boss = _species_code(character_id)
+    gender_raw = _scalar(param.get("Gender"), "") or ""
+    gender = "F" if "Female" in gender_raw else "M" if "Male" in gender_raw else "?"
+    stomach = _scalar(param.get("FullStomach"))
+
+    return {
+        "id": str(instance or "")[:8],
+        "code": code,
+        "g": gender,
+        "lv": int(_scalar(param.get("Level"), 1) or 1),
+        "iv": [
+            int(_scalar(param.get("Talent_HP"), 0) or 0),
+            int(_scalar(param.get("Talent_Shot"), 0) or 0),
+            int(_scalar(param.get("Talent_Defense"), 0) or 0),
+        ],
+        "pv": list(param.get("PassiveSkillList", {}).get("value", {}).get("values", [])),
+        "rk": int(_scalar(param.get("Rank"), 1) or 1),
+        "souls": [
+            int(_scalar(param.get("Rank_HP"), 0) or 0),
+            int(_scalar(param.get("Rank_Attack"), 0) or 0),
+            int(_scalar(param.get("Rank_Defence"), 0) or 0),
+            int(_scalar(param.get("Rank_CraftSpeed"), 0) or 0),
+        ],
+        "c": container,
+        "slot": slot,
+        "nick": _scalar(param.get("NickName"), "") or "",
+        "boss": boss,
+        "lucky": bool(_scalar(param.get("IsRarePal"), False)),
+        "fd": round(stomach) if stomach is not None else None,
+        "sn": round(_scalar(param.get("SanityValue"), 100) or 100),
+        "xp": int(_scalar(param.get("Exp"), 0) or 0),
+    }
 
 
 def read_save(level_path: Path) -> dict[str, Any]:
@@ -457,8 +812,13 @@ def read_save(level_path: Path) -> dict[str, Any]:
     )
     characters = world["CharacterSaveParameterMap"]["value"]
     containers = world["CharacterContainerSaveData"]["value"]
-    names = _container_names(containers, level_path.parent)
-    implants = _implants(world["ItemContainerSaveData"]["value"])
+    player = _player_save_data(level_path.parent)
+    player_sav, player_sd = player if player is not None else (None, None)
+    names = _container_names(containers, player_sd)
+    implants, souls = _stash_items(world["ItemContainerSaveData"]["value"])
+    # None = spelarfilen gick inte att läsa. Då utelämnas fältet helt (JSON
+    # utan nyckel → undefined → "vet inte"), precis som implants-disciplinen.
+    progress = _progress(player_sd) if player_sd is not None else None
 
     pals: list[dict[str, Any]] = []
     player_name = ""
@@ -474,66 +834,52 @@ def read_save(level_path: Path) -> dict[str, Any]:
                 player_name = _scalar(param.get("NickName"), "") or ""
             continue
 
-        character_id = _scalar(param.get("CharacterID"), "") or ""
-        if not character_id:
-            continue
-
-        code = character_id
-        boss = False
-        changed = True
-        while changed:
-            changed = False
-            for prefix in _SPECIES_PREFIXES:
-                if code.lower().startswith(prefix):
-                    boss = boss or prefix == "boss_"
-                    code = code[len(prefix):]
-                    changed = True
-
-        gender_raw = _scalar(param.get("Gender"), "") or ""
-        gender = "F" if "Female" in gender_raw else "M" if "Male" in gender_raw else "?"
-
         slot = param.get("SlotId", {}).get("value", {})
         container_guid = _guid(
             slot.get("ContainerId", {}).get("value", {}).get("ID")
         )
-        stomach = _scalar(param.get("FullStomach"))
-
-        pals.append(
-            {
-                "id": str(_guid(entry["key"]["InstanceId"]) or "")[:8],
-                "code": code,
-                "g": gender,
-                "lv": int(_scalar(param.get("Level"), 1) or 1),
-                "iv": [
-                    int(_scalar(param.get("Talent_HP"), 0) or 0),
-                    int(_scalar(param.get("Talent_Shot"), 0) or 0),
-                    int(_scalar(param.get("Talent_Defense"), 0) or 0),
-                ],
-                "pv": list(param.get("PassiveSkillList", {}).get("value", {}).get("values", [])),
-                "rk": int(_scalar(param.get("Rank"), 1) or 1),
-                "souls": [
-                    int(_scalar(param.get("Rank_HP"), 0) or 0),
-                    int(_scalar(param.get("Rank_Attack"), 0) or 0),
-                    int(_scalar(param.get("Rank_Defence"), 0) or 0),
-                    int(_scalar(param.get("Rank_CraftSpeed"), 0) or 0),
-                ],
-                "c": names.get(container_guid or "", "Okänd"),
-                "slot": int(_scalar(slot.get("SlotIndex"), 0) or 0),
-                "nick": _scalar(param.get("NickName"), "") or "",
-                "boss": boss,
-                "lucky": bool(_scalar(param.get("IsRarePal"), False)),
-                "fd": round(stomach) if stomach is not None else None,
-                "sn": round(_scalar(param.get("SanityValue"), 100) or 100),
-                "xp": int(_scalar(param.get("Exp"), 0) or 0),
-            }
+        row = _pal_row(
+            param,
+            _guid(entry["key"]["InstanceId"]),
+            names.get(container_guid or "", "Okänd"),
+            int(_scalar(slot.get("SlotIndex"), 0) or 0),
         )
+        if row is not None:
+            pals.append(row)
 
-    return {
+    # Den globala palboxen ligger bredvid spelarfilen. Att den inte går att läsa
+    # får inte fälla inläsningen – världens box är huvudsaken – men det får
+    # heller inte tigas ihjäl: en global box som tyst blev tom ser precis ut som
+    # en global box som *är* tom, och skillnaden är avelsstammen man lagt undan.
+    # Därför rapporteras utfallet i stället för att antas.
+    global_box: dict[str, Any] = {"found": False, "pals": 0}
+    if player_sav is not None:
+        dps_path = player_sav.with_name(f"{player_sav.stem}_dps.sav")
+        if dps_path.is_file():
+            global_box["found"] = True
+            try:
+                stored = _read_dps(dps_path)
+            except Exception as error:
+                global_box["error"] = str(error)
+            else:
+                pals.extend(stored)
+                global_box["pals"] = len(stored)
+
+    seen_containers = set(names.values())
+    if global_box["pals"]:
+        seen_containers.add(_GLOBAL_CONTAINER)
+
+    result = {
         "player": player_name,
         "pals": pals,
-        "containers": sorted(set(names.values())),
+        "containers": sorted(seen_containers),
         "implants": implants,
+        "souls": souls,
+        "globalBox": global_box,
     }
+    if progress is not None:
+        result["progress"] = progress
+    return result
 
 
 # ---------------------------------------------------------------- CLI

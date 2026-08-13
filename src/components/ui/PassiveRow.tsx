@@ -24,6 +24,10 @@ export interface PassiveRowProps {
  * (Brave, Nimble, Serious … är silvergrå i Pal-menyn). Färgen är hela poängen
  * med banners – ser en tier 1 ut som en tier 3 går den inte att matcha mot
  * spelet, och en pal ser bättre ut än den är.
+ *
+ * Guld (tier 2–3) är därför den klasslösa grundformen `.prow` – och den ska
+ * **inte** ha en egen klass för att kunna animeras: i spelet rör sig bara
+ * legend och World Tree (Kens rättning aug 2026). Se `pshine` i globals.css.
  */
 export function passiveVisual(tier: number) {
   const neg = tier < 0;

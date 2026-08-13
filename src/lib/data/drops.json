@@ -1,0 +1,2784 @@
+[
+ {
+  "item": "Leather",
+  "pals": [
+   {
+    "n": "Astralym",
+    "q": null
+   },
+   {
+    "n": "Bastigor",
+    "q": "x2–3"
+   },
+   {
+    "n": "Braloha",
+    "q": null
+   },
+   {
+    "n": "Celesdir Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Chillet",
+    "q": "x2–3"
+   },
+   {
+    "n": "Chillet Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Direhowl",
+    "q": "x1–2"
+   },
+   {
+    "n": "Dupin",
+    "q": "x2–3"
+   },
+   {
+    "n": "Eidrolon",
+    "q": "x4–5"
+   },
+   {
+    "n": "Eidrolon Ignis",
+    "q": "x4–5"
+   },
+   {
+    "n": "Eikthyrdeer",
+    "q": "x2–3"
+   },
+   {
+    "n": "Eikthyrdeer Terra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Elgrove",
+    "q": "x2–3"
+   },
+   {
+    "n": "Elgrove Cryst",
+    "q": "x2–3"
+   },
+   {
+    "n": "Fenglope",
+    "q": "x3"
+   },
+   {
+    "n": "Fenglope Lux",
+    "q": "x3"
+   },
+   {
+    "n": "Finsider",
+    "q": null
+   },
+   {
+    "n": "Finsider Ignis",
+    "q": null
+   },
+   {
+    "n": "Flaracle",
+    "q": "x3–4"
+   },
+   {
+    "n": "Foxcicle",
+    "q": null
+   },
+   {
+    "n": "Foxparks",
+    "q": null
+   },
+   {
+    "n": "Foxparks Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Fuack",
+    "q": null
+   },
+   {
+    "n": "Fuack Ignis",
+    "q": null
+   },
+   {
+    "n": "Fuddler",
+    "q": "x1–2"
+   },
+   {
+    "n": "Galeclaw",
+    "q": null
+   },
+   {
+    "n": "Gildane",
+    "q": "x2–3"
+   },
+   {
+    "n": "Gildra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Gorirat",
+    "q": "x1–2"
+   },
+   {
+    "n": "Grizzbolt",
+    "q": "x2–3"
+   },
+   {
+    "n": "Herbil",
+    "q": null
+   },
+   {
+    "n": "Incineram",
+    "q": null
+   },
+   {
+    "n": "Incineram Noct",
+    "q": null
+   },
+   {
+    "n": "Katress",
+    "q": "x1–2"
+   },
+   {
+    "n": "Kikit",
+    "q": "x1–2"
+   },
+   {
+    "n": "Kitsun",
+    "q": "x2–3"
+   },
+   {
+    "n": "Kitsun Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Lapiron",
+    "q": "x1–2"
+   },
+   {
+    "n": "Lapure",
+    "q": "x2–3"
+   },
+   {
+    "n": "Leafan",
+    "q": "x2–3"
+   },
+   {
+    "n": "Loomen",
+    "q": "x2–3"
+   },
+   {
+    "n": "Majex",
+    "q": "x2–3"
+   },
+   {
+    "n": "Mammorest",
+    "q": "x5–10"
+   },
+   {
+    "n": "Mammorest Cryst",
+    "q": "x5–10"
+   },
+   {
+    "n": "Mau",
+    "q": null
+   },
+   {
+    "n": "Melpaca",
+    "q": null
+   },
+   {
+    "n": "Moldron",
+    "q": "x2–3"
+   },
+   {
+    "n": "Moldron Cryst",
+    "q": "x2–3"
+   },
+   {
+    "n": "Mossanda",
+    "q": "x2–3"
+   },
+   {
+    "n": "Mossanda Lux",
+    "q": "x2–3"
+   },
+   {
+    "n": "Nitewing",
+    "q": "x1–3"
+   },
+   {
+    "n": "Nox",
+    "q": null
+   },
+   {
+    "n": "Nyafia",
+    "q": null
+   },
+   {
+    "n": "Polapup Terra",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pyrin",
+    "q": "x2–3"
+   },
+   {
+    "n": "Pyrin Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Reindrix",
+    "q": null
+   },
+   {
+    "n": "Renjishi",
+    "q": "x2–3"
+   },
+   {
+    "n": "Ribbuny",
+    "q": null
+   },
+   {
+    "n": "Ribbuny Botan",
+    "q": null
+   },
+   {
+    "n": "Rooby",
+    "q": null
+   },
+   {
+    "n": "Roujay",
+    "q": "x3–4"
+   },
+   {
+    "n": "Rushoar",
+    "q": null
+   },
+   {
+    "n": "Shaolong",
+    "q": null
+   },
+   {
+    "n": "Snugloo",
+    "q": "x1–2"
+   },
+   {
+    "n": "Starryon",
+    "q": "x2–3"
+   },
+   {
+    "n": "Starryon Primo",
+    "q": "x2–3"
+   },
+   {
+    "n": "Tombat",
+    "q": "x1–2"
+   },
+   {
+    "n": "Univolt",
+    "q": "x2"
+   },
+   {
+    "n": "Univolt Cryst",
+    "q": "x2"
+   },
+   {
+    "n": "Valentail",
+    "q": "x1–2"
+   },
+   {
+    "n": "Verdash",
+    "q": "x1–2"
+   },
+   {
+    "n": "Vixy",
+    "q": null
+   },
+   {
+    "n": "Wispaw",
+    "q": "x1–2"
+   },
+   {
+    "n": "Yakumo",
+    "q": "x1–2"
+   },
+   {
+    "n": "Celesdir",
+    "q": "x2–3",
+    "u": true
+   },
+   {
+    "n": "Sekhmet",
+    "q": "x2–3",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Flame Organ",
+  "pals": [
+   {
+    "n": "Arsox",
+    "q": "x2–3"
+   },
+   {
+    "n": "Blazamut",
+    "q": "x10"
+   },
+   {
+    "n": "Blazehowl",
+    "q": "x3–5"
+   },
+   {
+    "n": "Blazehowl Noct",
+    "q": "x2–4"
+   },
+   {
+    "n": "Bushi Noct",
+    "q": "x4–8"
+   },
+   {
+    "n": "Chillet Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Dupin",
+    "q": "x2"
+   },
+   {
+    "n": "Eidrolon Ignis",
+    "q": "x4–5"
+   },
+   {
+    "n": "Faleris",
+    "q": "x1–4"
+   },
+   {
+    "n": "Finsider Ignis",
+    "q": "x1–3"
+   },
+   {
+    "n": "Flambelle",
+    "q": "x2–3"
+   },
+   {
+    "n": "Flaracle",
+    "q": "x3–4"
+   },
+   {
+    "n": "Foxparks",
+    "q": "x1–2"
+   },
+   {
+    "n": "Fuack Ignis",
+    "q": "x1–2 @50%"
+   },
+   {
+    "n": "Ghangler Ignis",
+    "q": "x1–2 @50%"
+   },
+   {
+    "n": "Gobfin Ignis",
+    "q": null
+   },
+   {
+    "n": "Jormuntide Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Katress Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Kelpsea Ignis",
+    "q": null
+   },
+   {
+    "n": "Kitsun",
+    "q": "x2–3"
+   },
+   {
+    "n": "Kitsun Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Knocklem Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Leezpunk Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Majex",
+    "q": "x2"
+   },
+   {
+    "n": "Moldron",
+    "q": "x4–5"
+   },
+   {
+    "n": "Petallia Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pyrin",
+    "q": "x4–5"
+   },
+   {
+    "n": "Pyrin Noct",
+    "q": "x4–5"
+   },
+   {
+    "n": "Ragnahawk",
+    "q": "x5–7"
+   },
+   {
+    "n": "Renjishi",
+    "q": "x2–3"
+   },
+   {
+    "n": "Reptyro",
+    "q": "x5–7"
+   },
+   {
+    "n": "Rooby",
+    "q": "x2–3"
+   },
+   {
+    "n": "Skutlass Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Suzaku",
+    "q": "x5–10"
+   },
+   {
+    "n": "Tanzee Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Whalaska Ignis",
+    "q": "x1–3"
+   },
+   {
+    "n": "Wixen",
+    "q": "x1–2"
+   },
+   {
+    "n": "Boltmane",
+    "q": "x2–3",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Aquatic Pal Fluids",
+  "pals": [
+   {
+    "n": "Amione",
+    "q": "x2"
+   },
+   {
+    "n": "Azurobe",
+    "q": "x2–4"
+   },
+   {
+    "n": "Azurobe Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Celaray",
+    "q": "x1–2"
+   },
+   {
+    "n": "Celaray Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Croajiro",
+    "q": "x1–2"
+   },
+   {
+    "n": "Croajiro Noct",
+    "q": "x1–2"
+   },
+   {
+    "n": "Faleris Aqua",
+    "q": "x2–4"
+   },
+   {
+    "n": "Finsider",
+    "q": "x1–2"
+   },
+   {
+    "n": "Fuack",
+    "q": null
+   },
+   {
+    "n": "Fuack Ignis",
+    "q": null
+   },
+   {
+    "n": "Gloopie Primo",
+    "q": "x1–2"
+   },
+   {
+    "n": "Gobfin",
+    "q": null
+   },
+   {
+    "n": "Jormuntide",
+    "q": "x2–4"
+   },
+   {
+    "n": "Kelpsea",
+    "q": null
+   },
+   {
+    "n": "Killamari",
+    "q": null
+   },
+   {
+    "n": "Killamari Primo",
+    "q": "x1–2"
+   },
+   {
+    "n": "Munchill",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pengullet",
+    "q": null
+   },
+   {
+    "n": "Pengullet Lux",
+    "q": null
+   },
+   {
+    "n": "Polapup Terra",
+    "q": "x1–2"
+   },
+   {
+    "n": "Skutlass",
+    "q": "x1–2"
+   },
+   {
+    "n": "Snock",
+    "q": "x1–2"
+   },
+   {
+    "n": "Solmora",
+    "q": "x2"
+   },
+   {
+    "n": "Surfent",
+    "q": "x1–2"
+   },
+   {
+    "n": "Surfent Terra",
+    "q": "x1–2"
+   },
+   {
+    "n": "Suzaku Aqua",
+    "q": "x5"
+   },
+   {
+    "n": "Teafant",
+    "q": null
+   },
+   {
+    "n": "Turtacle",
+    "q": "x1–2"
+   },
+   {
+    "n": "Turtacle Terra",
+    "q": "x1–2"
+   },
+   {
+    "n": "Venusa",
+    "q": "x2–3"
+   },
+   {
+    "n": "Whalaska Ignis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Gloopie",
+    "q": "x1–2",
+    "u": true
+   },
+   {
+    "n": "Jelliette",
+    "q": "x1–2",
+    "u": true
+   },
+   {
+    "n": "Jellroy",
+    "q": "x1–2",
+    "u": true
+   },
+   {
+    "n": "Slowatt",
+    "q": null,
+    "u": true
+   },
+   {
+    "n": "Whalaska",
+    "q": "x1–2",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Ice Organ",
+  "pals": [
+   {
+    "n": "Azurobe Cryst",
+    "q": "x1–3"
+   },
+   {
+    "n": "Bastigor",
+    "q": "x2–5"
+   },
+   {
+    "n": "Beakon Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Chillet",
+    "q": "x2–3"
+   },
+   {
+    "n": "Cryolinx",
+    "q": "x1–3"
+   },
+   {
+    "n": "Elgrove Cryst",
+    "q": "x2–3"
+   },
+   {
+    "n": "Foxcicle",
+    "q": "x2–3"
+   },
+   {
+    "n": "Foxparks Cryst",
+    "q": "x1–3"
+   },
+   {
+    "n": "Frostallion",
+    "q": "x10"
+   },
+   {
+    "n": "Frostplume",
+    "q": "x1–2"
+   },
+   {
+    "n": "Hangyu Cryst",
+    "q": null
+   },
+   {
+    "n": "Icelyn",
+    "q": "x1–2"
+   },
+   {
+    "n": "Jolthog Cryst",
+    "q": null
+   },
+   {
+    "n": "Kingpaca Cryst",
+    "q": "x3–6"
+   },
+   {
+    "n": "Mau Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Moldron Cryst",
+    "q": "x4–5"
+   },
+   {
+    "n": "Muffly",
+    "q": null
+   },
+   {
+    "n": "Munchill",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pengullet",
+    "q": "x1–2"
+   },
+   {
+    "n": "Penking",
+    "q": "x1–3"
+   },
+   {
+    "n": "Pierdon Cryst",
+    "q": "x4–5"
+   },
+   {
+    "n": "Polapup",
+    "q": "x1–3"
+   },
+   {
+    "n": "Rayhound Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Reindrix",
+    "q": "x2–3"
+   },
+   {
+    "n": "Reptyro Cryst",
+    "q": "x3–4"
+   },
+   {
+    "n": "Sibelyx",
+    "q": "x2–3"
+   },
+   {
+    "n": "Smokie Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Univolt Cryst",
+    "q": null
+   },
+   {
+    "n": "Vanwyrm Cryst",
+    "q": "x2–3"
+   },
+   {
+    "n": "Wumpo",
+    "q": "x2–3"
+   },
+   {
+    "n": "Whalaska",
+    "q": "x1–3",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "High Quality Pal Oil",
+  "pals": [
+   {
+    "n": "Astralym",
+    "q": null
+   },
+   {
+    "n": "Digtoise",
+    "q": "x2–3 @0%"
+   },
+   {
+    "n": "Dumud",
+    "q": null
+   },
+   {
+    "n": "Dumud Gild",
+    "q": null
+   },
+   {
+    "n": "Eidrolon",
+    "q": "x5–6"
+   },
+   {
+    "n": "Eidrolon Ignis",
+    "q": "x5–6"
+   },
+   {
+    "n": "Elphidran",
+    "q": "x2–3"
+   },
+   {
+    "n": "Elphidran Aqua",
+    "q": "x2–3"
+   },
+   {
+    "n": "Flambelle",
+    "q": null
+   },
+   {
+    "n": "Grintale",
+    "q": "x1–3"
+   },
+   {
+    "n": "Jormuntide Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Loomen",
+    "q": "x2–3"
+   },
+   {
+    "n": "Mammorest",
+    "q": "x5–10"
+   },
+   {
+    "n": "Mammorest Cryst",
+    "q": "x5–10"
+   },
+   {
+    "n": "Ophydia",
+    "q": "x4–5"
+   },
+   {
+    "n": "Quivern",
+    "q": "x3"
+   },
+   {
+    "n": "Quivern Botan",
+    "q": "x3"
+   },
+   {
+    "n": "Relaxaurus",
+    "q": "x1–4"
+   },
+   {
+    "n": "Relaxaurus Lux",
+    "q": "x1–4"
+   },
+   {
+    "n": "Sibelyx Primo",
+    "q": "x2–3"
+   },
+   {
+    "n": "Snock Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Solmora",
+    "q": "x2–3"
+   },
+   {
+    "n": "Solmora Lux",
+    "q": "x2–3"
+   },
+   {
+    "n": "Woolipop",
+    "q": null
+   },
+   {
+    "n": "Xenogard",
+    "q": "x3–5"
+   }
+  ]
+ },
+ {
+  "item": "Bone",
+  "pals": [
+   {
+    "n": "Anubis",
+    "q": "x3–5"
+   },
+   {
+    "n": "Bulldosu",
+    "q": "x2–3"
+   },
+   {
+    "n": "Bushi",
+    "q": "x1–2"
+   },
+   {
+    "n": "Cawgnito",
+    "q": "x2–4"
+   },
+   {
+    "n": "Dazemu",
+    "q": null
+   },
+   {
+    "n": "Dogen",
+    "q": null
+   },
+   {
+    "n": "Ghangler",
+    "q": "x2–3"
+   },
+   {
+    "n": "Ghangler Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Gorirat",
+    "q": null
+   },
+   {
+    "n": "Gorirat Terra",
+    "q": null
+   },
+   {
+    "n": "Kikit",
+    "q": "x1–2 @60%"
+   },
+   {
+    "n": "Loupmoon",
+    "q": null
+   },
+   {
+    "n": "Loupmoon Cryst",
+    "q": null
+   },
+   {
+    "n": "Maraith",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pupperai",
+    "q": null
+   },
+   {
+    "n": "Rushoar",
+    "q": null
+   },
+   {
+    "n": "Sootseer",
+    "q": "x1–2"
+   },
+   {
+    "n": "Turtacle",
+    "q": "x2–3"
+   },
+   {
+    "n": "Turtacle Terra",
+    "q": null
+   },
+   {
+    "n": "Vanwyrm",
+    "q": "x1–2"
+   },
+   {
+    "n": "Vanwyrm Cryst",
+    "q": "x1–2"
+   },
+   {
+    "n": "Verdash",
+    "q": null
+   },
+   {
+    "n": "Vixy",
+    "q": null
+   },
+   {
+    "n": "Dragostrophe",
+    "q": "x3–5",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Electric Organ",
+  "pals": [
+   {
+    "n": "Beakon",
+    "q": "x1–2"
+   },
+   {
+    "n": "Dazzi",
+    "q": null
+   },
+   {
+    "n": "Dazzi Noct",
+    "q": null
+   },
+   {
+    "n": "Dynamoff",
+    "q": "x2"
+   },
+   {
+    "n": "Fenglope Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Grizzbolt",
+    "q": "x2–4"
+   },
+   {
+    "n": "Helzephyr Lux",
+    "q": "x1–3"
+   },
+   {
+    "n": "Jolthog",
+    "q": null
+   },
+   {
+    "n": "Mossanda Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Orserk",
+    "q": "x1–2"
+   },
+   {
+    "n": "Pengullet Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Penking Lux",
+    "q": "x1–3"
+   },
+   {
+    "n": "Prixter Lux",
+    "q": "x4–5"
+   },
+   {
+    "n": "Puffolt",
+    "q": null
+   },
+   {
+    "n": "Rayhound",
+    "q": "x1–2"
+   },
+   {
+    "n": "Relaxaurus Lux",
+    "q": "x2–3"
+   },
+   {
+    "n": "Snock",
+    "q": "x1–2"
+   },
+   {
+    "n": "Snock Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Solmora Lux",
+    "q": "x2"
+   },
+   {
+    "n": "Sparkit",
+    "q": "x1–2"
+   },
+   {
+    "n": "Univolt",
+    "q": null
+   },
+   {
+    "n": "Azurmane",
+    "q": "x2–3",
+    "u": true
+   },
+   {
+    "n": "Slowatt",
+    "q": "x1–2",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Horn",
+  "pals": [
+   {
+    "n": "Arsox",
+    "q": null
+   },
+   {
+    "n": "Bakemi",
+    "q": "x2"
+   },
+   {
+    "n": "Caprity",
+    "q": "x1–2"
+   },
+   {
+    "n": "Caprity Noct",
+    "q": "x1–2"
+   },
+   {
+    "n": "Celesdir Noct",
+    "q": "x2"
+   },
+   {
+    "n": "Eikthyrdeer",
+    "q": "x2"
+   },
+   {
+    "n": "Eikthyrdeer Terra",
+    "q": "x2"
+   },
+   {
+    "n": "Elgrove",
+    "q": "x2–3"
+   },
+   {
+    "n": "Elgrove Cryst",
+    "q": "x2–3"
+   },
+   {
+    "n": "Fenglope",
+    "q": "x2"
+   },
+   {
+    "n": "Fenglope Lux",
+    "q": "x2"
+   },
+   {
+    "n": "Incineram",
+    "q": null
+   },
+   {
+    "n": "Incineram Noct",
+    "q": null
+   },
+   {
+    "n": "Reindrix",
+    "q": "x2"
+   },
+   {
+    "n": "Shaolong",
+    "q": null
+   },
+   {
+    "n": "Univolt",
+    "q": "@50%"
+   },
+   {
+    "n": "Univolt Cryst",
+    "q": "@50%"
+   },
+   {
+    "n": "Celesdir",
+    "q": "x2",
+    "u": true
+   },
+   {
+    "n": "Hoodle",
+    "q": "x1–2",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Large Pal Soul",
+  "pals": [
+   {
+    "n": "Anubis",
+    "q": null
+   },
+   {
+    "n": "Astegon",
+    "q": null
+   },
+   {
+    "n": "Dualith",
+    "q": null
+   },
+   {
+    "n": "Dualith Noct",
+    "q": null
+   },
+   {
+    "n": "Frostallion Noct",
+    "q": "x1–2"
+   },
+   {
+    "n": "Jetragon",
+    "q": "@1%"
+   },
+   {
+    "n": "Necromus",
+    "q": null
+   },
+   {
+    "n": "Neptilius",
+    "q": "@1%"
+   },
+   {
+    "n": "Ophydia",
+    "q": "x1–2"
+   },
+   {
+    "n": "Paladius",
+    "q": null
+   },
+   {
+    "n": "Shadowbeak",
+    "q": null
+   },
+   {
+    "n": "Shaolong",
+    "q": null
+   },
+   {
+    "n": "Tetroise",
+    "q": null
+   },
+   {
+    "n": "Tetroise Primo",
+    "q": null
+   },
+   {
+    "n": "Whalaska Ignis",
+    "q": "@1%"
+   },
+   {
+    "n": "Sekhmet",
+    "q": "x1–2",
+    "u": true
+   },
+   {
+    "n": "Whalaska",
+    "q": "@1%",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Venom Gland",
+  "pals": [
+   {
+    "n": "Caprity Noct",
+    "q": null
+   },
+   {
+    "n": "Carnibora",
+    "q": "x2–3"
+   },
+   {
+    "n": "Cawgnito",
+    "q": "x2"
+   },
+   {
+    "n": "Croajiro Noct",
+    "q": "x2–4"
+   },
+   {
+    "n": "Daedream",
+    "q": null
+   },
+   {
+    "n": "Dandilord",
+    "q": "x4–5"
+   },
+   {
+    "n": "Depresso",
+    "q": "x2–3"
+   },
+   {
+    "n": "Ghangler",
+    "q": "x2–4"
+   },
+   {
+    "n": "Helzephyr",
+    "q": "x1–3"
+   },
+   {
+    "n": "Killamari",
+    "q": "x2–4"
+   },
+   {
+    "n": "Loomen",
+    "q": "x2"
+   },
+   {
+    "n": "Menasting",
+    "q": "x5–10"
+   },
+   {
+    "n": "Needoll Noct",
+    "q": null
+   },
+   {
+    "n": "Prixter",
+    "q": "x4–5"
+   },
+   {
+    "n": "Shroomer Noct",
+    "q": "x4–8"
+   },
+   {
+    "n": "Venusa",
+    "q": "x2–3"
+   },
+   {
+    "n": "Tarantriss",
+    "q": "x2–5",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Beautiful Flower",
+  "pals": [
+   {
+    "n": "Bristla",
+    "q": "@50%"
+   },
+   {
+    "n": "Dualith",
+    "q": "x3–5"
+   },
+   {
+    "n": "Lullu",
+    "q": "x2–3"
+   },
+   {
+    "n": "Lyleen",
+    "q": "x1–2"
+   },
+   {
+    "n": "Lyleen Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Petallia",
+    "q": "x2–3"
+   },
+   {
+    "n": "Petallia Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Prunelia",
+    "q": "x2–3"
+   },
+   {
+    "n": "Quivern Botan",
+    "q": "x2–3"
+   },
+   {
+    "n": "Ribbuny",
+    "q": "@5%"
+   },
+   {
+    "n": "Tropicaw",
+    "q": "x1–2"
+   },
+   {
+    "n": "Wumpo",
+    "q": "@20%"
+   },
+   {
+    "n": "Wumpo Botan",
+    "q": "@20%"
+   }
+  ]
+ },
+ {
+  "item": "Small Pal Soul",
+  "pals": [
+   {
+    "n": "Bakemi",
+    "q": null
+   },
+   {
+    "n": "Cawgnito",
+    "q": "@1%"
+   },
+   {
+    "n": "Daedream",
+    "q": "@1%"
+   },
+   {
+    "n": "Felbat",
+    "q": "@3%"
+   },
+   {
+    "n": "Finsider",
+    "q": "@1%"
+   },
+   {
+    "n": "Finsider Ignis",
+    "q": "@1%"
+   },
+   {
+    "n": "Maraith",
+    "q": "@15%"
+   },
+   {
+    "n": "Nitemary",
+    "q": null
+   },
+   {
+    "n": "Nox",
+    "q": "@40%"
+   },
+   {
+    "n": "Tombat",
+    "q": "@1%"
+   },
+   {
+    "n": "Wispaw",
+    "q": "x2"
+   },
+   {
+    "n": "Wistella",
+    "q": "x3–5"
+   },
+   {
+    "n": "Hoodle",
+    "q": "x1–2",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Medium Pal Soul",
+  "pals": [
+   {
+    "n": "Blazamut Ryu",
+    "q": "@5%"
+   },
+   {
+    "n": "Bushi Noct",
+    "q": "x1–2 @40%"
+   },
+   {
+    "n": "Helzephyr",
+    "q": "@3%"
+   },
+   {
+    "n": "Helzephyr Lux",
+    "q": "@3%"
+   },
+   {
+    "n": "Menasting",
+    "q": "x1–2"
+   },
+   {
+    "n": "Menasting Terra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Nitemary Botan",
+    "q": null
+   },
+   {
+    "n": "Smokie Cryst",
+    "q": null
+   },
+   {
+    "n": "Sootseer",
+    "q": "x1–2"
+   },
+   {
+    "n": "Wixen Noct",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Wool",
+  "pals": [
+   {
+    "n": "Cremis",
+    "q": "x1–2"
+   },
+   {
+    "n": "Kingpaca",
+    "q": "x5"
+   },
+   {
+    "n": "Kingpaca Cryst",
+    "q": "x5"
+   },
+   {
+    "n": "Lamball",
+    "q": "x1–3"
+   },
+   {
+    "n": "Melpaca",
+    "q": "x2–5"
+   },
+   {
+    "n": "Snugloo",
+    "q": "x2"
+   },
+   {
+    "n": "Swee",
+    "q": null
+   },
+   {
+    "n": "Sweepa",
+    "q": "x3–5"
+   },
+   {
+    "n": "Woolipop Terra",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Fiber",
+  "pals": [
+   {
+    "n": "Bulldosu",
+    "q": "x1–2"
+   },
+   {
+    "n": "Carnibora",
+    "q": "x2–3"
+   },
+   {
+    "n": "Hangyu",
+    "q": "x5–10"
+   },
+   {
+    "n": "Hangyu Cryst",
+    "q": "x5–10"
+   },
+   {
+    "n": "Hoocrates",
+    "q": "x5–10"
+   },
+   {
+    "n": "Needoll",
+    "q": "x1–2"
+   },
+   {
+    "n": "Needoll Noct",
+    "q": "x1–2"
+   },
+   {
+    "n": "Tropicaw",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Cloth",
+  "pals": [
+   {
+    "n": "Azurobe",
+    "q": "x1–3"
+   },
+   {
+    "n": "Azurobe Cryst",
+    "q": "x1–3"
+   },
+   {
+    "n": "Bakemi",
+    "q": "x1–2"
+   },
+   {
+    "n": "Croajiro",
+    "q": "x1–2 @25%"
+   },
+   {
+    "n": "Croajiro Noct",
+    "q": "x1–2 @25%"
+   },
+   {
+    "n": "Felbat",
+    "q": "x1–2"
+   },
+   {
+    "n": "Gildra",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Dark Fragment",
+  "pals": [
+   {
+    "n": "Celesdir Noct",
+    "q": "x2–3"
+   },
+   {
+    "n": "Dazzi Noct",
+    "q": null
+   },
+   {
+    "n": "Kitsun Noct",
+    "q": "x1–2"
+   },
+   {
+    "n": "Solenne",
+    "q": "x2–3"
+   },
+   {
+    "n": "Starryon",
+    "q": "x1–2"
+   },
+   {
+    "n": "Omascul",
+    "q": "x1–2",
+    "u": true
+   },
+   {
+    "n": "Splatterina",
+    "q": "x2–3",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Ore",
+  "pals": [
+   {
+    "n": "Cryolinx Terra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Digtoise",
+    "q": "x2–3 @0%"
+   },
+   {
+    "n": "Gorirat Terra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Knocklem",
+    "q": "x2–3"
+   },
+   {
+    "n": "Knocklem Ignis",
+    "q": "x2–3"
+   },
+   {
+    "n": "Surfent Terra",
+    "q": "x2–3"
+   },
+   {
+    "n": "Pierdon",
+    "q": "x4–5",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Red Berries",
+  "pals": [
+   {
+    "n": "Braloha",
+    "q": "x1–2 @60%"
+   },
+   {
+    "n": "Caprity",
+    "q": "x2–4"
+   },
+   {
+    "n": "Caprity Noct",
+    "q": "x2–4"
+   },
+   {
+    "n": "Cattiva",
+    "q": null
+   },
+   {
+    "n": "Lullu",
+    "q": "x1–2 @60%"
+   },
+   {
+    "n": "Quivern Botan",
+    "q": "x1–2 @60%"
+   },
+   {
+    "n": "Shroomer",
+    "q": "x1–2 @60%"
+   }
+  ]
+ },
+ {
+  "item": "Carrot Seeds",
+  "pals": [
+   {
+    "n": "Dinossom Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Mossanda",
+    "q": "x1–2"
+   },
+   {
+    "n": "Palumba",
+    "q": "x1–2"
+   },
+   {
+    "n": "Prunelia",
+    "q": "@50%"
+   },
+   {
+    "n": "Ribbuny Botan",
+    "q": null
+   },
+   {
+    "n": "Wumpo Botan",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Diamond",
+  "pals": [
+   {
+    "n": "Frostallion",
+    "q": null
+   },
+   {
+    "n": "Frostallion Noct",
+    "q": null
+   },
+   {
+    "n": "Jetragon",
+    "q": "@30%"
+   },
+   {
+    "n": "Necromus",
+    "q": null
+   },
+   {
+    "n": "Neptilius",
+    "q": "@30%"
+   },
+   {
+    "n": "Paladius",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Tomato Seeds",
+  "pals": [
+   {
+    "n": "Braloha",
+    "q": "@50%"
+   },
+   {
+    "n": "Bristla",
+    "q": "x1–2"
+   },
+   {
+    "n": "Cinnamoth",
+    "q": "@75%"
+   },
+   {
+    "n": "Dinossom",
+    "q": "x1–2"
+   },
+   {
+    "n": "Dinossom Lux",
+    "q": "x1–2"
+   },
+   {
+    "n": "Vaelet",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Advanced Technical Manual",
+  "pals": [
+   {
+    "n": "Hoocrates",
+    "q": "@1%"
+   },
+   {
+    "n": "Katress",
+    "q": "@1%"
+   },
+   {
+    "n": "Katress Ignis",
+    "q": "@1%"
+   },
+   {
+    "n": "Wixen",
+    "q": "@1%"
+   },
+   {
+    "n": "Wixen Noct",
+    "q": "@1%"
+   }
+  ]
+ },
+ {
+  "item": "Giant Pal Soul",
+  "pals": [
+   {
+    "n": "Aegidron",
+    "q": null
+   },
+   {
+    "n": "Dandilord",
+    "q": null
+   },
+   {
+    "n": "Digtoise",
+    "q": "x2–3"
+   },
+   {
+    "n": "Silvance",
+    "q": null
+   },
+   {
+    "n": "Panthalus",
+    "q": null,
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Gold Coin",
+  "pals": [
+   {
+    "n": "Direhowl",
+    "q": "x10–20 @3%"
+   },
+   {
+    "n": "Dumud Gild",
+    "q": "x100–200 @50%"
+   },
+   {
+    "n": "Mau",
+    "q": "x100–200 @50%"
+   },
+   {
+    "n": "Mimog",
+    "q": "x1000–2000"
+   },
+   {
+    "n": "Vanwyrm",
+    "q": "x10–40 @10%"
+   }
+  ]
+ },
+ {
+  "item": "Mushroom",
+  "pals": [
+   {
+    "n": "Lovander",
+    "q": "x2–4"
+   },
+   {
+    "n": "Mycora",
+    "q": "x2–3"
+   },
+   {
+    "n": "Shroomer",
+    "q": "x1–2"
+   },
+   {
+    "n": "Tanzee",
+    "q": null
+   },
+   {
+    "n": "Tanzee Ignis",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Ruby",
+  "pals": [
+   {
+    "n": "Direhowl",
+    "q": "@3%"
+   },
+   {
+    "n": "Relaxaurus",
+    "q": "@5%"
+   },
+   {
+    "n": "Roujay",
+    "q": "x1–2"
+   },
+   {
+    "n": "Tetroise",
+    "q": "x1–2"
+   },
+   {
+    "n": "Vanwyrm",
+    "q": "x1–2 @1%"
+   }
+  ]
+ },
+ {
+  "item": "Sapphire",
+  "pals": [
+   {
+    "n": "Mau Cryst",
+    "q": "@1%"
+   },
+   {
+    "n": "Menasting Terra",
+    "q": null
+   },
+   {
+    "n": "Relaxaurus Lux",
+    "q": "@5%"
+   },
+   {
+    "n": "Selyne",
+    "q": "x2–3"
+   },
+   {
+    "n": "Vanwyrm Cryst",
+    "q": "@2%"
+   }
+  ]
+ },
+ {
+  "item": "Hardwood",
+  "pals": [
+   {
+    "n": "Mossanda",
+    "q": "x1–3"
+   },
+   {
+    "n": "Mossanda Lux",
+    "q": "x1–3"
+   },
+   {
+    "n": "Palumba",
+    "q": "x2–4"
+   },
+   {
+    "n": "Wumpo Botan",
+    "q": "x2–5"
+   }
+  ]
+ },
+ {
+  "item": "Honey",
+  "pals": [
+   {
+    "n": "Beegarde",
+    "q": "x1–2"
+   },
+   {
+    "n": "Cinnamoth",
+    "q": null
+   },
+   {
+    "n": "Elizabee",
+    "q": "x5"
+   },
+   {
+    "n": "Warsect",
+    "q": "x3–4"
+   }
+  ]
+ },
+ {
+  "item": "Innovative Technical Manual",
+  "pals": [
+   {
+    "n": "Anubis",
+    "q": "@5%"
+   },
+   {
+    "n": "Lyleen",
+    "q": "@10%"
+   },
+   {
+    "n": "Lyleen Noct",
+    "q": "@10%"
+   },
+   {
+    "n": "Shadowbeak",
+    "q": "@10%"
+   }
+  ]
+ },
+ {
+  "item": "Lettuce Seeds",
+  "pals": [
+   {
+    "n": "Braloha",
+    "q": "x1–2 @50%"
+   },
+   {
+    "n": "Cinnamoth",
+    "q": "@75%"
+   },
+   {
+    "n": "Dinossom",
+    "q": "x1–2"
+   },
+   {
+    "n": "Flopie",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Low Grade Medical Supplies",
+  "pals": [
+   {
+    "n": "Flopie",
+    "q": "@20%"
+   },
+   {
+    "n": "Lifmunk",
+    "q": "@20%"
+   },
+   {
+    "n": "Prunelia",
+    "q": "x1–3"
+   },
+   {
+    "n": "Vaelet",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Onion Seeds",
+  "pals": [
+   {
+    "n": "Broncherry",
+    "q": "x1–2"
+   },
+   {
+    "n": "Broncherry Aqua",
+    "q": "x1–2"
+   },
+   {
+    "n": "Palumba",
+    "q": "x1–2"
+   },
+   {
+    "n": "Vaelet",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Wheat Seeds",
+  "pals": [
+   {
+    "n": "Hangyu",
+    "q": null
+   },
+   {
+    "n": "Herbil",
+    "q": null
+   },
+   {
+    "n": "Lifmunk",
+    "q": null
+   },
+   {
+    "n": "Souffline",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Berry Seeds",
+  "pals": [
+   {
+    "n": "Clovee",
+    "q": "x1–2"
+   },
+   {
+    "n": "Gumoss",
+    "q": null
+   },
+   {
+    "n": "Ribbuny",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Crude Oil",
+  "pals": [
+   {
+    "n": "Kikit",
+    "q": "@50%"
+   },
+   {
+    "n": "Maraith",
+    "q": "@50%"
+   },
+   {
+    "n": "Sootseer",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Hexolite",
+  "pals": [
+   {
+    "n": "Necromus",
+    "q": "x10"
+   },
+   {
+    "n": "Neptilius",
+    "q": "x10"
+   },
+   {
+    "n": "Paladius",
+    "q": "x10"
+   }
+  ]
+ },
+ {
+  "item": "High Quality Cloth",
+  "pals": [
+   {
+    "n": "Selyne",
+    "q": "x1–2"
+   },
+   {
+    "n": "Sibelyx",
+    "q": null
+   },
+   {
+    "n": "Sibelyx Primo",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "High Quality Recovery Meds",
+  "pals": [
+   {
+    "n": "Lyleen",
+    "q": "x1–3"
+   },
+   {
+    "n": "Lyleen Noct",
+    "q": "x1–3"
+   },
+   {
+    "n": "Solenne",
+    "q": "x2 @50%"
+   }
+  ]
+ },
+ {
+  "item": "Meteorite Fragment",
+  "pals": [
+   {
+    "n": "Xenogard",
+    "q": "x5–12"
+   },
+   {
+    "n": "Xenolord",
+    "q": "x7–15"
+   },
+   {
+    "n": "Xenovader",
+    "q": "x3–10"
+   }
+  ]
+ },
+ {
+  "item": "Mysterious Mushroom",
+  "pals": [
+   {
+    "n": "Dualith Noct",
+    "q": "x3–5"
+   },
+   {
+    "n": "Mycora",
+    "q": "x2–3 @50%"
+   },
+   {
+    "n": "Shroomer Noct",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Potato Seeds",
+  "pals": [
+   {
+    "n": "Petallia",
+    "q": null
+   },
+   {
+    "n": "Robinquill",
+    "q": "x1–2"
+   },
+   {
+    "n": "Robinquill Terra",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Ancient Civilization Core",
+  "pals": [
+   {
+    "n": "Dandilord",
+    "q": null
+   },
+   {
+    "n": "Silvance",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Arrow",
+  "pals": [
+   {
+    "n": "Robinquill",
+    "q": "x2–4"
+   },
+   {
+    "n": "Robinquill Terra",
+    "q": "x2–4"
+   }
+  ]
+ },
+ {
+  "item": "Broncherry Meat",
+  "pals": [
+   {
+    "n": "Broncherry",
+    "q": "x2"
+   },
+   {
+    "n": "Broncherry Aqua",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Caprity Meat",
+  "pals": [
+   {
+    "n": "Caprity",
+    "q": "x2"
+   },
+   {
+    "n": "Caprity Noct",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Coal",
+  "pals": [
+   {
+    "n": "Blazamut",
+    "q": "x10"
+   },
+   {
+    "n": "Blazamut Ryu",
+    "q": "x10"
+   }
+  ]
+ },
+ {
+  "item": "Coralum Ore",
+  "pals": [
+   {
+    "n": "Neptilius",
+    "q": "x10"
+   },
+   {
+    "n": "Whalaska Ignis",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Dazzi Cloud",
+  "pals": [
+   {
+    "n": "Dazzi",
+    "q": null
+   },
+   {
+    "n": "Dazzi Noct",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Eikthyrdeer Venison",
+  "pals": [
+   {
+    "n": "Eikthyrdeer",
+    "q": "x2"
+   },
+   {
+    "n": "Eikthyrdeer Terra",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Ingot",
+  "pals": [
+   {
+    "n": "Bushi",
+    "q": "x2–3"
+   },
+   {
+    "n": "Bushi Noct",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Katress Hair",
+  "pals": [
+   {
+    "n": "Katress",
+    "q": "@50%"
+   },
+   {
+    "n": "Katress Ignis",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Killamari Tentacle",
+  "pals": [
+   {
+    "n": "Killamari",
+    "q": "@50%"
+   },
+   {
+    "n": "Killamari Primo",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Leezpunk Crest",
+  "pals": [
+   {
+    "n": "Leezpunk",
+    "q": "@50%"
+   },
+   {
+    "n": "Leezpunk Ignis",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Mammorest Meat",
+  "pals": [
+   {
+    "n": "Mammorest",
+    "q": "x2"
+   },
+   {
+    "n": "Mammorest Cryst",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Nightstar Sand",
+  "pals": [
+   {
+    "n": "Starryon Primo",
+    "q": "x1–2"
+   },
+   {
+    "n": "Wistella",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Penking Plume",
+  "pals": [
+   {
+    "n": "Penking",
+    "q": "@50%"
+   },
+   {
+    "n": "Penking Lux",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Plasteel",
+  "pals": [
+   {
+    "n": "Astegon",
+    "q": "x2–3"
+   },
+   {
+    "n": "Shadowbeak",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Raw Dumud",
+  "pals": [
+   {
+    "n": "Dumud",
+    "q": "x2"
+   },
+   {
+    "n": "Dumud Gild",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Raw Kelpsea",
+  "pals": [
+   {
+    "n": "Kelpsea",
+    "q": null
+   },
+   {
+    "n": "Kelpsea Ignis",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Ribbuny Ribbon",
+  "pals": [
+   {
+    "n": "Ribbuny",
+    "q": null
+   },
+   {
+    "n": "Ribbuny Botan",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Silver Key",
+  "pals": [
+   {
+    "n": "Leezpunk",
+    "q": "@1%"
+   },
+   {
+    "n": "Leezpunk Ignis",
+    "q": "@2%"
+   }
+  ]
+ },
+ {
+  "item": "Skutlass Sashimi",
+  "pals": [
+   {
+    "n": "Skutlass",
+    "q": "x1–2"
+   },
+   {
+    "n": "Skutlass Ignis",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Soralite",
+  "pals": [
+   {
+    "n": "Jetragon",
+    "q": "x10"
+   },
+   {
+    "n": "Pierdon Cryst",
+    "q": "x4–5"
+   }
+  ]
+ },
+ {
+  "item": "Thermal Core",
+  "pals": [
+   {
+    "n": "Aegidron",
+    "q": "x1–2"
+   },
+   {
+    "n": "Jetragon",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Cake",
+  "pals": [
+   {
+    "n": "Lovander",
+    "q": "@1%"
+   }
+  ]
+ },
+ {
+  "item": "Caramel Cotton Candy",
+  "pals": [
+   {
+    "n": "Woolipop Terra",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Carbon Fiber",
+  "pals": [
+   {
+    "n": "Shadowbeak",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Carrot",
+  "pals": [
+   {
+    "n": "Ribbuny Botan",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Chikipi Poultry",
+  "pals": [
+   {
+    "n": "Chikipi",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Copper Key",
+  "pals": [
+   {
+    "n": "Leezpunk",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Cotton Candy",
+  "pals": [
+   {
+    "n": "Woolipop",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Dog Coin",
+  "pals": [
+   {
+    "n": "Mimog",
+    "q": "x14–21"
+   }
+  ]
+ },
+ {
+  "item": "Egg",
+  "pals": [
+   {
+    "n": "Chikipi",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Elizabee's Staff",
+  "pals": [
+   {
+    "n": "Elizabee",
+    "q": "@3%"
+   }
+  ]
+ },
+ {
+  "item": "Emerald",
+  "pals": [
+   {
+    "n": "Tetroise Primo",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Galeclaw Poultry",
+  "pals": [
+   {
+    "n": "Galeclaw",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Gloopie Tentacle",
+  "pals": [
+   {
+    "n": "Gloopie Primo",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Gumoss Leaf",
+  "pals": [
+   {
+    "n": "Gumoss",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Gunpowder",
+  "pals": [
+   {
+    "n": "Tocotoco",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Hallowed Bar",
+  "pals": [
+   {
+    "n": "Eye of Cthulhu",
+    "q": "x2",
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Jellroy Bell Flesh",
+  "pals": [
+   {
+    "n": "Jellroy",
+    "q": null,
+    "u": true
+   }
+  ]
+ },
+ {
+  "item": "Lamball Mutton",
+  "pals": [
+   {
+    "n": "Lamball",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Memory Wiping Medicine",
+  "pals": [
+   {
+    "n": "Lovander",
+    "q": "@1%"
+   }
+  ]
+ },
+ {
+  "item": "Milk",
+  "pals": [
+   {
+    "n": "Mozzarina",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Mozzarina Meat",
+  "pals": [
+   {
+    "n": "Mozzarina",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Munchill Meat",
+  "pals": [
+   {
+    "n": "Munchill",
+    "q": null
+   }
+  ]
+ },
+ {
+  "item": "Paldium Fragment",
+  "pals": [
+   {
+    "n": "Lunaris",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Predator Core",
+  "pals": [
+   {
+    "n": "Digtoise",
+    "q": "x2–3"
+   }
+  ]
+ },
+ {
+  "item": "Pure Quartz",
+  "pals": [
+   {
+    "n": "Pierdon Cryst",
+    "q": "x4–5"
+   }
+  ]
+ },
+ {
+  "item": "Reindrix Venison",
+  "pals": [
+   {
+    "n": "Reindrix",
+    "q": "x2"
+   }
+  ]
+ },
+ {
+  "item": "Rushoar Pork",
+  "pals": [
+   {
+    "n": "Rushoar",
+    "q": "x1–2"
+   }
+  ]
+ },
+ {
+  "item": "Strange Juice",
+  "pals": [
+   {
+    "n": "Lovander",
+    "q": "@1%"
+   }
+  ]
+ },
+ {
+  "item": "Suspicious Juice",
+  "pals": [
+   {
+    "n": "Lovander",
+    "q": "@1%"
+   }
+  ]
+ },
+ {
+  "item": "Swee Hair",
+  "pals": [
+   {
+    "n": "Swee",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Tocotoco Feather",
+  "pals": [
+   {
+    "n": "Tocotoco",
+    "q": "@50%"
+   }
+  ]
+ },
+ {
+  "item": "Training Manual (XL)",
+  "pals": [
+   {
+    "n": "Mimog",
+    "q": "@20%"
+   }
+  ]
+ }
+]

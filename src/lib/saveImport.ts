@@ -3,7 +3,7 @@
  * Ren logik utan I/O – API-routen läser filerna, den här filen mappar bara.
  */
 
-import type { AppData, Gender, OwnedPal, Species } from "./types";
+import type { AppData, Gender, OwnedPal, PlayerProgress, Species } from "./types";
 
 /** En pal precis som palsave.py levererar den (art som kod, inte index). */
 export interface RawSavePal {
@@ -41,6 +41,20 @@ export interface RawSaveRead {
    * något om spelarens förråd som den inte har läst.
    */
   implants?: Record<string, number>;
+  /** Spelarens progression – samma undefined-disciplin som `implants`. */
+  progress?: PlayerProgress;
+  /**
+   * Utfallet för den globala palboxen (`<spelare>_dps.sav`).
+   *
+   * Pals därifrån ligger redan i `pals` med behållaren `GLOBAL_BOX`; det här
+   * fältet är bara för att kunna säga *varför* de saknas när de gör det. En
+   * global box som inte gick att läsa ser annars exakt ut som en tom, och
+   * skillnaden är avelsstammen man lagt undan. `undefined` = en äldre
+   * palsave.exe som inte känner till lagret alls.
+   */
+  globalBox?: { found: boolean; pals: number; error?: string };
+  /** Pal Souls-plånboken – samma undefined-disciplin. */
+  souls?: { s: number; m: number; l: number; g: number };
   path?: string;
   modified?: number;
 }
@@ -160,7 +174,14 @@ export function mapSavePals(species: Species[], raw: RawSavePal[]): MapResult {
  */
 export function mergeIntoAppData(
   base: AppData,
-  read: { player: string; pals: OwnedPal[]; modified: number; implants?: Record<string, number> },
+  read: {
+    player: string;
+    pals: OwnedPal[];
+    modified: number;
+    implants?: Record<string, number>;
+    progress?: PlayerProgress;
+    souls?: { s: number; m: number; l: number; g: number };
+  },
 ): AppData {
   return {
     ...base,
@@ -173,6 +194,9 @@ export function mergeIntoAppData(
        inte" – inte den förra läsningens siffror och inte `{}`, som hade påstått
        att förrådet är tomt. JSON.stringify släpper nyckeln, precis som vi vill. */
     implants: read.implants,
+    // Samma regel som implants: ersätt eller släpp, ärv aldrig från base.
+    progress: read.progress,
+    souls: read.souls,
     exported: new Date(read.modified * 1000).toISOString().slice(0, 10),
   };
 }

@@ -1,6 +1,6 @@
 /* Kondenseringsråden.
  *
- * Stjärnkostnaderna är kumulativa (4 → 16 → 32 → 64), så "antal dubbletter"
+ * Stjärnkostnaderna är kumulativa (4 → 8 → 12 → 24), så "antal dubbletter"
  * säger ingenting utan att man vet var arten står i dag. Varje siffra nedan är
  * handräknad – det är hela poängen med testet, eftersom en felräknad
  * stjärna ser precis lika trovärdig ut som en riktig. */
@@ -94,6 +94,25 @@ describe("planCondense – vad går att göra nu", () => {
     assert.equal(p.verdict, "soon");
     assert.equal(p.missing, 1);
     assert.equal(p.feed, 0);
+  });
+
+  /* 1.0-regeln: en stjärnad dubblett bär sitt uppätna värde med sig. En 1★ är
+     värd 5 offer (sig själv + de 4 den åt), så 1★ + 2 ostjärnade = 7 värde:
+     4 till första stjärnan (mata 1★:an, överskott 1 + de två hela = 3 kvar i
+     värde) – utan krediten hade tre pals inte räckt till någonting. */
+  it("en 1★-dubblett räknas som 5 offer, inte 1", () => {
+    const keeper = pal(0, { keep: true, stars: 0, rk: 1 });
+    const starred = pal(0, { stars: 1, rk: 2 });
+    const pals = [keeper, starred, pal(0), pal(0)];
+    const [p] = planCondense(data, pals, new Map([[0, keeper]]));
+    assert.ok(p);
+    assert.equal(p.verdict, "now");
+    assert.equal(p.reach, 1);
+    // Matningen tar högst värde först: 1★:an ensam täcker kostnaden 4.
+    assert.equal(p.feed, 1);
+    assert.equal(p.leftover, 2);
+    // Värde kvar: 7 − 4 = 3; nästa stjärna kostar 8 → 5 saknas.
+    assert.equal(p.missing, 5);
   });
 
   it("en art på 4★ har inget kvar att hämta", () => {
@@ -277,5 +296,58 @@ describe("palUses – vad är den bra för", () => {
     const uses = palUses(workData, p, idx, 2);
     assert.equal(uses.length, 2);
     assert.ok(uses.every((u) => u.best));
+  });
+});
+
+/* Bokningar, IV-byggstenar, keeper-valet och kövärdet.
+ *
+ * Alla fyra kommer ur helhetsutredningen aug 2026, mätt mot Kens box: sex av elva
+ * pals hans avelsplan behövde låg som kondensmat, `Warsect 15/100/100` (den
+ * 2-i-1-donator planeraren själv rekommenderar) räknades inte som sparad, kön
+ * rankade en Souffline utan en enda användning före arter han faktiskt sätter i
+ * basen, och keeperen valdes på `score` – som belönar höga tiers även när passiven
+ * är skräp.
+ */
+describe("kön respekterar avelsplanens bokningar", () => {
+  it("bokade dubbletter lämnas utanför matningen och redovisas", () => {
+    const keeper = pal(0, { keep: true });
+    const booked = pal(0);
+    const pals = [keeper, booked, pal(0), pal(0), pal(0), pal(0)];
+    const bo = new Map([[0, keeper]]);
+
+    const free = planCondense(data, pals, bo)[0];
+    const withBooking = planCondense(data, pals, bo, {
+      booked: new Map([[booked.id, { role: "donor" as const }]]),
+    })[0];
+
+    assert.ok(free && withBooking);
+    assert.equal(free.fodder.length, 5);
+    assert.equal(withBooking.fodder.length, 4, "den bokade är inte mat");
+    assert.ok(!withBooking.fodder.some((p) => p.id === booked.id));
+    assert.ok(withBooking.notes.some((n) => n.kind === "booked"),
+      "och det ska stå varför, inte tigas ihjäl");
+  });
+
+  it("en bokning kan sänka domen – det är meningen", () => {
+    /* Fyra dubbletter räcker till en stjärna; bokas en av dem räcker de inte,
+       och då ska kön säga "snart" i stället för att föreslå matning. */
+    const keeper = pal(0, { keep: true });
+    const four = [pal(0), pal(0), pal(0), pal(0)];
+    const bo = new Map([[0, keeper]]);
+    assert.equal(planCondense(data, [keeper, ...four], bo)[0]?.verdict, "now");
+    const booked = new Map([[four[0]!.id, { role: "carrier" as const }]]);
+    assert.equal(planCondense(data, [keeper, ...four], bo, { booked })[0]?.verdict, "soon");
+  });
+});
+
+describe("kön rankar på värde, inte bara på stjärnvinst", () => {
+  it("en art utan roll i boxen får prioritet noll och skälet skrivet", () => {
+    const keeper = pal(0, { keep: true });
+    const pals = [keeper, pal(0), pal(0), pal(0), pal(0)];
+    const [p] = planCondense(data, pals, new Map([[0, keeper]]));
+    assert.ok(p);
+    // Utan useIndex kan ingen roll bevisas – då är prioriteten 0, aldrig negativ.
+    assert.equal(p.priority, 0);
+    assert.ok(p.why.length > 0, "prioriteten måste kunna förklara sig");
   });
 });

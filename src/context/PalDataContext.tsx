@@ -5,7 +5,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from "react";
 import { solveFree, type FreeSolveResult } from "@/lib/breeding";
-import { applyKeepRules, scorePal } from "@/lib/scoring";
+import { applyKeepRules, bestOfSpecies, scorePal } from "@/lib/scoring";
 import type { AppData, ScoredPal } from "@/lib/types";
 
 export interface PalDataValue {
@@ -46,11 +46,9 @@ export function PalDataProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PalDataValue | null>(() => {
     if (!data) return null;
     const pals = data.pals.map((p) => scorePal(data, p));
-    const bestOf = new Map<number, ScoredPal>();
-    for (const p of pals) {
-      const cur = bestOf.get(p.s);
-      if (!cur || p.score > cur.score) bestOf.set(p.s, p);
-    }
+    /* Artens bästa väljs på passform och IV, inte på `score` – se
+       `bestOfSpecies`. Det är den pal appen säger att man ska investera i. */
+    const bestOf = bestOfSpecies(pals);
     applyKeepRules(data, pals, bestOf);
     const ownedSpecies = new Set(pals.map((p) => p.s));
     const freeSolve = solveFree(data, ownedSpecies);

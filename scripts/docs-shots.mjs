@@ -1,5 +1,5 @@
 /**
- * Tar om skärmdumparna i `docs/img` – de sex bilderna README består av.
+ * Tar om skärmdumparna i `docs/img` – de fem bilderna README består av.
  *
  * Varför det är ett skript och inte sex manuella dumpar: `docs-images.mjs`
  * fångar en bild som *saknas*, men ingenting fångar en bild som är **gammal**.
@@ -62,15 +62,20 @@ function shots(deepLink) {
     { file: "overview-light.png", path: "/", ready: "Highlights", scheme: "light" },
     { file: "box.png", path: "/box", ready: "Sort:", scheme: "dark", cells: 12 },
     { file: "breeding.png", path: deepLink, ready: "Passive plan", scheme: "dark", height: 1500 },
-    /* Rekommendationerna är en arbetsordning som läses uppifrån och ner, och
-       det README:s text lovar – stjärnhopp, "bra för", vad stjärnorna är värda
-       – står i en utfälld rad. Med en skärm blir bilden nio hopfällda rubriker
-       och inget av det. Därför både högre och med första raden öppnad. */
+    /* Rollerna: mätarraden + Boxen-flikens moduler är sidans poäng, och README:s
+       text lovar stjärnhopp, "bra för" och vad stjärnorna är värda – det står i
+       en utfälld körad. Därför både högre och med första raden öppnad.
+       ("Bäst för…" gick upp i den här sidan aug 2026 – best-for.png finns inte
+       längre.)
+
+       `ready` får INTE vara en modulrubrik: `innerText` återger CSS:ens
+       text-transform, så "Condense queue" kommer tillbaka som VERSALER och
+       matchningen missar. Mätarens etikett är gemener och kräver dessutom att
+       datan är inläst – precis det villkoret vi vill vänta på. */
     {
-      file: "recommendations.png", path: "/recommendations", ready: "Condense",
-      scheme: "dark", height: 1700, open: ".rqrow",
+      file: "recommendations.png", path: "/recommendations", ready: "species ready",
+      scheme: "dark", height: 1800, open: "details.cqrow",
     },
-    { file: "best-for.png", path: "/best-for", ready: "Attack team", scheme: "dark" },
   ];
 }
 

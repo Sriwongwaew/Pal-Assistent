@@ -1,5 +1,6 @@
-import { RANCH_DROPS, WORK_TYPES } from "./constants";
-import type { AppData, ScoredPal, Species, WorkType } from "./types";
+import { ranchItemsOf, WORK_TYPES } from "./constants";
+import { isObtainable } from "./partnerSkills";
+import type { AppData, ElementType, ScoredPal, Species, WorkType } from "./types";
 
 export function workScore(data: AppData, p: ScoredPal, t: WorkType): number {
   const sp = data.species[p.s] as Species;
@@ -7,18 +8,22 @@ export function workScore(data: AppData, p: ScoredPal, t: WorkType): number {
   return rank ? rank * (1 + p.fxCraft) + (sp.noct ? 0.35 : 0) : 0;
 }
 
-/** Topp-5 attack-team med elementspridning. */
+/** Partyts platser – spelet har fem, och Rollernas mätare räknar mot samma tal. */
+export const ATTACK_TEAM_SIZE = 5;
+
+/** Attack-team med elementspridning, en per art. */
 export function pickAttackTeam(data: AppData, pals: ScoredPal[]): ScoredPal[] {
   const sorted = [...pals].sort((a, b) => b.combat - a.combat);
   const team: ScoredPal[] = [];
   const elements = new Set<string>();
   for (const [idx, p] of sorted.entries()) {
     const el = data.species[p.s]?.elements[0] ?? "Normal";
-    if (team.length < 5 && (!elements.has(el) || idx < 2) && !team.some((t) => t.s === p.s)) {
+    if (team.length < ATTACK_TEAM_SIZE && (!elements.has(el) || idx < 2)
+      && !team.some((t) => t.s === p.s)) {
       team.push(p);
       elements.add(el);
     }
-    if (team.length >= 5) break;
+    if (team.length >= ATTACK_TEAM_SIZE) break;
   }
   return team;
 }
@@ -106,6 +111,8 @@ export interface RanchProducer {
 export interface RanchEntry {
   /** Varan, som den heter i spelet – null när tabellen inte har arten. */
   item: string | null;
+  /** true = varan är en grupp ("Seeds"), inte ett item-id. Se `RanchDrop`. */
+  group: boolean;
   producers: RanchProducer[];
 }
 
@@ -116,19 +123,27 @@ export interface RanchEntry {
  * man är ute efter; nivån avgör bara vem av producenterna som är snabbast.
  * Arter som saknas i `RANCH_DROPS` hamnar i en egen grupp med `item: null` –
  * de visas som "vara okänd" i stället för att gissas fram.
+ *
+ * **Urvalet är tabellen unionen arbetsnivån, inte arbetsnivån ensam.** Lamball
+ * producerar Wool enligt sin egen partnerskill men har `ws: {}` i datasetet, så
+ * ett rent `MonsterFarm > 0` hade tappat den – och en art med nivå men utan rad
+ * ska fortfarande synas som lucka. Se `RANCH_DROPS`.
  */
 export function ranchGuide(data: AppData, ownedSpecies: ReadonlySet<number>): RanchEntry[] {
-  const item = new Map(RANCH_DROPS);
-  const groups = new Map<string, RanchProducer[]>();
+  const groups = new Map<string, { group: boolean; producers: RanchProducer[] }>();
+  const push = (key: string, group: boolean, producer: RanchProducer) => {
+    const at = groups.get(key);
+    if (at) at.producers.push(producer);
+    else groups.set(key, { group, producers: [producer] });
+  };
 
   data.species.forEach((sp, s) => {
     const level = sp.ws.MonsterFarm ?? 0;
-    if (level <= 0) return;
-    const key = item.get(sp.name) ?? "";
+    const rows = ranchItemsOf(sp.name);
+    if (level <= 0 && rows.length === 0) return;
     const producer: RanchProducer = { s, level, owned: ownedSpecies.has(s) };
-    const list = groups.get(key);
-    if (list) list.push(producer);
-    else groups.set(key, [producer]);
+    if (rows.length === 0) push("", false, producer);
+    else for (const row of rows) push(row.item, row.group === true, producer);
   });
 
   const name = (p: RanchProducer) => data.species[p.s]?.name ?? "";
@@ -136,7 +151,7 @@ export function ranchGuide(data: AppData, ownedSpecies: ReadonlySet<number>): Ra
     Number(b.owned) - Number(a.owned) || b.level - a.level || name(a).localeCompare(name(b), "sv");
 
   return [...groups]
-    .map(([key, producers]) => ({ item: key || null, producers: [...producers].sort(byUse) }))
+    .map(([key, g]) => ({ item: key || null, group: g.group, producers: [...g.producers].sort(byUse) }))
     .sort((a, b) =>
       // Okända varor sist: de är en lucka i tabellen, inte ett råd.
       Number(a.item === null) - Number(b.item === null)
@@ -145,10 +160,53 @@ export function ranchGuide(data: AppData, ownedSpecies: ReadonlySet<number>): Ra
       || (a.item ?? "").localeCompare(b.item ?? "", "sv"));
 }
 
-/** Topp-arter globalt efter attack-scaling. */
+/** Topp-arter globalt efter attack-scaling. Slutbossar (Astralym) utesluts –
+ *  de går inte att skaffa och toppade listan med ett omöjligt "FÅNGA". */
 export function topGlobalAttackers(data: AppData, count = 14): number[] {
   return [...data.species.keys()]
+    .filter((s) => isObtainable(data.species[s]?.code ?? ""))
     .sort((a, b) => (data.species[b]?.sc[1] ?? 0) - (data.species[a]?.sc[1] ?? 0))
+    .slice(0, count);
+}
+
+/** Sökpanelens tre frågor. Arbete har redan sin egen väg (syssla → artförslag
+ *  i planeraren), så den upprepas inte här. */
+export type FinderPurpose = "attack" | "tanky" | "mount";
+
+/**
+ * "Jag vill ha en <element>-pal som är bra på <syfte>" – bästa arterna,
+ * oavsett om du äger dem. Rankningen är grov med flit: scalings ur datasetet,
+ * inte partner-skills (de finns inte i någon data, se Domain gotchas), så
+ * raden är en startpunkt för fånga/avla – inte en tier-lista.
+ *
+ * Platshållar-arterna (deck ≤ 0, "Unidentified Pal") filtreras på namn i
+ * stället för deck: Lamball har också deck 0, och den är en riktig pal.
+ */
+export function findSpeciesFor(
+  data: AppData,
+  purpose: FinderPurpose,
+  element: ElementType | null,
+  count = 8,
+): number[] {
+  const value = (s: number): number => {
+    const sp = data.species[s];
+    if (!sp) return 0;
+    if (purpose === "attack") return sp.sc[1];
+    if (purpose === "tanky") return sp.sc[0] + sp.sc[2];
+    return sp.spr;
+  };
+  return [...data.species.keys()]
+    .filter((s) => {
+      const sp = data.species[s];
+      if (!sp || sp.name.startsWith("Unidentified")) return false;
+      /* Slutbossar (Astralym, sc 200) går inte att skaffa – att rekommendera
+         dem med "FÅNGA" var att lova det omöjliga (Kens fynd). */
+      if (!isObtainable(sp.code)) return false;
+      if (element && !sp.elements.includes(element)) return false;
+      // Riddjur utan sprintfart är inga riddjur.
+      return purpose !== "mount" || sp.spr > 0;
+    })
+    .sort((a, b) => value(b) - value(a))
     .slice(0, count);
 }
 

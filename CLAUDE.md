@@ -47,33 +47,176 @@ Features by route:
   i spelets Paldeck. Art-sökningen matchar därför också element ("fire") och nummer ("134").
   Se `Species.deck` under "Domain gotchas" innan du visar numret någon ny plats.
   Also direct combos, shortest-path "fritt läge" tree, `?target=<speciesIdx>` deep-links
-  (used by Bäst för…). Alla val **sparas** (`pa-breeding` i localStorage) så planen finns kvar
+  (used by Rollerna). Alla val **sparas** (`pa-breeding` i localStorage) så planen finns kvar
   när man varit inne på Boxen; **Rensa allt** överst nollar dem.
-  Överst sitter **Avelsbas** (`BreedSetup`), hopfälld: uppställningen som gör äggen snabbare
-  – Braloha i basen, Philanthropist på föräldrarna, Broncherry i partyt – mätt mot din egen
-  box (utplacerad? kondenserad? hur många bärare?). Den är därför också det som översätter
-  planernas äggsiffror till tid. Se "Domain gotchas".
-- `/recommendations` – en **arbetsordning**, läst uppifrån och ner (formen valdes ur fem
-  förslag 2026-08; korten i rutnät var det som gjorde sidan bökig). Ordningen är innehåll,
-  inte layout:
-  1. **Spara dessa** – vad du *inte* ska mata, grupperat efter anledning (grupperna speglar
-     `applyKeepRules`), hopfällt och tätare än vanliga `dgroup`. Står före kön med flit.
-  2. **Kondensera** – en rad per art: stjärnhopp, antal att mata, platser du får tillbaka och
-     varningsprickar. Utfälld visar raden vem du behåller (passiver, **bra för**) och vad
-     stjärnorna är värda i HP/attack/försvar (`condenseGain`).
-  3. **Nästan där** – arter som saknar några dubbletter till nästa stjärna, plus en hopfälld
-     lista med långt kvar/maxade.
-  Den röda varningsrutan överst (`RecoWarning`, "Kondensering går inte att ångra" + ansvars-
-  friskrivningen) **togs bort på Kens begäran 2026-08** – bygg inte tillbaka den. Att det matade
-  försvinner för alltid står kvar i "Varför kondensera?" (`WhyCondense`, `reco.why.body`), som
-  är det enda stället sidan säger det nu.
-  Vyn är `RecoView` (state + modellen) och delarna ligger i `RecoBits` (`rs`/`rq`-prefixade
-  klasser).
-- `/best-for` **Bäst för…** – attack team, base dream-team, best workers per task (own + global,
-  global rows are clickable → breeding plan), **Ranchen – vem lägger vad** (`ranchGuide`,
-  grupperad på varan; se "Domain gotchas"), fishing pals (Palworld 1.0), fastest mounts.
-  Basgänget visar också **var exemplaret står** (`p.c`): laget väljer artens bästa individ, och
-  den ligger oftast kvar i boxen fast en sämre redan är utplacerad.
+  **Med IV-målet "perfekt" är planen EN LED** (Kens design aug 2026, förslaget "En led" ur en
+  artefakt han godkände): importstegen (`ivImport`) och etappstegen (`planPerfectLine`) ligger i
+  **samma numrering 1 → N** i en enda `BreedRoute`, och vad ett steg uträttar står som **fas-chip**
+  i stegets huvud (`.ph imp/iv/pv/goalph`) i stället för som egen rubrik – det är chipet som låter
+  numreringen löpa genom hela planen. Importkedjorna plattas ut till en rad per artsteg (varje steg
+  ÄR en parning man gör), och `fromStep`/`imported` räknas om till radnummer (`rowOf`, `importRow`) –
+  annars säger ett kort "steg 2" om en rad som heter 4. `PassivePlanSection` **göms** när
+  `mergedRoute` är sant (perfekt plan som är komplett): den planerar samma passiver utan IV, och två
+  numreringar för samma pal var precis det som gjorde sidan rörig. Saknas en önskad passiv i arten
+  (`missingPassives`) står den kvar – då gör den något leden inte kan.
+  Toppen är **målbild | förväntat | verktyg** (`.bhead`, designrundan aug 2026): målbilden är
+  klickbar (porträttet öppnar artväljaren, passivplatserna passivväljaren), och verktygen –
+  **Implantat**, **Manuellt läge**, **Avelsbas** (`BreedSetup`, taktmätaren som översätter
+  planernas äggsiffror till tid, se "Domain gotchas") – öppnas som riktiga modaler i samma
+  `pamodal` som väljarna. `.bsetup` är numera alltid en modalkropp med `.bshd`-huvud; den
+  CSS-lyfta details-varianten blev en hoptryckt remsa och togs bort (Kens rättning ×2).
+- `/recommendations` **Rollerna** – rekommendationerna och gamla "Bäst för…" **sammanslagna**
+  (Kens val ur fem designförslag aug 2026: "Rollhubbarna" + rollerna som **flikar**), och sedan
+  **omdesignade till "Konsolen"** (Kens val ur fyra förslag i runda 2, samma månad: förra ytan
+  underkändes som "böklig … mycket saker i luften och klutter").
+  Sidan delas på **roll**: fem flikar — **01 Boxen · 02 Strid · 03 Basen · 04 Riddjur & fiske ·
+  05 Spelaren** — med EN roll synlig i taget.
+  **Tre fel styr varje val i ytan, och de är värda att kunna utantill innan man ändrar något
+  här** – de var exakt det som gjorde förra versionen rörig:
+  1. *Ingenting höll ihop innehållet* → allt bor i **moduler** (`Module`): ram, litet
+     rubrikband och en **räknare** i huvudet ("19 arter · +22★" svarar på "är det mycket?" utan
+     att man läser en rad i kroppen). Källor och förbehåll ligger i modulens **fot** (`foot`),
+     inte i brödtexten.
+  2. *Allt hade samma vikt* → rollens siffror är **mätare** överst (`RoleGauge`), modulrubrikerna
+     är små. Mätaren är **alltid en riktig andel** (`fill` 0–1 + `meter`-text som säger vad
+     andelen är) – en stapel utan innebörd är just den dekoration som togs bort.
+     KPI-pillren i bandhuvudet är borta: samma tal stod på två ställen.
+  3. *Listor i listor* → kön är en **radlista** (`CondenseRow`: löpnummer, porträtt, art,
+     LED-stjärnor för hoppet, antal, vinstmätare mot taket +20 %, varningsprickar; klick fäller
+     ut vem du behåller + `condenseGain` i spelets stats) och spara-listan ett **segmentband**
+     (`KeepConsole`).
+  **Modulerna ligger i SPALTER** (`ModCol`), inte som rader: två rader med olika höga moduler
+  lämnade 250 px luft mitt på sidan. Fördela modulerna så spalterna blir ungefär lika långa;
+  fullbreddsmoduler (`span={12}`) ligger som egna rader efter spalterna.
+  **Plattorna bakom flikrad och nät är fortfarande borta** (Kens begäran aug 2026) — mätarraden
+  och nätet har inga wrapper-ytor. Att modulerna har ramar är *samma* regel, inte ett undantag:
+  de ÄR innehållsytor. Bygg inte en panel runt mätarraden.
+  **Fliken väljs med URL-hashen** (`#rh-box … #rh-player`) – mätarna är vanliga ankare,
+  containern lyssnar på `hashchange`, `RoleHead` bär ankarets id, bakåtknappen går till förra
+  fliken, och Översiktens/Hittas gamla djuplänkar fortsätter landa rätt. Innehållet **byts**
+  (villkorad rendering), inte göms – fem fullrenderade roller var det som gjorde sidan tung.
+  Innehållet per flik – **allt från de två gamla sidorna finns kvar**:
+  1. **Boxen** – kön (`CondenseRow`, kolumnrubriker i `.cqhead`), **Spara dessa**
+     (`KeepConsole`), Mer att göra (bästa expeditionssajten + slakt), Nästan där, alla
+     expeditionssajter. "Varför kondensera?" (`WhyCondense`, `reco.why.body`) ligger i köns fot
+     och är **enda stället** som säger att matningen inte går att ångra; den röda varningsrutan
+     togs bort på Kens begäran 2026-08, bygg inte tillbaka den.
+     **Segmentbandets färg är information, inte dekoration:** den säger vilken *familj* av skäl
+     gruppen hör till (`KeepFamily` – `pv` passiv / `iv` / `st` tillstånd / `rest`), tonen kommer
+     ur temats tokens (`--gold`/`--blue`/`--violet`/`--muted`) och steg inom en familj skiljs på
+     ljushet. Elementfärgen är reserverad för pals – ge aldrig grupperna nio egna hues, det ser
+     ut som att de betyder något de inte betyder. Grupperna speglar `applyKeepRules`, och
+     "artens bästa (övriga)" är numera en grupp bland de andra (det är den största).
+  2. **Strid** – Gör detta (BIS-luckor per lagmedlem → avelsled med de saknade som önskade,
+     själar, nästa strid → Uppdrag) + BIS-mallen; bredvid: attack-formationen,
+     uppsättningskorten, rankningarna (topp 15 ägda + globala), **Hitta en pal för…**.
+  3. **Basen** – Gör detta (utplaceringar via `isStored`, "behåll en i ranchen", basförsvar,
+     själar) + BIS-mallen + basförsvarsmetan (`DEFENSE_META`); bredvid: basgänget,
+     uppsättningskorten, **Ranchen – vem lägger vad** (`ranchGuide`; se "Domain gotchas") och
+     arbetare per syssla (egna + globala) i full bredd.
+  4. **Riddjur & fiske** – Gör detta (riddjurens BIS-luckor med uthållighetsplatsen, själar,
+     skaffa fiskehjälpar) + BIS-mallen; bredvid: pallplatsen, uppsättningarna, fiskelistan.
+  5. **Spelaren** – Gobfin×Vanguard-stacken, skaffa stödarter, `SUPPORT_META` med spelets
+     partnerskill-text som motivering.
+  **BIS-korten har varken egen rubrik eller egen ram** – de bor i en modul som redan heter samma
+  sak (`BIS_TEMPLATES[kind].role` ÄR modulens titel), och förbehållet ligger i foten (`BisNote`).
+  En ruta i en ruta med rubriken två gånger var precis det dubbelspel som skulle bort.
+  Vyn är `RecoView` (state + modellen), skalet i `RoleBits` (`rh`-prefix), kondenserings- och
+  spara-delarna i `RecoBits` (`rs`/`rq`/`cq`/`ks`-prefix). `/best-for` **är en redirect hit** –
+  gamla länkar/bokmärken ska landa rätt; djuplänk till en flik: `#rh-box … #rh-player`.
+- `/quests` **Uppdrag** – din resa ur saven, i Kens kombination ur designrundan aug 2026
+  (**Fältkartans helhet + Instrumentbrädans moduler**): **karthjälten** (världskartan med
+  guldstämplade torn på `mapPct`-positioner – Världsträdet är en egen spelkarta och får ALDRIG
+  en gissad prick) + **resan som faser** (Tornen → Panthalus → Världsträdet → Hard mode →
+  Raiderna → Paldecken; nästa fas upplyst, klick rullar till sin del), **Nästa steg** =
+  `nextFight` + SEDAN-raden (OBS: Panthalus står FÖRE Världsträdet i `QUEST_BOSSES` – fångsten
+  öppnar trädet, stabil sort på nivå avgör; testat), **kampanjen som kvitton** (porträtt + Lv +
+  ✓×N ur `towerClears["<flagga>_Normal"]` – avklarat är intjänad mark, aldrig en hopfälld
+  grupp), **hard mode som belöningskort** (riktiga item-ikoner via `schematicIconSlug`),
+  **raiderna som äggtavla** (porträtt + savens kvitton; "ägg saknas" när decken saknar arten –
+  detaljer + motlag fälls ut per kort), **Kvar i världen**-mätare med belöningskrok
+  (`relicHeld` = "N oanvända — offra vid en Statue of Power", alfabossar = 5 Ancient
+  Tech-poäng styck) och → kartan-länkar. Paldecken bor i resan (spelarnas slutmål, upp från
+  källaren), questloggen ligger sist som kompakt remsa. Bossdatan är handkurerad
+  (`QUEST_BOSSES` i `quests.ts`) – se "Domain gotchas" om tornflaggorna.
+- `/map` **Kartan** – spelets RIKTIGA karta (`public/img/worldmap.webp`, 8192², Palworld 1.0)
+  med datamine-positioner ur `src/lib/data/worldmap.json` (genereras av
+  `tools/build-worldmap.mjs`, källor + transform dokumenterade där och i `src/lib/worldmap.ts`).
+  Pan/zoom imperativt (ref + transform, markörer motskalas med `--iz`), lagerchips med savens
+  hittat-räknare, "bara det jag inte hittat". Effigies/snabbresor prickas av på instans-GUID,
+  alfabossar på spawner-id, torn på flaggnamn; läger/dungeons har ingen per-instans-flagga i
+  saven och visar bara räknare – pricka aldrig av dem på gissning. Världsträdet är en egen
+  spelkarta med egen transform och täcks inte (filtreras i generatorn, loggat bortfall).
+  Tre lager kom in aug 2026 för att Hittas schematics-källor skulle landa någonstans:
+  **oljeriggarnas kistor** (47, 3 speldygns nedkylning), **skattkarteplatserna** (42, rariteten
+  sitter på kartan man hittar och inte på hålet) och **namngivna regioner** (79 ur paldb:s
+  `regionData` – spelets egna namn, med nivåspannet delat ut ur namnet till `lo`/`hi`).
+  **Lägren har inget namn i källan.** `item` är markörens interna id ("Grass2", "DLC3") och
+  `RewardName` regionens token ("Snow1"); fraktionen ("Hunter", "Ninja") kommer ur
+  spawner-klassen. Prickarna visar därför **fraktionen**, och regionstoken är en nyckel som
+  aldrig ritas – den finns för att `schemWhere` ska kunna slå upp "Snow enemy camp".
+  `Snow1` ↔ `REGION_Frost_*` är INTE en säker koppling, så regionnamnet till ett läger hämtas
+  geometriskt (närmaste namngivna region inom 200 enheter) och betyder "området lägret ligger i".
+- `/find` **Hitta** – universalsök över allt appen vet. Elva kategorier i **fast ordning** med
+  träffräknare som chips under sökfältet (Kens rättning aug 2026: sidan kändes slumpmässig):
+  **avelskombo · arter · element · varor · passiver · partnerskills · schematics · platser ·
+  expeditioner · raider · fiske**. Tomt fält = katalogläge; arterna kräver en fråga (de är
+  trehundra). Vyn är `FindView`, de nya heron i `src/components/ui/FindBits.tsx`, uppslagen i
+  `src/lib/findIndex.ts`.
+  **Auditen aug 2026** (Kens fråga "vad har vi missat, inte bara ranch?") byggde ut sidan, och
+  fem av besluten är värda att kunna innan man ändrar här:
+  1. **Varan är EN kategori, inte fem.** `itemIndex` slår ihop pal-drops, ranchen, malmnoderna,
+     expeditionerna, handlarpriserna och raidbytet till **ett svar per vara**. Ranchvarorna var
+     tidigare en egen kategori, så "Wool" gav två chips med olika räknare – samma "listor i
+     listor" som Rollerna underkändes för. Bygg inte tillbaka en källa till en egen kategori.
+  2. **Räknarna räknar det som FINNS.** Förr skars träffarna till 12 *innan* `counts` räknades,
+     så chipet sa "12" när åttio matchade ("Schematic 4" ljög rakt ut). `hits` bär hela mängden,
+     chipet visar den, och `limit` + "visa fler (N kvar)" styr bara vad som **ritas**. ↑/↓ går
+     genom alla träffar och fäller upp nästa sida av sig själv.
+  3. **Partnerskills är sökbara** (`skillIndex`, 298 arter) och står i artheron. Texten fanns i
+     repot och bara Rollerna läste den – "vad gör den här palen?" hade inget svar på Hitta.
+  4. **Kartan går att fråga** (`placeIndex`): snabbresor, dungeons med nivå, läger, malmnoder,
+     fruktträd. Grupperas på (typ, namn), aldrig per prick – 83 malmnoder är samma svar 83
+     gånger. Två bortfall REDOVISAS i gränssnittet (`placeGaps`): 33 dungeon-markörer saknar
+     namn i källan, och alla läger är en grupp eftersom källans namn är interna id:n
+     ("Grass2", "DLC3") – en intern kod är inget platsnamn. Ett tyst bortfall ser ut som full
+     täckning, och då tror man att sökningen är trasig.
+  5. **Ingen kategori får vara en återvändsgränd.** Elementheron visade typtabellen och länkade
+     till en generisk sida – "när man väljer elements gör det ingenting" (Kens rättning aug 2026).
+     Den svarar nu på de två frågor man har: vad man äger av elementet (antal + starkaste, plus en
+     genväg till hela artlistan) och vad man tar MOT det (bästa pal av `WEAK_TO[el]`), plus
+     expeditionernas elementkrav mot boxens lediga – det enda stället i spelet där man räknar pals
+     per element. Ankarlänkar till Rollerna går på **`#rh-fight`**, inte `#rh-combat`: fliken heter
+     `fight` i koden och `combat` i gränssnittet, och en okänd hash faller TYST tillbaka på första
+     fliken. `tests/deepLinks.test.ts` håller varje länkad hash mot `TAB_BY_HASH`.
+  6. **Kombokategorin finns bara när frågan ÄR ett par** ("Anubis x Lamball" → `parseCombo`).
+     Ett chip som alltid står där med noll träffar är klutter. Den står FÖRST i ordningen: har
+     frågan tolkats som ett par är paret svaret.
+  Artheron bär numera också Paldeck-texten, artens egna siffror (scalings, sprint, mat/mage,
+  könsfördelning, nattaktiv – allt låg i bundlen och ritades ingenstans) och **föräldraparen**
+  ("vilka blir Anubis?", ägda par först). Passivsöket matchar **beskrivningen** och inte bara
+  namnet, så "attack" och "stamina" ger träffar. Expeditionsheron säger om sajten är upplåst ur
+  saven och om boxens ≈FP räcker; raidheron visar savens nedlägg.
+  **Schematics-källorna är platser, inte prosa** (Kens rättning aug 2026: "Snow enemy camp
+  och inget mer … inte så användarvänligt"). Varje rad som går att peka ut bär en handkurerad
+  `spot` (`SchemSpot` i `findData.ts`) som `schemWhere` löser mot kartdatat → **region med
+  spelets eget namn och nivåspann, koordinater, karta-länk och en "så farmar du den"-rad per
+  sort**. "Snow enemy camp" blev tre koordinater i Astral Mountains Lv 35–50. Tre regler:
+  `spot` skrivs **explicit** och läses aldrig ur `source`-texten (en regex som glider pekar ut
+  fel plats, och en fel koordinat är värre än ingen); källor som inte går att peka ut (arenan,
+  handlarna, "coastal bases") får INGEN `spot` och får i stället `find.how.chest`, som säger att
+  källan är ett område att sopa av; och karta-länken visas bara när det finns något att titta på
+  där, annars är den en återvändsgränd. `tests/schemWhere.test.ts` håller kopplingen token →
+  område mot paldb:s egna regionnamn – att snölägren ligger i snön är det enda i kedjan som är
+  ett mänskligt val.
+  **Hovra en vara eller en schematic → vad itemet faktiskt gör** (Kens fråga aug 2026).
+  Spelets egen beskrivning plus siffrorna, ur `itemInfo.ts`; rutan är SAMMA värd som
+  passivrutan (`PassiveTip`, attributet är `data-item`) — se "Design rules" 3. Två förbehåll
+  som inte får tas bort: siffrorna är **basvariantens** (varje vapen har en rad i källan medan
+  Schematic 4 bygger `_Default5`, och de högre nivåerna finns inte dataminade någonstans), och
+  Flamethrower har bara **ritningens** text eftersom dess vapenrad inte finns i källan.
+  Kvar som luckor, med flit: handlarnas sortiment utöver IV-frukternas belagda priser, och
+  fiskarter/fiskeplatser (ingen data alls).
 
 ## Commands
 
@@ -104,16 +247,17 @@ sannolikhet ser precis lika trovärdig ut som en riktig, och varken bygge, typec
 fångar den. Testerna hittade t.ex. att två pals i samma tillstånd dominerade bort varandra.
 
 **Skärmdumparna i `docs/img/` är README:s enda innehåll utöver texten**, och filnamnen är
-engelska som dokumentationen (`overview`, `box`, `recommendations`, `best-for`, `breeding`,
-`overview-light`). Ändras en vy synbart ska bilden bytas ut i samma veva — README är för de
-flesta hela projektet. `npm run docs-images` fångar en referens som pekar på en fil som inte
+engelska som dokumentationen (`overview`, `box`, `recommendations`, `breeding`,
+`overview-light` — `best-for.png` försvann när sidan gick upp i Rollerna aug 2026). Ändras en
+vy synbart ska bilden bytas ut i samma veva — README är för de flesta hela projektet.
+`npm run docs-images` fångar en referens som pekar på en fil som inte
 finns (det var så en omdöpning till engelska tog död på fem av sex bilder utan att någon
 märkte det), men den kan inte se om en bild är *gammal*. Att *märka* det är fortfarande ett
 mänskligt jobb — men att göra något åt det är ett kommando: `npm run docs-shots`
-(`scripts/docs-shots.mjs`) tar om alla sex mot en körande server och styr maskinens egen Edge
+(`scripts/docs-shots.mjs`) tar om alla fem mot en körande server och styr maskinens egen Edge
 över CDP, utan att projektet får ett beroende på en nedladdad webbläsare.
 
-Sex saker om dumparna som är valda, inte råkade så:
+Sju saker om dumparna som är valda, inte råkade så:
 
 1. **Alltid mot ett produktionsbygge**, aldrig `next dev` — dev-servern ritar sin egen
    utvecklarknapp i hörnet. Kör `npm run build` + `npm run start -- -p 3100`. Håller en
@@ -131,10 +275,14 @@ Sex saker om dumparna som är valda, inte råkade så:
 5. **Avelsplanen är README:s exempel** (Anubis med Legend, Ferocious, Swift, Musclehead) och
    art-/passiv-id slås upp i datan, aldrig som index i URL:en — index flyttar sig när den
    statiska halvan regenereras, och en plan för fel art ser inte trasig ut, bara fel.
-6. **Två bilder är högre än en skärm med flit.** Avelsplanen behöver hela planen, och
-   rekommendationerna är en arbetsordning: med en skärm blev bilden nio hopfällda rubriker och
-   inget av det README:s text lovar. Därför öppnas första kondenseringsraden (`open` på dess
-   `<details>`) så stjärnhoppet och "bra för" syns.
+6. **Två bilder är högre än en skärm med flit.** Avelsplanen behöver hela planen, och Rollerna
+   ska visa både mätarraden och Boxen-flikens första modulrad: med en skärm blev bilden mest
+   rubriker och inget av det README:s text lovar. Därför öppnas första köraden
+   (`open: "details.cqrow"`) så stjärnhoppet, "bra för" och vad stjärnorna är värda syns.
+7. **`ready` får aldrig vara en modulrubrik.** `innerText` återger CSS:ens `text-transform`, så
+   "Condense queue" kommer tillbaka som VERSALER och väntan löper ut på en text som *finns*.
+   Rollernas rad är därför mätarens etikett (`species ready`) — gemener, och kräver ändå att
+   datan är inläst, alltså precis det villkoret vi vill vänta på.
 
 **Never run `npm run build` while `npm run dev` is running.** They share `.next/`, and the build
 overwrites the manifests and chunks the dev server holds in memory. The running page then dies with
@@ -149,12 +297,19 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   keep rules, `displayStats` = in-game stat formulas), `breeding.ts` (pair table lookup,
   `solveFree` shortest-path over all species, `solveChain` base→target BFS,
   `solveChainCheapest` samma kedja men billigast i **ägg** (se "Domain gotchas"),
-  `inheritOdds` passive inheritance probability), `passivePlan.ts` (carrier set cover +
-  billigaste **merge-trädet** över bärarna, se "Domain gotchas"; flags impossible pairs),
+  `inheritOdds` passive inheritance probability), `passivePlan.ts` (kandidatuppsättningar av
+  bärare + billigaste **merge-trädet** över dem, se "Domain gotchas"; flags impossible pairs),
+  `directPair.ts` (`findDirectPairs` — par ur boxen vars unge ÄR målarten, alltså fas 1 och fas 2
+  i EN parning; delas av planen och `altRoutes.ts`, se "Domain gotchas"),
   `best.ts` (team pickers, global rankings),
   `perfectPlan.ts` (`planPerfectLine` — söker **kortaste vägen** till 100/100/100 + önskade
   passiver; se "Domain gotchas"), `findIvDonors` (arter som bär en saknad 100:a och parar
   tillbaka till samma art),
+  `ivImport.ts` (`planIvImports` — **bär in** en 100:a arten saknar genom artkedjan i stället för
+  att slumpa fram den; se "Domain gotchas"),
+  `ivFruits.ts` (`fruitsFor`/`fruitTotal` — Life/Power/Stout Fruit ger +10 IV var, tak 100; se
+  "Domain gotchas"), `goalWatch.ts` (`watchGoal` + `SeenState` — "du har fått den"-bandet som
+  live-läget gör meningsfullt; bara NYA instans-GUID:n annonseras och första körningen seedas tyst),
   `purpose.ts` (syften + `recommendPassives` — poängsätter passiver ur `PassiveDef.fx`
   i stället för en handskriven lista, så nya passiver i datasetet kommer med automatiskt;
   `purposeScore` är den delade poängsättningen och `passiveSynergy` hittar färdiga
@@ -172,9 +327,17 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   `breedingPrefs.ts` (`parseBreedingPrefs`/`serializeBreedingPrefs` — planerarens val som
   överlever sidbyten; se "Domain gotchas"), `savePrefs.ts` (var saven ligger + live-läget,
   samma valideringsdisciplin). `loadout.ts` (`idealLoadout` — rollens fyra
-  passiver mot vad palen redan bär, används av Bäst för…),
+  passiver mot vad palen redan bär, används av Rollerna),
   `breedRate.ts` (`planBreedSetup`/`eggSpeed` — avelstakten och vad boxen har av den;
-  se "Domain gotchas").
+  se "Domain gotchas"),
+  `itemInfo.ts` (vad en vara ÄR — spelets beskrivning + attack/försvar/magasin/hållbarhet/vikt.
+  GENERERAD av `tools/build-item-info.mjs`; `base`/`blueprint` är förbehåll gränssnittet MÅSTE
+  visa, se filens huvud),
+  `findIndex.ts` (Hittas uppslagslager, aug 2026: `itemIndex` = alla kända källor per vara
+  slagna ihop till EN post, `placeIndex`/`placeGaps` = kartans lager som sökbara grupper med
+  redovisat bortfall, `skillIndex` = partnerskills, `parseCombo`/`parentPairsOf` = avelskombon
+  åt båda hållen. Rena uppslag utan text: spelets ord passerar rakt igenom, allt som ska
+  formuleras returneras som en `kind`-diskriminant — se "/find" ovan).
 - `src/context/PalDataContext.tsx` – smart provider: fetches `/data/pal-data.json`, memoizes all
   derived data (scored pals, bestOf per species, freeSolve). `SelectedPalContext` + `PalDetailHost`
   drive the detail modal.
@@ -185,12 +348,18 @@ up, so stop it (or build in a separate checkout) before verifying a build.
   `PalBits` (Tag, IvRow, SpeciesIcon, ElementIcons, GenderSymbol, Section),
   `PalPicker`/`PassivePicker`/`PurposePicker` (breeding's selectors — se "Design rules" 6),
   `GoalCard` (breedingens målbild — art + önskade passiver som banners),
-  `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver, monterad **en gång** i layouten),
+  `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver OCH varor, monterad **en gång** i
+  layouten; `data-passive` respektive `data-item`),
   `BreedSetup` (avelsbasen — hopfälld uppställning + takt-mätare),
-  `SaveFolder` (panelen bakom "Mapp" — mapp, hittade världar, live-läget).
+  `SaveFolder` (panelen bakom "Mapp" — mapp, hittade världar, live-läget),
+  `FindBits` (Hittas heron för vara/plats/partnerskill/expedition/raid/kombo, plus `Fact` som
+  alla heron delar; `wide`/`stack` på en fakta är layout-krav, inte kosmetik — se filens huvud).
   Only their search box/filter chip keep local state; the selection itself always lives in the
   container.
-- **Skalet** (client components): `Rail` (vertical nav, replaced the old `Nav` pill strip),
+- **Skalet** (client components): `Rail` (toppraden i **tre zoner**: märket | flikarna
+  **centrerade** med spelets egna ikoner (sfär/ägg/rank-pil/torn/kompass; vita glyfer tonas med
+  currentColor via `MaskIcon`) | spelarrutan + kugghjulet — Kens rättning aug 2026: den
+  vänsterklumpade prickraden var "väldigt tråkig" på bred skärm),
   `ThemeControls` (ljust/auto/mörkt + de tre paletterna, sparas i `localStorage` under
   `pa-theme`/`pa-pal`), `BgTexture` (canvas-bakgrunden), `PageTitle` (h1 ur pathname).
 - `src/app/` – App Router; pages are thin wrappers around containers. `globals.css` holds the
@@ -282,12 +451,30 @@ skärm, en tom gör det aldrig.
    +10 %-passiv ser ut som en +20 % och får palen att se bättre ut än den är.
    Tier 4 (Legend/Lucky…) teal, tier 5 rainbow-animated,
    negatives near-black with red. Max **4** condense stars everywhere.
+   **Legendbannern har en glans som vandrar** (`pshine` i globals.css, aug 2026): en smal,
+   lutande ljusstrimma var 5,5:e sekund, och kantremsan pulsar med (`pstripe`). **Bara tier 4** —
+   guld, grått och negativa **står stilla**, för det gör de i spelet (Kens rättning: första
+   försöket lyste guld också). Rör sig allt betyder rörelsen ingenting, och guld är den
+   vanligaste bannern i boxen. Tre saker till att inte ändra tillbaka: slingan är mest **paus**;
+   banners är **fasförskjutna** per plats i rutnätet (flera som glimmar i takt ser ut som ett
+   fel); och **boxens brickor är undantagna** — legend är inte sällsynt i en riktig box (166 av
+   Kens 233 brickbanners), och med dem igång gick bildrutan från 5,6 till 15,5 ms, mätt.
+   Strimman har **het kärna och halo**, och styrkan är mätt fram: en jämn slöja i samma alfa
+   lyfter bannerns medelljus +8,9 mot halons +27,8 — kontrasten mot bannerns egen botten är hela
+   frågan, så pröva mot den riktiga bannern, inte mot en tanke om den. Detaljerna om varför
+   sveparen ligger i bannerns egen bakgrund och varför `background-position` går från 66 % till
+   0 % står i CSS:en.
    Habitat rundar bara hörnen (9 px) — banners är **oförändrade i övrigt och byter inte färg med
    temat**, de ser likadana ut i ljust och mörkt läge precis som i spelet.
    **Hover-rutan (`.ptip`) är däremot gränssnitt, inte spel, och följer temat.** Därför får den
    aldrig låna bannerns färger: `passiveVisual(5).color` är vit och tier 1 nästan vit, och på
    rutans ljusa `--panel` blev "WORLD TREE" osynligt. Nivåetiketten går via `tierToken` i
    `PassiveTip.tsx` — lila/teal/guld/rött ur temats egna tokens, som finns i båda lägena.
+   **Samma värd bär varurutan** (`.ptip.itip`, `data-item`, aug 2026). Att det är EN host och
+   inte två är ett krav, inte en förenkling: två dokumentlyssnare kan visa två rutor samtidigt,
+   och positioneringen — portal till body, tvåstegsmätning, touch-undantaget, scroll i
+   capture-läge — är för subtil att ha i två exemplar. Varan har ingen tier, så kategorin tonas
+   som en dämpad etikett och lånar aldrig bannerns färgskala.
 4. **Typsnitt:** "M PLUS Rounded 1c" (400/500/800) för gränssnittet — rundat, samma familjekänsla
    som spelets logotyp — och "Zen Kaku Gothic New" (500/700/900) för **alla siffror**, annars blir
    data gullig. Båda via @fontsource. Byt inte utan visuell jämförelse sida vid sida.
@@ -384,6 +571,7 @@ Hard-won details — don't undo these:
    `Believer_CrossBow`, which sit in the same table as pals) get filtered out.
 5. Containers are named from the player's `.sav`: `PalStorageContainerId` → Palbox,
    `OtomoCharacterContainerId` → Party, the rest → `Bas/övrigt N` sorted by GUID for stability.
+   **Den globala palboxen är inte en av dem** – se punkt 9.
 6. **Implantaten i förrådet läses ur `ItemContainerSaveData`, och det är gratis.** Nyckeln ligger
    som **nummer 8**, alltså före `CharacterContainerSaveData` (10) som ändå avslutar inläsningen —
    och före `InLockerCharacterInstanceIDArray`, som biblioteket inte kan tolka alls. Den ordningen
@@ -399,6 +587,49 @@ Hard-won details — don't undo these:
    passives = `PassiveSkillList`, souls = `Rank_HP/Attack/Defence/CraftSpeed`, `Rank` = condense,
    `Level`, `Exp`, `FullStomach`, `SanityValue`, gender, `IsRarePal` = lucky, `Boss_` = alpha).
    Absent fields mean default (no `Rank` → 1, no `SanityValue` → 100).
+8. **Progressionen läses ur spelarens .sav** (`_player_save_data` + `_progress`), som parsas
+   HELT med bibliotekets vanliga läsare – den är ~50 kB och har inga trasiga rawdata-typer,
+   till skillnad från Level.sav (verifierat mot en riktig 1.0-save 2026-08-11). Nyckelformaten:
+   tornflaggor är läsbara namn (`BOSS_BATTLE_NAME_…`), effigies/snabbresor är instans-GUID:n
+   som matchar uppströms `relics.json`/`fast_travel_points.json` exakt, fältbossar är
+   spawner-id:n som matchar `bosses.json`. 1.0 delade relikerna i typer: den platta flaggkartan
+   speglar BARA CapturePower (Lifmunk), resten ligger i `RelicObtainForInstanceFlagByType` –
+   unionen är det som exporteras. `RelicPossessNum` är OFÖRBRUKADE, inte hittade – blanda
+   aldrig ihop dem. Questarrayerna heter `…_FullRelease` i 1.0 och nakna i äldre saves; ingen
+   save bär båda. Varje RecordData-fält är valfritt (färsk spelare = inget alls) och
+   `Hidden_*`-quests är spelets triggrar, inte logg. `AppData.progress` följer implantat-
+   disciplinen: `undefined` = "vet inte" (utelämnas ur JSON), och fältet **nollas i
+   paketeringen** – där är rätt blankning `delete`, inte `{}`, så en färsk installation visar
+   "läs in"-hinten i stället för ett tomt påstående.
+9. **Den globala palboxen ligger i en egen fil och läses med en egen skimmer** (`_read_dps`).
+   Dimensional Pal Storage är världsöverskridande och bor i spelarens `<guid>_dps.sav`, inte i
+   Level.sav och inte i någon av världens containrar – verifierat: **noll överlapp i
+   instans-GUID** mot Level.sav, så pals därifrån läggs till rakt av utan dedup. Filen hittas
+   via spelarfilen vi ändå läste (`_player_save_data` returnerar därför sökvägen), så vi läser
+   *den spelarens* lager och inte "första bästa".
+   Fyra saker som är valda, inte råkade så:
+   - **Den skimmas, och det är en förutsättning.** Lagret är 9 600 slottar som alla ligger
+     fullt utskrivna i filen även när de är tomma (`CharacterID` = "None"; 33 använda i Kens
+     save) = 73 MB uppackad GVAS. Bibliotekets vanliga läsare klarar filen men bygger ett
+     objektträd för allihop: uppmätt **5,7 s och 554 MB mot 1,7 s och 147 MB**. Det här är ett
+     paketerat program andra kör.
+   - **`_skip_property` måste vara exakt, och kastar hellre än gissar.** `size` täcker bara
+     värdet – varje typ har en egen header före det. En okänd typ ger ett fel, för en felräknad
+     byte här ger inte ett undantag utan en pal med påhittade siffror. De fält vi *vill* ha
+     läses med bibliotekets egen `property()`, så skiptabellen aldrig kan glida isär från hur
+     värdena tolkas. Skimningen är verifierad fält för fält mot bibliotekets läsare på en
+     riktig save: samma 33 pals, samma värden, samma GUID:n.
+   - **Sloten är postens plats i arrayen, inte `SlotId.SlotIndex`.** Det fältet följer med
+     palen från där den låg förut och är inte unikt här (två par delade index i Kens save).
+   - **Behållaren heter `Global palbox`** och lagret är **förvaring, inte en bas**. Det är
+     inte kosmetik: `inBase` i `breedRate.ts` var `c !== "Palbox" && c !== "Party"` och hade
+     räknat en Braloha i det globala lagret som utplacerad – alltså lovat en avelstakt boxen
+     inte har. Använd `PALBOX`/`PARTY`/`GLOBAL_BOX` och `isStored`/`atBase` i `constants.ts`,
+     aldrig strängjämförelser. Expeditionerna är med flit kvar på `=== PALBOX`: manskapet
+     hämtas ur världens egen Palbox, och pals i det globala lagret kan inte åka.
+   Går filen inte att läsa **fälls inte inläsningen** – världens box är huvudsaken – men det
+   rapporteras (`globalBox.error` → `save.globalBoxFailed`). En global box som tyst blev tom
+   ser precis ut som en tom, och skillnaden är avelsstammen man lagt undan.
 
 ### Static metadata (still generated outside this repo)
 
@@ -413,6 +644,25 @@ the `pair` array is a flattened upper-triangular parent→child table (see `pair
 **When Palworld adds new species,** the import reports them as skipped — the static half has to be
 regenerated from `palworld-save-pal` to pick them up. Keep `AppData` backwards-compatible or
 update `types.ts` + consumers together. Replacing `public/data/pal-data.json` by hand still works.
+
+**Fyra generatorer i `tools/` skriver filer i `src/lib/data/`, och ingen av dem ligger i bundlen.**
+De hämtar allt direkt från GitHub och cachar ingenting i repot:
+
+```bash
+node tools/build-drops.mjs       # drops.json   – vem släpper vad (pyPalworldAPI + palworld-kb)
+node tools/build-item-icons.mjs  # itemIcons.json + public/icons/items/ (palworld-save-pal)
+node tools/build-item-info.mjs   # itemInfo.json – vad varan ÄR: speltext + siffror (pyPalworldAPI)
+node tools/build-worldmap.mjs    # worldmap.json + partnerSkills.json + missions.json (paldb m.fl.)
+```
+
+De tre första läser **namnlistorna ur källfilerna med regex** (`RANCH_DROPS`, `ORE_ITEM`,
+`FRUIT_NAMES`, `LEGENDARY_SCHEMATICS`). Byter en tabell form matchar regexen ingenting, och det
+gav en gång **tyst** noll ranchikoner — bygget gick igenom, bilderna bara saknades. Därför kastar
+de nu i stället, och `build-item-info.mjs` har dessutom en **kolumnkontroll** mot ett känt värde
+(Assault Rifle = 320 attack, magasin 20): glider kolumnordningen i dumpen får man annars
+påhittade siffror, vilket är värre än inga. Kör om `build-item-info.mjs` och
+`build-item-icons.mjs` i samma veva som `build-drops.mjs`, och läs deras rapporter — de listar
+varje namn som inte fick en rad.
 
 ## Paketering – installern för andra datorer
 
@@ -450,10 +700,13 @@ Fjorton saker som är inlärda med möda – ändra inte tillbaka:
 7. **Filspårningen drar in `tools/backup/`** – alltså din förra box, 2 MB. `build.ps1` slänger
    hela `tools/` ur nyttolasten och lägger dit `tools/palsave/` i stället. Ta inte bort det:
    det är skillnaden mellan att dela ett program och att dela sin egen save.
-8. **Boxen töms** ur `pal-data.json` (`pals`/`player`/`exported`/`implants`), den statiska halvan
-   följer med. `implants` kommer ur savens item-behållare och är alltså lika personligt som boxen —
-   **allt nytt fält i `AppData` som kommer ur saven ska nollas här i samma andetag**, och
-   `package.yml` har en spärr som vägrar publicera en nyttolast som bär det.
+8. **Boxen töms** ur `pal-data.json` (`pals`/`player`/`exported`/`implants`/`progress`), den
+   statiska halvan följer med. `implants` kommer ur savens item-behållare och `progress` ur
+   spelarens .sav – lika personligt som boxen — **allt nytt fält i `AppData` som kommer ur
+   saven ska nollas här i samma andetag**, och `package.yml` har en spärr som vägrar publicera
+   en nyttolast som bär det. Blankningen är olika med flit: `implants = {}` ("du äger inga" är
+   sant i en färsk installation) men `delete progress` (`undefined` = "inget inläst" → kart-
+   och uppdragssidorna visar sin "läs in"-hint i stället för ett tomt påstående).
    `player` måste nollas explicit – `mergeIntoAppData` faller tillbaka på `base.player` när
    savens namn är tomt, så annars läcker ditt namn in i mottagarens första inläsning.
 9. **Installationen är per användare** (`{localappdata}\Programs`, `PrivilegesRequired=lowest`).
@@ -613,14 +866,90 @@ publicera en utgåva vars nyttolast innehåller pals eller ett spelarnamn — fi
 ett misstag där syns inte i en diff.
 
 **Paketet innehåller Pocketpairs material** (ikoner, artbilder, namn) och `libooz.dll`. Det står
-i `LICENSE` under "NOTE ON BUNDLED CONTENT" tillsammans med attributionen för
-palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där.
+i `NOTICE` tillsammans med attributionen för palworld-save-tools, palworld-save-pal,
+PalworldSaveTools, pyPalworldAPI, palworld-kb, paldb.cc, zao/ooz, Node och typsnitten. **Lägg
+till nya beroenden där** – och i README:s tabell, som är samma lista för den som läser på GitHub.
+
+Tre saker om licensfilerna som är valda, inte råkade så:
+
+1. **`LICENSE` är AGPL-texten och ingenting annat.** Attributionen låg först där, men GitHub
+   känner igen licensen genom att jämföra hela filen — ett tillägg på ett par tusen tecken gör
+   att repot slutar visa "AGPL-3.0" och blir "Other". Därför en egen `NOTICE`.
+2. **Båda följer med i installern** (`build.ps1` → `LICENSE.txt` + `NOTICE.txt` i programmappen).
+   AGPL § 4 säger att licenstexten ska följa med programmet, och installern är den enda form de
+   flesta mottagare någonsin ser — repot de aldrig besöker kan inte göra det jobbet. Bygget
+   **kastar** om någon av filerna saknas; ett tyst bortfall här märks först när någon frågar.
+3. **`packaging/README.txt` pekar ut dem** och säger vilken licens programmet har. Den låg
+   tidigare bara på vad som ingick, inte på vilka villkor som gällde.
 
 ## Domain gotchas
 
 - **Legendaries only breed with their own species** — pairs like Frostallion × Lamball have no
   child in the pair table. `passivePlan` picks a valid merge order and flags impossible steps;
   don't "fix" this by assuming any pair can breed.
+- **Savens tornflaggor är döpta efter PALEN, inte tornen** (`QUEST_BOSSES.flag` i `quests.ts`,
+  verifierat mot en riktig save + spelets GYM-l10n): `GrassBoss` = Zoe & Grizzbolt (gräs-
+  markerna), `ForestBoss` = Lily & Lyleen, `ElectricBoss` = Axel & Orserk (Orserk är elektrisk),
+  `SorajimaBoss` = Auri & Shaolong (jap. "sorajima" = himmelö). "Rätta" aldrig mappningen till
+  den logiska – då bockas fel torn av. 1.0 har 13 flaggor: åtta torn + tre
+  `WorldTreeMiddleBoss` + `WorldTreeBoss` + `KingWhaleBoss` (Panthalus).
+- **Kartans värld är 1.0:s, och bara 1.0:s.** 1.0 byggde om världen: FPA-tornet flyttade, ett
+  åttonde torn tillkom, effigies omfördelades (140 Lifmunk på huvudkartan – talet är
+  korsvaliderat mellan paldb och relics.json) och predator-spawns togs bort (bygg aldrig det
+  lagret). Datera varje ny kartkälla; allt före ~mitten av 2026 är delvis fel. Positionerna är
+  UE-cm i källorna och räknas om med `x = (UE_Y − 158000)/459` (delaren är exakt 459) – bild-
+  projektionens konstanter i `worldmap.ts` är HÄRLEDDA ur paldb:s bildram, inte kalibrerade på
+  ögonmått, och `tests/worldmap.test.ts` håller dem mot tornens kända koordinater.
+- **Zenara & Astralym och Moon Lord är ELEMENTLÖSA** (`typeless` i `quests.ts`/`questsData.ts`):
+  det finns ingen svaghet att räkna motlag på, och domen blir aldrig REDO – "nivå & utrustning
+  avgör" är svaret. Astralym är dessutom **oskaffbar** (slutboss, `UNOBTAINABLE_CODES` i
+  `partnerSkills.ts`) och får aldrig rekommenderas i rankningar – den toppade attacklistan med
+  ett omöjligt FÅNGA. Samma ärlighet i FÅNGA-taggarna: `catchInfo` (worldmap.ts) säger ALFABOSS
+  Lv X eller RAID-ÄGG när det är sanningen.
+- **Partnerskills finns nu i appen** (`src/lib/partnerSkills.ts` ← `data/partnerSkills.json`,
+  genereras av tools/build-worldmap.mjs ur paldb-skrapet; 298 arter, luckor: Dragostrophe,
+  Boltmane, Astralym). Texten är Pocketpairs engelska speltext – översätts aldrig, precis som
+  passivnamn. Rankningarna använder den som MOTIVERING (chip/beskrivning), aldrig som poäng:
+  effekterna är villkorade prosa, och att vika in dem i en siffra vore att gissa.
+  `partnerMeta.ts` bär de kurerade urvalen (stöd/försvar), `questsData.ts` raider + hard-torn,
+  `expedition.ts` sajterna + ≈FP-formeln (communityuppmätt, märks ≈), `recoData.ts` slaktraderna,
+  `souls.ts` själsschemat (wiki-verifierat: rank 1–10 = 10 S + 6 M + 6 L per stat, 11–20 = 30 G).
+- **Rekommendationerna delar EN bild av vad en pal är till** (`bookings.ts`, helhetsutredningen aug
+  2026). Appen hade två halvor som inte visste om varandra: planeraren pekade ut individer man ska
+  använda och Rollerna listade samma individer som mat. Mätt mot Kens box låg **sex av elva** pals
+  planen behövde i matlistorna, en av dem under domen "nu", och en av dem (`Skutlass 31/100/11`) stod
+  som **steg 1 i planen på skärmen**. `planBookings` bygger om samma planer gränssnittet visar och
+  svarar vilka pal-id de rör, med rollen (`carrier`/`donor`/`parent`/`partner`). Fyra saker att inte
+  ändra tillbaka:
+  1. **Bokningen sparas aldrig till disk.** Den räknas om ur boxen varje gång – planen ändras när
+     saven ändras, och en sparad lista blir fel i tysthet.
+  2. **Rollen följer med, inte bara id:t.** En spärr utan skäl misstänker man; "planen använder den
+     som IV-donator i steg 1" accepterar man. `condense.noteBooked` säger antalet på raden.
+  3. **Bokning är inte `keep`.** `p.keep` är boxens tillstånd och överlever sidbyten; en bokning
+     gäller den målbild som är satt just nu. Därför filtreras `fodder` på bokningen i `planCondense`
+     i stället för att mutera `keep` – annars ändras spara-listan när man byter mål.
+  4. **En bokning får sänka domen.** Räcker dubbletterna inte längre när en är bokad ska kön säga
+     "snart", inte föreslå matning ändå.
+- **En 100:a i en stat är en byggsten, inte ett halvt misslyckande** (`pickIvCarriers` i
+  `scoring.ts`). Reglerna mätte snittet (`ivSum ≥ 240/270`) eller alla tre på 100, så
+  `Warsect 15/100/100` – den 2-i-1-donator `planIvImports` själv rekommenderar – räknades som mat.
+  IV ärvs **per stat och oberoende**, så en enda 100:a är precis det planeraren bär in. Taket är
+  `IV_CARRIER_CAP` (2 per art och stat, renast först och helst ett av varje kön), samma disciplin som
+  passivbärarna: utan tak växer "spara" tills boxen aldrig krymper.
+- **Kön rankar VÄRDE inom domen, inte stjärnvinst** (`valueOf` i `condense.ts`). Prioriteten är
+  vad arten används till (`palUses` – som fanns men bara ritades) × vad stjärnorna ger i riktiga
+  stats (`displayStats` före/efter) ÷ vad det kostar i pals. Noll = ingen roll i boxen, och det står
+  i klartext på raden (`condense.whyNoRole`). Domen (`now`/`soon`/`hold`/`max`) sorteras fortfarande
+  först: det man kan göra i dag ska ligga överst.
+- **Artens bästa väljs på passform, inte på `score`** (`bestOfSpecies` i `scoring.ts`). `score`
+  belönar höga tiers även när passiven är skräp, så för Kens Digtoise valde den 79/74/21 med fyra
+  passiver framför 86/44/83 med två – och keeperen är den pal man matar 48 andra in i. Ordningen är
+  `fittingGold` → IV → renhet → redan bankade stjärnor → `score` → id (stabilt mellan inläsningar).
+  `PalDataContext` använder den, så `keep.bestOfSpecies`, Boxens "bästa exemplar" och
+  kondenseringens keeper är samma pal.
+- **Kondenseringens fed-star-kredit** (`fodderValue` i scoring.ts): en stjärnad dubblett räknas
+  som 1 + sin kumulativa kostnad (1★ = 5 offer) – 1.0-regeln enligt wikin. planCondense räknar i
+  VÄRDE men redovisar antal PALS, och matar högst värde först.
 - **Passivarv är två tärningsslag, inte ett** (`inheritOdds`/`exactOdds` i `breeding.ts`,
   källa [Palworld-wikin](https://palworld.wiki.gg/wiki/Breeding)): slå X ∈ 1..4 med vikterna
   40/30/20/10 → ungen ärver X slumpvis valda ur föräldrarnas gemensamma pool, **eller hela
@@ -668,8 +997,84 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
      dras ur hela passivtabellen, inte ur den man råkar sakna. Antagandet är alltså medvetet
      konservativt, inte en beskrivning av spelet.
   3. Sökningen håller sig **inom målarten**: att para två arter byter art på ungen, så all
-     IV-möda måste göras med exemplar av arten man faktiskt vill ha. Enda undantaget är
-     `findIvDonors`, som bara föreslår donatorer vars art parar *tillbaka* till målarten.
+     IV-möda måste göras med exemplar av arten man faktiskt vill ha. Undantagen är
+     `findIvDonors`, som föreslår donatorer vars art parar *tillbaka* till målarten, och
+     **importerade löv** (nedan).
+- **IV-målet har TRE lägen, och tröskeln är en parameter – inte tre kodvägar** (`ivTargetOf` i
+  `ivPlan.ts`, aug 2026). `fast` (bästa snittet, jagar inga tröskelvärden), `near` (**90+**, alltså
+  inom en frukt) och `perfect` (100/100/100). Tredje läget finns för att `perfect` ska få fortsätta
+  betyda perfekt: *"så att vi håller läget perfekt faktiskt på riktigt"* (Kens ord). Tre saker att
+  hålla reda på:
+  1. **Tröskeln byter bara vad som räknas som uppnått och omslumpningens lott** – `(101 − t)/101`.
+     100 träffas i 1 fall av 101 (0,40 %), 90 i 11 (4,36 %): elva gånger så ofta, och det är hela
+     skillnaden i pris. Samma sökning, samma modell, en parameter.
+  2. **Den ska tråcklas hela vägen ned**: `statOdds`/`statOddsFromHas`, `planPerfectIv`,
+     `planPerfectLine`, `planIvImports` och `findIvDonors` tar alla emot den. En hårdkodad 100:a
+     kvar någonstans ger en plan som säger 90+ men räknar på 100 – det hände i donatorfiltret och
+     fångades av testet "importen använder samma tröskel som planen".
+  3. **Gränssnittet får inte ljuga om nivån**: stegen skriver "HP + Attack 90+", korten "25 med
+     90+", målbilden 90+ per stat, och summeringen har en **fruktsvans** ("sedan 3 frukter, högst en
+     per stat") – annars ser nära-läget billigare ut än det är.
+- **En 100:a KÖPS, den avlas inte fram** (`ivFruits.ts`, utredningen aug 2026). Palworld 1.0 har
+  tre frukter som permanent höjer en pals IV: **Life** (HP), **Power** (Attack) och **Stout**
+  (Defense), **+10 var med tak 100**. Kens Lux ♀ 100/25/66 bär redan alla fyra önskade passiver och
+  är **12 frukter** från målbilden – planeraren räknade 239 ägg för samma resultat. Avel är för det
+  frukterna inte kan ge: passiver och art. Fyra saker att inte ändra tillbaka:
+  1. **Antal frukter, aldrig "gratis".** De kostar endgame-material (Power Lotus (L) ur raider och
+     Cherry Blossom-dungeons) eller valuta hos tre handlare (200 Dog Coins / 100 Battle Tickets /
+     25 Successful Bounty Tokens per frukt). Appen säger siffran och låter spelaren värdera den.
+  2. **Fruktade IV ärvs som vanligt** (30/30/40), så frukter *ersätter* inte `perfectPlan` – de
+     skaffar dess byggstenar. Två uppmatade föräldrar ger ≈21,6 % perfekt unge, samma tal modellen
+     redan räknar.
+  3. **Namnen är spelets och står på engelska**, som artnamn och passivnamn.
+  4. Källorna är community-dokumenterade (wikin + game8 + 1.0-guider), inte datamined – märk
+     siffrorna som uppskattningar, precis som oddsen.
+  Det som fortfarande INTE är gjort: planeraren väljer individ på ägg, inte på ägg **plus** frukter,
+  och IV-panelen visar inte frukträkningen. Utredningen (aug 2026) föreslår båda.
+- **En saknad 100:a BÄRS IN, den slumpas inte fram** (`ivImport.ts`, aug 2026). Punkt 1 ovan är
+  sann men var i praktiken hela kostnaden: `statOddsFromHas(false, false)` = 0,4/101 ≈ 0,4 % per
+  ägg, alltså **≈253 ägg** för en enda stat. Kens fall: ingen av hans 61 Helzephyr Lux hade 100 i
+  Attack, och planen blev 7 steg och ~524 ägg — *"rörig och lång samt dåligt optimerad"*, och han
+  hade rätt. Elva andra pals i boxen HADE 100 i Attack, flera två artsteg bort med **noll
+  passiver**. Genom artkedjan ärvs 100:an med `statOddsFromHas(true, false)` ≈ 30,4 %, alltså 3,29
+  ägg per steg: 2 × 3,29 = 6,6 ägg mot 253, **38× billigare**, och planen gick till 4 steg och ~239
+  ägg. `planIvImports` räknar fram vägarna, `planPerfectLine` tar emot dem som extra **löv** — en
+  individ av målarten med EN 100:a som kostade några ägg att skaffa — och sökningen väljer själv om
+  de är värda det. Fem saker att inte ändra tillbaka:
+  1. **Importen är en riktig artkedja**, inte en genväg: föräldrarnas art avgör ungens art, så
+     kedjan går hela vägen fram till målarten (`solveChain`, ägda partnerarter).
+  2. **Priset räknas per steg, med partnerns 100:or inräknade.** Bär partnern man parar med också
+     statens 100 blir oddsen 60,4 % i stället för 30,4 % – hälften så många ägg för steget. Det var
+     Kens fråga *"varför tar vi inte inräkningen av dom 100/100/100 på andra pals som vi har?"*:
+     100:orna hos pals man parar MED räknades inte, och priset var "steg × 3,29". Rankningen går
+     därför på **ägg**, inte antal steg (tre billiga steg kan slå två dyra), och `bestPartner`
+     väljer den individ som bär flest av statarna före den renaste. Kedjan *söks* fortfarande på
+     färst steg – att göra sökningen partnermedveten vore hundratals Dijkstra i en memo som körs
+     vid varje passivbyte, och bärande partners är sällsynta. Donatorer söks i **hela** boxen,
+     globala palboxen inkluderad (där ligger Kens fem bästa IV-pals), och behållaren står på
+     kortet: annars vet man inte var man hämtar palen. Donatorns skräp hamnar i första stegets
+     pool, och en ren donator är hela poängen – ett förslag per art och stat-uppsättning, och taket
+     räknas per sort så att en 2-i-1 inte trängs ut av billigare enstats-vägar.
+  2b. **Alla tre statarna erbjuds, inte bara luckorna** (Kens rättning ×2: *"ganska säker på att jag
+     har perfekt defense pals i basen men den kommer inte upp"*). Hans enda Lux med 100 i Defense
+     bär tre skräp-passiver, alltså en dyr förälder – en ren importerad kan vara billigare fast
+     arten "har" staten. En import kostar ägg och en ägd pal är gratis, så sökningen tar den bara
+     när den lönar sig: att erbjuda den kan inte göra planen sämre, att inte erbjuda den var fel.
+  2c. **En donator kan bära flera 100:or** (`stats` är en lista). `Warsect ♂ 15/100/100` ger Attack
+     och Defense i EN import, men varje steg måste behålla båda – priset är `odds^antal` per ägg,
+     alltså 21,6 ägg i stället för 6,6. Dyrare per import, men sparar en hel merge längre fram, så
+     både 2-i-1 och en per stat läggs fram och sökningen väljer.
+  3. **Kostnaden är IV:ns, inte passivernas.** Mellanungar antas rena, samma antagande som resten
+     av planeraren. Det gör importen något optimistisk om partnerarterna är smutsiga, och därför
+     står donatorns skräp i `donorJunk` och gränssnittet säger "välj rena partners".
+  4. **Importen räknas EN gång per individ i totalen** (`plan.imports`), för föräldrar förbrukas
+     inte – men sökningen betalar per användning. Den överskattar alltså hellre än att välja en
+     plan som ser billig ut bara för att den återanvänder importen.
+  5. **`ivImport` importerar `statOddsFromHas` ur `perfectPlan`, och `perfectPlan` bara TYPEN ur
+     `ivImport`.** En typimport försvinner vid kompilering, så cirkeln finns aldrig i körningen.
+     Gör man den till en värdeimport får man en cykel som bryter i bundlern, inte i tsc.
+  Rutan för en lucka får inte längre säga "måste slumpas fram" när en import finns – det var 253
+  ägg mot 6,6, alltså inte en nyansskillnad.
   **Fällan i Pareto-fronten:** två olika ägda pals i samma tillstånd är två *individer*, och
   den ena får aldrig dominera bort den andra. Gjorde den det försvann partnern, och fallet
   "båda har HP+ATK, DEF måste slumpas" såg ut att sakna lösning i stället för att bara vara
@@ -725,9 +1130,51 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   4. **`carrierInfo.chosen` sätts om efter att trädet valts.** Set-covern väljer bärare enbart
      på passiver, så `resolvePair` kan ha bytt ut en individ — och då pekade bärarkorten på en
      pal planen aldrig rör. `plan.carriersUsed` är facit.
-  Vad sökningen med flit **inte** gör: den väljer inte om vilka bärare som ska användas. Det
-  gör set-covern ovanför, som minimerar antal bärare. Två andra pals som tillsammans bär precis
-  de önskade kan ändå vara billigare — det är vad `altRoutes.ts` letar efter.
+  Sökningen väljer inte om vilka bärare som ska användas — men **bärarvalet ovanför prövas numera
+  i ägg** (se nedan). Uppsättningar som varken är greedy-minimala eller landar rakt på målet är
+  fortfarande vad `altRoutes.ts` letar efter, som ett tillägg under planen.
+- **Ett par vars unge ÄR målarten slår ihop fas 1 och fas 2** (`directPair.ts`, aug 2026). Set
+  covern minimerar **antal bärare** och körs före både merge-trädet och artkedjan, så en ensam
+  bärare av allt slog alltid två bärare — även när de två gjorde hela jobbet i en parning. Kens
+  fall: mål Helzephyr Lux, en Digtoise bar alla fyra själv och låg två artsteg bort (20 ägg), medan
+  Helzephyr ♀ + Beakon ♂ bar samma fyra och ger Helzephyr Lux direkt (10 ägg, ett steg). Nu byggs
+  flera **kandidatuppsättningar** — den greedy-minimala plus de par `findDirectPairs` hittar — och
+  var och en prövas mot HELA planens äggkostnad, samma princip som `ROOT_CANDIDATES`. Mätt mot Kens
+  box (60 planer): billigare i 4 fall, aldrig dyrare, och ett fall som förut var en återvändsgränd
+  (omöjlig parning + olösbar artkedja) fick en riktig väg. Tiden är oförändrad (~40 ms i snitt) —
+  ett par som landar på målet behöver ingen Dijkstra alls. Fyra saker att inte ändra tillbaka:
+  1. **Uppräkningen kräver att BÅDA föräldrarna bidrar med något den andra saknar.** Täcker den
+     ena redan allt är paret bara "ensam bärare + partner av en art som ger målet", och det är
+     precis vad fas 2:s första steg redan är.
+  2. **Könsstyrda kombos kontrolleras mot individernas kön**, inte mot artparet. `childrenOf`
+     svarar på vad *arterna* kan ge; att påstå att en parning ger målarten när spelets könsregel
+     säger annat är värre än att missa ett förslag, så `givesTarget` svarar nej i stället.
+  3. **Manuellt läge vinner.** En kandidatuppsättning måste innehålla den utpekade palen, annars
+     svarar planen på en annan fråga än den som ställdes. Paret finns kvar under planen.
+  4. **Ordningen i `covers` är tiebreak, och den greedy-minimala står först** — lika många ägg med
+     färre bärare är färre pals att hålla reda på. En uppsättning vars artkedja inte gick att lösa
+     rankas sist: en billig plan som inte når målet är ingen plan.
+  Två saker till som hänger på samma uppräkning, båda ur Kens rättningar:
+  - **"Avla en till" är ett eget läge** (`opts.breedAnother` i `buildPassivePlan`). Bär en pal
+    redan alla önskade passiver OCH är målarten kostar planen noll ägg — rätt svar på frågan som
+    ställs, men då finns ingen led att titta på, och vägen dit är ofta det man kom för. I läget
+    räknas den palen som **förälder** i stället för som svar: uppsättningar utan en enda parning
+    läggs undan, och `allowSubset` släpper kravet att båda föräldrarna bidrar med något den andra
+    saknar. Första försöket lämnade i stället ut de färdiga palsen ur boxen, och då föreslog
+    planen en omväg via två andra arter fast paret stod i lådan — *"då borde parenten vara parents
+    med dom passiva"*. Flaggan får aldrig göra planen tom: finns ingen parning står den gratis
+    uppsättningen kvar.
+  - **Lika många ägg bryts på MÅLARTEN.** Både `findDirectPairs` och vinnarvalet i
+    `buildPassivePlan` föredrar föräldrar som redan är målarten. Det är ingen oddsvinst utan en
+    praktisk — paret är linjen man bygger, ungen kan paras direkt med båda föräldrarna, och nästa
+    försök kräver inte att två andra arter står kvar i boxen. Utan regeln avgjorde
+    uppsättningsordningen (greedy först), och en omväg via två andra arter kunde slå de två av
+    målarten man redan hade. Regeln gäller bara vid **exakt lika** totalkostnad, så den kan aldrig
+    göra en plan dyrare.
+  Samma uppräkning täpper till hålet i `altRoutes`: den grupperade boxen på art och parade bara
+  ihop pals ur **samma** artlista, så korsartade par kunde aldrig hittas — det var inte ett filter
+  som sållade bort dem, utan en uppräkning som aldrig såg dem. Därför tar `AltRouteBlock` numera
+  varje förälders **egen** art i porträttet.
 - **Parent selection is purity-first, then IV** (`ParentPrefs`/`compareParents` in `breeding.ts`).
   Once passives are picked, every *other* passive a parent carries lands in the inheritance pool
   and tanks the odds — with 4 wanted passives, a single junk one drops 10 % → 2 % (~10 → ~50 eggs).
@@ -868,14 +1315,31 @@ palworld-save-tools, zao/ooz, Node och typsnitten. Lägg till nya beroenden där
   boxens "bästa" gruvarbetare kan vara en Cattiva på nivå 1. Det är `only` — **enda i boxen** —
   och inte samma sak som bäst. Förbehållet renderas som egen rad under brickorna, inte inuti
   dem: `.couse` bryter inte rad och en hel mening därinne spränger kortet i sidled.
-  Samma regel styr `/best-for`: ranchen är **inte** en av sysslorna basgänget ska täcka
+  Samma regel styr Basen-fliken på `/recommendations`: ranchen är **inte** en av sysslorna
+  basgänget ska täcka
   (`BASE_WORK_TYPES`), annars tog den med högst Farming-siffra en lagplats. I stället finns
   `ranchGuide`, som grupperar arterna på **varan** — och varorna står i `RANCH_DROPS`
-  (`constants.ts`), handkurerad precis som `FISHING_PALS` eftersom datasetet inte har någon
-  ranch-vara alls. **Gissa aldrig dit en vara.** En art utan rad visas som "vara okänd", vilket
+  (`constants.ts`). **Gissa aldrig dit en vara.** En art utan rad visas som "vara okänd", vilket
   är ärligt; en påhittad vara ser precis lika trovärdig ut som en riktig och skickar någon till
-  ranchen med fel pal — det märks först timmar senare. 16 av arterna saknar rad i skrivande
-  stund (2026-08).
+  ranchen med fel pal — det märks först timmar senare.
+  **Källan är spelets egen partnerskill-text, inte en guide** (auditen aug 2026, Kens fynd att
+  ranchen saknade "massor"): varje ranch-art har en skill vars beskrivning namnger varan
+  ordagrant ("Sometimes drops Ice Organ when assigned to Ranch"), och den texten ligger redan i
+  repot (`src/lib/data/partnerSkills.json`). Tabellen gick från 12 till 31 rader den vägen, och
+  metoden är validerad baklänges — de tolv gamla raderna stämmer alla med sin skill-text.
+  `tests/ranchDrops.test.ts` håller båda riktningarna: ingen rad utan belägg i texten, och ingen
+  art med ranch-text utan rad. Fyra saker att inte ändra tillbaka:
+  1. **Driv ALDRIG ranchlistan på `ws.MonsterFarm`.** Lamball producerar Wool enligt sin egen
+     skill men har `ws: {}` i datasetet — ett rent `MonsterFarm > 0` utelämnade No.001, allas
+     första ranchpal. `ranchGuide` tar unionen av tabellen och arbetsnivån.
+  2. **En art kan lägga flera varor**, så tabellen är rader och inte en karta: Shroomer ger
+     Mushroom *eller* Cavern Mushroom, Dumud Gild har Gold Coin som bivara (`side`).
+     `new Map(RANCH_DROPS)` tappade den ena tyst — använd `ranchItemsOf`.
+  3. **`group: true` betyder att varan är VÅRT samlingsord**, inte ett item-id: Vaelets text
+     säger "various seeds" och Vixys "items from the ground" utan att räkna upp dem. Gränssnittet
+     märker dem, och Vixy stod tidigare som "Pal Sphere" — mer precision än källan bär.
+  4. **`tools/build-item-icons.mjs` läser tabellen med regex.** När formen ändrades gav den TYST
+     noll ranchnamn och alltså noll ikoner för de nya varorna; skriptet kastar nu i stället.
 - **Greedy-lag måste städas efteråt** (`pruneRedundant` i `best.ts`). `pickBaseCrew` väljer den
   som ger mest just nu och tittar aldrig tillbaka: Whalaska (Watering 5 + Cool 6) var rätt val
   när laget var tomt, men efter Neptilius (Watering 7) och Frostallion (Cool 7) toppade den

@@ -125,8 +125,10 @@ export async function POST(request: Request) {
     pals,
     modified: read.modified ?? target.modified,
     // Skickas vidare orört, inklusive undefined: en äldre palsave.exe utan
-    // fältet ska ge "vet inte", inte "tomt förråd". Se mergeIntoAppData.
+    // fälten ska ge "vet inte", inte "tomt förråd". Se mergeIntoAppData.
     implants: read.implants,
+    progress: read.progress,
+    souls: read.souls,
   });
 
   // Skriv via temp + rename så appen aldrig kan läsa en halvskriven fil.
@@ -152,6 +154,9 @@ export async function POST(request: Request) {
     removed: base.pals.filter((p) => !currentIds.has(p.id)).length,
     containers: read.containers ?? [],
     skipped,
+    // Bara felfallet går vidare: att allt gick bra syns redan på pals i listan,
+    // men en global box vi inte kunde läsa måste sägas rakt ut.
+    globalBoxError: read.globalBox?.error,
     world: target.world,
     savePath: target.path,
     // Tidsstämpeln live-läget jämför mot: nästa gång den ändras har spelet

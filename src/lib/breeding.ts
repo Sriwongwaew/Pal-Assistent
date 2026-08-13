@@ -94,10 +94,13 @@ export function solveChain(
   const partner = new Map<number, [number, string | undefined]>();
   const seen = new Set<number>([base]);
   let frontier = [base];
+  // Sorterad av samma skäl som i solveChainCheapest: BFS:en tar den FÖRSTA
+  // vägen den hittar, och boxens ordning ska inte få avgöra vilken det blir.
+  const owned = [...ownedSpecies].sort((a, b) => a - b);
   for (let d = 0; d < maxDepth; d++) {
     const next: number[] = [];
     for (const cur of frontier) {
-      for (const o of ownedSpecies) {
+      for (const o of owned) {
         for (const ch of childrenOf(data, cur, o)) {
           if (seen.has(ch.c)) continue;
           seen.add(ch.c);
@@ -151,8 +154,15 @@ export function solveChainCheapest(
      pal med sina egna skräp-passiver, medan senare steg utgår från en unge man
      kläckt tills den är ren. Bara `base` ligger på djup 0, så uppdelningen i två
      kostnadstabeller är exakt – inte en approximation. */
+  /* Sorterad på artindex, inte på boxens ordning. `ownedSpecies` är ett Set och
+     itereras i insättningsordning, alltså i den ordning arterna råkade dyka upp
+     i pals-listan – den ändras när man läser in saven på nytt, när en ny bas
+     tillkommer eller när en ny behållare börjar läsas (globala palboxen, aug
+     2026). Två likvärdiga kedjor bytte då plats utan att något i boxen som
+     spelade roll hade ändrats: "ibland byter den rekommenderad kedja" (Kens
+     fynd). Ordningen här är det ena av två ställen det läckte in. */
   const partners: [species: number, first: number, rest: number][] = [];
-  for (const o of ownedSpecies) {
+  for (const o of [...ownedSpecies].sort((a, b) => a - b)) {
     const c0 = stepCost(o, true);
     const cn = stepCost(o, false);
     if (Number.isFinite(c0) && Number.isFinite(cn)) partners.push([o, c0, cn]);
@@ -168,7 +178,15 @@ export function solveChainCheapest(
     let cur = -1;
     let best = Infinity;
     for (const [s, d] of dist) {
-      if (!done.has(s) && d < best) { best = d; cur = s; }
+      if (done.has(s)) continue;
+      /* Lika avstånd bryts på lägst artindex. `dist` är en Map och itereras i
+         insättningsordning, alltså i den ordning noderna råkade upptäckas – ett
+         `d < best` hade därför låtit boxens ordning avgöra vilken av två
+         likvärdiga kedjor som vann. Se kommentaren vid `partners`. */
+      if (cur < 0 || d < best - EPS || (Math.abs(d - best) <= EPS && s < cur)) {
+        best = d;
+        cur = s;
+      }
     }
     if (cur < 0 || cur === target) break;
     done.add(cur);
@@ -180,9 +198,24 @@ export function solveChainCheapest(
         if (done.has(ch.c)) continue;
         const nd = best + cost;
         const old = dist.get(ch.c) ?? Infinity;
+        const tie = Math.abs(nd - old) <= EPS;
+        const oldDepth = depth.get(ch.c) ?? Infinity;
+        const newDepth = d0 + 1;
         const better =
           nd < old - EPS ||
-          (Math.abs(nd - old) <= EPS && d0 + 1 < (depth.get(ch.c) ?? Infinity));
+          (tie && newDepth < oldDepth) ||
+          /* Sista utslaget: samma kostnad OCH samma antal steg. Utan det vann
+             den som råkade prövas först, alltså boxens ordning igen.
+             Jämförelsen tar FÖREGÅNGAREN före partnern, så den kedja som är
+             lägst i artordning där vägarna skiljer sig vinner – bryter man
+             bara på partnerart kan en senare relaxering flytta hela vägen till
+             en annan gren och svaret blir svårt att förutsäga (och testet
+             fångade just det). Godtyckligt men STABILT är hela poängen: samma
+             box ska ge samma kedja varje gång. */
+          (tie && newDepth === oldDepth && (
+            cur < (prev.get(ch.c) ?? Infinity)
+            || (cur === prev.get(ch.c) && o < (partner.get(ch.c)?.[0] ?? Infinity))
+          ));
         if (!better) continue;
         dist.set(ch.c, nd);
         depth.set(ch.c, d0 + 1);
@@ -203,6 +236,142 @@ export function solveChainCheapest(
   return steps;
 }
 
+/** En artkedja att välja mellan, med sitt pris. */
+export interface ChainOption {
+  steps: ChainStep[];
+  /** Förväntat antal ägg för hela kedjan. */
+  eggs: number;
+}
+
+/**
+ * Alla artkedjor som tar **lika många steg** som den billigaste, rankade på ägg.
+ *
+ * Varför den finns: `solveChainCheapest` svarar med *en* väg, och när flera är
+ * likvärdiga är valet mellan dem godtyckligt (numera i alla fall stabilt). Men
+ * "godtyckligt" är inte samma sak som "likgiltigt" för den som spelar – man kan
+ * ha fem exemplar av den ena partnern och noll av den andra, eller tycka att en
+ * mellanart är lättare att fånga. Då ska man få välja själv.
+ *
+ * Steglängden är låst till den billigastes, precis som Ken bad om ("exakt lika
+ * lång"). Kostnaden får däremot skilja, och den står på varje alternativ – en
+ * väg som är lika lång men dubbelt så dyr ska gå att välja, men inte utan att
+ * det syns.
+ *
+ * Identiteten är **rutten**, alltså följden av arter. Samma rutt med en annan
+ * partner i ett steg är inte ett annat val att göra, så för varje rutt behålls
+ * den billigaste partneruppsättningen.
+ *
+ * Sökningen beskärs hårt och är därför billig: först BFS framåt från `base` för
+ * att veta vilka arter som går att nå på varje djup, sedan bakåt från `target`
+ * för att veta vilka av dem som leder *hela vägen fram* på exakt de återstående
+ * stegen. DFS:en går bara genom noder som klarar båda – alltså aldrig ner i en
+ * gren som inte kan bli en färdig kedja. `VISIT_CAP` är en sista spärr mot
+ * kombinatorisk explosion i en tät graf; slår den ger vi de bästa vi hann se.
+ */
+export function chainAlternatives(
+  data: AppData,
+  ownedSpecies: ReadonlySet<number>,
+  base: number,
+  target: number,
+  stepCost: (partnerSpecies: number, isFirstStep: boolean) => number,
+  maxDepth = 10,
+  limit = 6,
+): ChainOption[] {
+  const VISIT_CAP = 20_000;
+  const cheapest = solveChainCheapest(data, ownedSpecies, base, target, stepCost, maxDepth);
+  if (!cheapest || cheapest.length === 0) return [];
+  const legs = cheapest.length;
+
+  const owned = [...ownedSpecies].sort((a, b) => a - b);
+  /** from → (barn → partnerarter som ger det barnet). Räknas en gång per art. */
+  const edges = new Map<number, Map<number, number[]>>();
+  const edgesFrom = (s: number) => {
+    const hit = edges.get(s);
+    if (hit) return hit;
+    const m = new Map<number, number[]>();
+    for (const o of owned) {
+      for (const ch of childrenOf(data, s, o)) {
+        const arr = m.get(ch.c);
+        if (arr) arr.push(o);
+        else m.set(ch.c, [o]);
+      }
+    }
+    edges.set(s, m);
+    return m;
+  };
+
+  // Framåt: vad som går att nå på exakt d steg.
+  const layers: Set<number>[] = [new Set([base])];
+  for (let d = 0; d < legs; d++) {
+    const next = new Set<number>();
+    for (const s of layers[d]!) for (const c of edgesFrom(s).keys()) next.add(c);
+    layers.push(next);
+  }
+  if (!layers[legs]!.has(target)) return [{ steps: cheapest, eggs: chainEggs(cheapest, stepCost) }];
+
+  /* Bakåt: från vilka noder på djup d når man målet på exakt de steg som är
+     kvar? Utan det här skulle DFS:en vandra ner i grenar som aldrig kan bli en
+     kedja av rätt längd, och en tät graf blir ogenomsökbar. */
+  const ok: Set<number>[] = [];
+  ok[legs] = new Set([target]);
+  for (let d = legs - 1; d >= 0; d--) {
+    const live = new Set<number>();
+    for (const s of layers[d]!) {
+      for (const c of edgesFrom(s).keys()) {
+        if (ok[d + 1]!.has(c)) { live.add(s); break; }
+      }
+    }
+    ok[d] = live;
+  }
+
+  const found: ChainOption[] = [];
+  const seenRoute = new Set<string>();
+  let visits = 0;
+
+  const walk = (s: number, d: number, steps: ChainStep[], eggs: number) => {
+    if (visits > VISIT_CAP) return;
+    if (d === legs) {
+      if (s !== target) return;
+      const route = steps.map((x) => x.to).join(",");
+      if (seenRoute.has(route)) return;
+      seenRoute.add(route);
+      found.push({ steps: steps.map((x) => ({ ...x })), eggs });
+      return;
+    }
+    visits++;
+    const m = edgesFrom(s);
+    for (const c of [...m.keys()].sort((a, b) => a - b)) {
+      if (!ok[d + 1]!.has(c)) continue;
+      // Billigaste partnern för just den här kanten; lika pris bryts på lägst art.
+      let pick = -1;
+      let cost = Infinity;
+      for (const o of m.get(c)!) {
+        const p = stepCost(o, d === 0);
+        if (p < cost) { cost = p; pick = o; }
+      }
+      if (pick < 0 || !Number.isFinite(cost)) continue;
+      const note = childrenOf(data, s, pick).find((x) => x.c === c)?.note;
+      steps.push({ from: s, with: pick, to: c, note });
+      walk(c, d + 1, steps, eggs + cost);
+      steps.pop();
+    }
+  };
+  walk(base, 0, [], 0);
+
+  found.sort((a, b) =>
+    a.eggs - b.eggs
+    || a.steps.map((s) => s.to).join(",").localeCompare(b.steps.map((s) => s.to).join(",")));
+  return found.slice(0, limit);
+}
+
+/** Summan av stegkostnaderna för en färdig kedja. */
+function chainEggs(
+  steps: readonly ChainStep[],
+  stepCost: (partnerSpecies: number, isFirstStep: boolean) => number,
+): number {
+  return steps.reduce((n, st, i) => n + stepCost(st.with, i === 0), 0);
+}
+
 /* ---------- Val av föräldrar ---------- */
 
 /**
@@ -210,7 +379,15 @@ export function solveChainCheapest(
  * "perfect" = sikta på 100/100/100, så den svagaste statistiken avgör – en 80/80/80
  * är en bättre startpunkt än 100/100/40 även om summan är densamma.
  */
-export type IvGoal = "fast" | "perfect";
+/**
+ * Hur hårt planen jagar IV.
+ *
+ * `near` är tredje läget (aug 2026, Kens begäran): 90+ i varje stat, alltså
+ * **inom en frukt** från perfekt. Det finns för att `perfect` ska få fortsätta
+ * betyda 100/100/100 avlat hela vägen medan `near` är den väg som faktiskt går
+ * att gå – en omslumpad stat når 90 elva gånger oftare än 100.
+ */
+export type IvGoal = "fast" | "near" | "perfect";
 
 export interface ParentPrefs {
   /** Passiver som ska överleva. Allt annat föräldern bär är skräp som sänker oddsen. */
@@ -225,10 +402,12 @@ function parentKey(p: ScoredPal, prefs: ParentPrefs) {
   const junk = prefs.wanted
     ? p.pv.reduce((n, id) => n + (prefs.wanted!.has(id) ? 0 : 1), 0)
     : 0;
+  /* Jagar man tröskelvärden (perfekt eller nära) är det SVAGASTE statet som
+     avgör – 80/80/80 slår 100/100/40. Bara `fast` går på snittet. */
   const iv =
-    prefs.ivGoal === "perfect"
-      ? Math.min(p.iv[0], p.iv[1], p.iv[2])
-      : (p.iv[0] + p.iv[1] + p.iv[2]) / 3;
+    prefs.ivGoal === "fast"
+      ? (p.iv[0] + p.iv[1] + p.iv[2]) / 3
+      : Math.min(p.iv[0], p.iv[1], p.iv[2]);
   return { junk, iv, score: p.score };
 }
 
@@ -236,7 +415,13 @@ function parentKey(p: ScoredPal, prefs: ParentPrefs) {
 export function compareParents(a: ScoredPal, b: ScoredPal, prefs: ParentPrefs): number {
   const x = parentKey(a, prefs);
   const y = parentKey(b, prefs);
-  return x.junk - y.junk || y.iv - x.iv || y.score - x.score;
+  /* Sista utslaget är instans-id:t, och det är inte pedanteri: två exemplar kan
+     vara likvärdiga på skräp, IV och poäng, och då avgjorde `sort`:ens
+     stabilitet – alltså pals-listans ordning – vilken individ planen pekade ut.
+     Den ordningen ändras vid varje inläsning, så planen bytte pal utan att
+     något som spelade roll hade ändrats. Se `solveChainCheapest` för samma
+     fälla i artkedjan. */
+  return x.junk - y.junk || y.iv - x.iv || y.score - x.score || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
 /** Samma rangordning för ett helt par – används för att jämföra ♂/♀-uppställningar. */

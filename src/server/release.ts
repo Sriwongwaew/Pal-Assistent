@@ -12,14 +12,20 @@
  */
 
 import { serverT } from "@/i18n/server";
-import { isTrustedAssetUrl as trustedAssetUrl } from "@/lib/update";
+import { INSTALLER_ASSET_NAMES, isTrustedAssetUrl as trustedAssetUrl } from "@/lib/update";
 import { isNewer } from "@/lib/version";
 
 /** `owner/namn`, tomt när appen inte är byggd av utgåve-workflowen. */
 export const REPO = process.env.PA_REPO ?? "";
 export const VERSION = process.env.PA_VERSION ?? "0.0.0";
 
-/** Filnamnen i utgåvan. Stabila med flit – `latest`-länken bygger på dem. */
+/**
+ * Filnamnen i utgåvan. Stabila med flit – `latest`-länken bygger på dem.
+ *
+ * Installern har två godtagna namn under namnbytet till PalCompanion, se
+ * `INSTALLER_ASSET_NAMES`. `ASSET_NAME` är det vi själva bygger och det som
+ * står i felmeddelanden; uppslaget nedan tar det första som finns i utgåvan.
+ */
 export const ASSET_NAME = "PalAssistent-Setup.exe";
 export const SUMS_NAME = "SHA256SUMS.txt";
 
@@ -135,7 +141,11 @@ export async function latestRelease(maxAge = CACHE_MS): Promise<ReleaseInfo> {
     page: typeof raw.html_url === "string" ? raw.html_url : `https://github.com/${REPO}/releases`,
     notes: typeof raw.body === "string" ? raw.body : "",
     published: typeof raw.published_at === "string" ? raw.published_at : "",
-    installer: assets.find((a) => a?.name === ASSET_NAME) ?? null,
+    // Namnen prövas i tur och ordning, inte utgåvans egen ordning: bär en
+    // övergångsutgåva båda filerna ska den nya väljas.
+    installer:
+      INSTALLER_ASSET_NAMES.map((name) => assets.find((a) => a?.name === name)).find(Boolean) ??
+      null,
     sums: assets.find((a) => a?.name === SUMS_NAME) ?? null,
   };
 

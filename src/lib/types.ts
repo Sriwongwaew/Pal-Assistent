@@ -78,7 +78,15 @@ export interface OwnedPal {
   /** Rank 1 = 0 stjärnor … 5 = 4 stjärnor (kondensering). */
   rk: number;
   souls: [number, number, number, number];
-  /** Behållare: Party / Palbox / Bas m.m. */
+  /**
+   * Behållare: `Party`, `Palbox`, `Global palbox` eller `Bas/övrigt N`.
+   *
+   * Jämför aldrig mot strängarna direkt – använd `PALBOX`/`PARTY`/`GLOBAL_BOX`
+   * och predikaten `isStored`/`atBase` i `constants.ts`. Den globala palboxen
+   * är världsöverskridande förvaring (spelarens egen `_dps.sav`): pals där är
+   * dina, men de finns inte i världen och kan varken jobba i en bas, gå på
+   * expedition eller para sig förrän du hämtat ut dem.
+   */
   c: string;
   slot: number;
   nick: string;
@@ -119,9 +127,61 @@ export interface AppData {
    * Nollas i paketeringen tillsammans med `pals`/`player`/`exported`.
    */
   implants?: Record<string, number>;
+  /**
+   * Spelarens progression ur spelar-savens RecordData + questarrayerna.
+   *
+   * Samma disciplin som `implants`: `undefined` = läsaren kan inte fältet
+   * (eller spelarfilen gick inte att läsa) = "vi vet inte", och fältet nollas
+   * i paketeringen tillsammans med `pals`/`player`/`exported`/`implants` —
+   * vilka torn någon besegrat är lika personligt som boxen.
+   *
+   * Läses av `_progress` i tools/palsave.py; nyckelformaten är verifierade
+   * mot en riktig 1.0-save (se kommentaren där).
+   */
+  progress?: PlayerProgress;
+  /**
+   * Pal Souls i världens item-behållare (Statue of Power-plånboken).
+   * Samma disciplin som `implants`: `undefined` = läsaren kan inte fältet,
+   * ett objekt med nollor = "du äger inga". Nollas i paketeringen.
+   */
+  souls?: { s: number; m: number; l: number; g: number };
   exported: string;
   /** Kumulativ pal-EXP per level (index = level). */
   palExp: number[];
+}
+
+/** Spelarens progression ur saven. Alla listor är sorterade och deduplicerade. */
+export interface PlayerProgress {
+  /** Besegrade tornstrider, utan `BOSS_BATTLE_NAME_`-prefixet: "GrassBoss" … */
+  towers: string[];
+  /** Nedlägg per torn OCH svårighetsgrad, savens råa nycklar
+   *  ("GrassBoss_Normal", "GrassBoss_Hard") → antal. Valfritt: äldre läsare. */
+  towerClears?: Record<string, number>;
+  /** Raid-nyckel (`PalSummon_…`) → antal nedlägg. */
+  raids: Record<string, number>;
+  /** Upphittade Lifmunk-effigies som instans-GUID (hex utan streck, versaler).
+   *  Matchar uppströms `relics.json` – kartan prickar av exakt vilka. */
+  relics: string[];
+  /** OFÖRBRUKADE effigies (RelicPossessNum) – inte antal upphittade. */
+  relicHeld: number;
+  /** Upplåsta snabbresor som instans-GUID; matchar `fast_travel_points.json`. */
+  travels: string[];
+  /** Besegrade fältbossar som spawner-id; matchar `bosses.json`. */
+  fieldBosses: string[];
+  counts: {
+    dungeons: number;
+    fixedDungeons: number;
+    oilrigs: number;
+    camps: number;
+    predators: number;
+    treasure: number;
+  };
+  /** Quest-id:n (utan spelets `Hidden_`-triggrar). Namnen slås upp i den
+   *  statiska questkatalogen – ett okänt id visas som id, aldrig gissat. */
+  quests: { active: string[]; completed: string[] };
+  /** Upptäckta Paldeck-poster som artkoder (matchar `Species.code`).
+   *  Valfritt: en progress skriven av en äldre läsare saknar fältet. */
+  deck?: string[];
 }
 
 /** Pal berikad med härledda värden (poäng, spara-flaggor m.m.). */

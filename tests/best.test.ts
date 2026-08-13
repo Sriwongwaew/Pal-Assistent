@@ -85,11 +85,16 @@ describe("pickBaseCrew", () => {
 });
 
 describe("ranchGuide", () => {
+  /* "Nyfikna Nöten" är med flit en art som INTE finns i RANCH_DROPS – den
+     bevakar att en lucka fortfarande syns som lucka. Rollen spelades tidigare
+     av Shroomer, men den fick sina riktiga varor (Mushroom + Cavern Mushroom)
+     när tabellen lästes ur partnerskill-texten aug 2026, och då var testet
+     plötsligt fel av rätt skäl. Ta inte en riktig ranch-art hit igen. */
   const data = makeData([
     species("Melpaca", { MonsterFarm: 2 }),
     species("Cremis", { MonsterFarm: 2, Collection: 1 }),
     species("Chikipi", { MonsterFarm: 1 }),
-    species("Shroomer", { MonsterFarm: 3, Seeding: 3 }),
+    species("Nyfikna Nöten", { MonsterFarm: 3, Seeding: 3 }),
     species("Blazamut", { Mining: 7 }),
   ]);
 
@@ -109,8 +114,8 @@ describe("ranchGuide", () => {
   it("gissar aldrig en vara – arter utan rad hamnar i en egen grupp", () => {
     const entries = ranchGuide(data, new Set());
     const unknown = entries.find((e) => e.item === null);
-    assert.ok(unknown, "Shroomer saknar vara i tabellen och måste synas som okänd");
-    assert.deepEqual(unknown.producers.map((p) => data.species[p.s]!.name), ["Shroomer"]);
+    assert.ok(unknown, "en art utan rad i tabellen måste synas som okänd");
+    assert.deepEqual(unknown.producers.map((p) => data.species[p.s]!.name), ["Nyfikna Nöten"]);
     // …och den gruppen ligger sist, för den är en lucka och inte ett råd.
     assert.equal(entries[entries.length - 1], unknown);
   });
@@ -119,5 +124,34 @@ describe("ranchGuide", () => {
     const all = ranchGuide(data, new Set()).flatMap((e) => e.producers.map((p) => data.species[p.s]!.name));
     assert.ok(!all.includes("Blazamut"));
     assert.equal(all.length, 4);
+  });
+
+  it("en art med flera varor står under BÅDA – inte bara den sista", () => {
+    /* Shroomer ger Mushroom *eller* Cavern Mushroom. Tabellen var förr en
+       karta art → vara, och `new Map(RANCH_DROPS)` tappade då den första
+       tyst: guiden visade en vara arten inte var ensam om att ge. */
+    const multi = makeData([species("Shroomer", { MonsterFarm: 3 })]);
+    const items = ranchGuide(multi, new Set()).map((e) => e.item);
+    assert.deepEqual([...items].sort(), ["Cavern Mushroom", "Mushroom"]);
+  });
+
+  it("tar med en ranch-art som datasetet inte ger någon Farming-nivå", () => {
+    /* Lamball lägger Wool enligt sin egen partnerskill men har `ws: {}` i
+       datasetet. Ett rent `MonsterFarm > 0` hade utelämnat No.001 – allas
+       första ranchpal – i all evighet. */
+    const lam = makeData([species("Lamball", {})]);
+    const wool = ranchGuide(lam, new Set()).find((e) => e.item === "Wool");
+    assert.ok(wool, "Lamball ska finnas i guiden trots nivå 0");
+    assert.equal(wool.producers[0]?.level, 0);
+  });
+
+  it("gruppen vet när varan är ett samlingsord och inte ett item", () => {
+    // Vaelets speltext säger "various seeds" utan att räkna upp dem.
+    const vaelet = makeData([species("Vaelet", { MonsterFarm: 2 })]);
+    const seeds = ranchGuide(vaelet, new Set()).find((e) => e.item === "Seeds");
+    assert.ok(seeds);
+    assert.equal(seeds.group, true);
+    const wool = ranchGuide(makeData([species("Melpaca", { MonsterFarm: 2 })]), new Set())[0];
+    assert.equal(wool?.group, false, "en riktig vara är ingen grupp");
   });
 });

@@ -1,16 +1,11 @@
 /* Dumb: uppställningen som gör äggen snabbare – bas, föräldrar, party.
  *
- * Sektionen är hopfälld som standard och rubriken bär hela värdet ("1,2× ·
- * 3 kvar"), så den kostar en rad tills man vill ha den. Det är avsiktligt:
- * innehållet är samma varje gång man läser det, till skillnad från planen
- * under, och en permanent utfälld guide hade tagit plats från det man kom hit
- * för att göra.
- *
- * Men hopfälld som standard betyder att greppet måste syntas: rubriken är
- * därför en egen list med ram, botten, en chevron i accentfärg och ordet
- * VISA/DÖLJ (`.bsetup > summary` i globals.css). Banta inte tillbaka den till
- * en pil i --muted – då finns hela avelsbasen inte för den som inte råkar
- * klicka.
+ * Öppnas som MODAL från Verktygs-panelen på /breeding (Kens rättning aug 2026:
+ * den gamla hopfällda details-panelen, CSS-lyft till ruta, blev en hoptryckt
+ * remsa). Komponenten renderar modalens kropp med en statisk huvudrad
+ * (`.bshd`) som bär samma värde som förr ("1,4× · 217 s") – stängningen äger
+ * modalen. Takten står dessutom alltid i Verktygs-knappen, så innehållet här
+ * kostar ingenting förrän man ber om det.
  *
  * **Ordningen är gratis först, kostsamt sist, och det är inte kosmetik.**
  * Bas → party är pals man bara ställer på rätt plats: takten stiger och
@@ -152,15 +147,15 @@ export function BreedSetupPanel({
       </>;
 
   return (
-    <details className="bsetup">
-      <summary>
+    <section className="bsetup asmodal">
+      <div className="bshd">
         <span className="ttl">{t("setup.title")}</span>
         <span className="num">{speedText(setup.rate)}</span>
         <span className="meta">{t("setup.perEgg", { time: eggTimeText(setup.seconds) })}</span>
         {setup.todo > 0
           ? <Tag kind="cond">{t("setup.todo", { n: setup.todo })}</Tag>
           : <Tag kind="keep">{t("setup.full")}</Tag>}
-      </summary>
+      </div>
 
       {/* Mätaren står mot CAP_FREE, inte mot spelets absoluta tak. Skälet är
           inte optimism: CAP_RATE förutsätter Philanthropist på båda föräldrarna,
@@ -280,6 +275,6 @@ export function BreedSetupPanel({
         <b>{t("setup.noEffectTitle")}</b>{" "}
         {rich("setup.noEffectBody", { parents: <i>{t("setup.parents")}</i> })}
       </div>
-    </details>
+    </section>
   );
 }

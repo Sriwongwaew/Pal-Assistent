@@ -13,7 +13,7 @@
 import { msg, type Msg } from "../i18n";
 import { workScore } from "./best";
 import { FISHING_PALS, WORK_META, WORK_TYPES } from "./constants";
-import { condenseReach, displayStats, type DisplayStats } from "./scoring";
+import { condenseReach, displayStats, fodderValue, type DisplayStats } from "./scoring";
 import type { AppData, ScoredPal, WorkType } from "./types";
 
 /* ============================================================
@@ -171,7 +171,7 @@ export function palUses(data: AppData, p: ScoredPal, idx: UseIndex, limit = 4): 
 
 export type CondenseVerdict = "now" | "soon" | "hold" | "max";
 
-export type CondenseNoteKind = "passive" | "iv" | "better" | "last";
+export type CondenseNoteKind = "passive" | "iv" | "better" | "last" | "booked";
 
 export interface CondenseNote {
   kind: CondenseNoteKind;
@@ -195,6 +195,19 @@ export interface CondensePlan {
   leftover: number;
   /** Så många till behövs för stjärnan efter `reach`. 0 när `reach` är 4★. */
   missing: number;
+  /**
+   * Vad kondenseringen är VÄRD, inte bara om den går att göra.
+   *
+   * Kön rankade förut på dom → stjärnvinst → antal matade, alltså ren
+   * genomförbarhet: en Souffline utan en enda användning i boxen hamnade före
+   * arter Ken faktiskt sätter i basen (helhetsutredningen aug 2026). Prioriteten
+   * väger in vad arten används till (`palUses`, som redan fanns men bara ritades)
+   * och vad stjärnorna ger i riktiga stats, mot vad de kostar i pals.
+   * Noll = arten har ingen roll i boxen; stjärnorna gör ingenting för dig.
+   */
+  priority: number;
+  /** Varför prioriteten ser ut som den gör – gränssnittet ska kunna säga det. */
+  why: Msg[];
   /** Kostnaden för den stjärnan. 0 vid 4★. */
   nextCost: number;
   notes: CondenseNote[];
@@ -212,10 +225,61 @@ const VERDICT_ORDER: Record<CondenseVerdict, number> = { now: 0, soon: 1, hold: 
  * En plan per art med dubbletter, sorterad så det som går att göra just nu
  * ligger först och ger mest (stjärnor före frigjorda platser).
  */
+/**
+ * Vad kondenseringen är värd: roll × stjärnvinst ÷ vad den kostar i pals.
+ *
+ * Ingen av delarna är ny data – `palUses` fanns men ritades bara, och
+ * `condenseGain` räknade redan stats. Det som saknades var att låta dem avgöra
+ * ordningen. Skalan är avsiktligt grov: det här är en prioritering mellan arter,
+ * inte en prognos.
+ */
+function valueOf(
+  data: AppData,
+  keeper: ScoredPal,
+  starGain: number,
+  feed: number,
+  useIndex?: UseIndex,
+): { priority: number; why: Msg[] } {
+  const why: Msg[] = [];
+  if (starGain <= 0) return { priority: 0, why };
+
+  const uses = useIndex ? palUses(data, keeper, useIndex) : [];
+  /* "Bäst i boxen" väger tyngst, sedan en riktig roll (topplista eller en syssla
+     arten faktiskt är bra på), sedan ranchen – den är värd att behålla EN av,
+     men stjärnor gör inget för vad den lägger. */
+  const best = uses.some((u) => u.best);
+  const real = uses.some(
+    (u) => u.best || u.only || u.kind === "combat" || u.kind === "mount"
+      || (u.kind === "work" && u.work !== "MonsterFarm" && (u.level ?? 0) >= WORK_FLOOR),
+  );
+  const roleWeight = best ? 3 : real ? 2 : uses.length ? 0.5 : 0;
+  if (best) why.push(msg("condense.whyBest"));
+  else if (real) why.push(msg("condense.whyRole"));
+  else why.push(msg("condense.whyNoRole"));
+
+  /* Vad stjärnorna ger i riktiga stats. Ett stort hopp på en pal du använder är
+     hela poängen; samma hopp på en pal du aldrig tar med är ingenting. */
+  const before = displayStats(data, keeper);
+  const after = displayStats(data, { ...keeper, stars: keeper.stars + starGain, rk: keeper.stars + starGain + 1 });
+  const gain = (after.hp - before.hp) + (after.atk - before.atk) * 3 + (after.def - before.def) * 2;
+  // Priset i pals: tolv matade för en stjärna är dyrare än fyra.
+  const priority = Math.round((roleWeight * gain * starGain) / Math.max(1, feed) * 10) / 10;
+  if (starGain > 1) why.push(msg("condense.whyStars", { n: starGain }));
+  return { priority, why };
+}
+
+export interface CondenseOpts {
+  /** Individer den aktiva avelsplanen räknar med (`planBookings`). */
+  booked?: ReadonlyMap<string, unknown>;
+  /** Boxens topplistor, för att veta om arten används till något alls. */
+  useIndex?: UseIndex;
+}
+
 export function planCondense(
   data: AppData,
   pals: readonly ScoredPal[],
   bestOf: ReadonlyMap<number, ScoredPal>,
+  opts: CondenseOpts = {},
 ): CondensePlan[] {
   const bySpecies = new Map<number, ScoredPal[]>();
   for (const p of pals) {
@@ -226,28 +290,54 @@ export function planCondense(
 
   const plans: CondensePlan[] = [];
   for (const [s, all] of bySpecies) {
+    // Keeperen är artens bästa exemplar (`bestOfSpecies` i `scoring.ts` – den
+    // rankar på passform och IV, inte på `score`).
     const keeper = bestOf.get(s);
-    const fodder = all.filter((p) => !p.keep);
+    /* Bokade individer är inte mat. Planen på avelssidan pekar ut just dem, och
+       att föreslå att man matar bort steg 1 i sin egen plan är det enda felet i
+       appen som inte går att ångra (helhetsutredningen aug 2026). */
+    const booked = all.filter((p) => !p.keep && opts.booked?.has(p.id));
+    const fodder = all.filter((p) => !p.keep && !opts.booked?.has(p.id));
     if (!keeper || !fodder.length) continue;
 
-    const { reach, left, nextCost } = condenseReach(keeper.stars, fodder.length);
-    const missing = nextCost > 0 ? nextCost - left : 0;
-    const feed = fodder.length - left;
+    /* 1.0-regeln: en stjärnad dubblett bär sitt uppätna värde med sig (1★ = 5
+       offer). Räkningen görs i VÄRDE; feed/leftover förblir antal PALS, och
+       matningen tar högst värde först – bankat värde ska inte stå kvar i boxen. */
+    const totalValue = fodder.reduce((a, p) => a + fodderValue(p.stars), 0);
+    const { reach, left: leftValue, nextCost } = condenseReach(keeper.stars, totalValue);
+    const missing = nextCost > 0 ? nextCost - leftValue : 0;
+    const byValue = [...fodder].sort((a, b) => b.stars - a.stars);
+    let need = totalValue - leftValue;
+    let feed = 0;
+    for (const p of byValue) {
+      if (need <= 0) break;
+      need -= fodderValue(p.stars);
+      feed++;
+    }
+    const leftover = fodder.length - feed;
     const verdict: CondenseVerdict =
       reach > keeper.stars ? "now"
         : nextCost === 0 ? "max"
           : missing <= soonLimit(nextCost) ? "soon"
             : "hold";
 
+    const notes = notesFor(all, fodder, keeper, feed, leftover);
+    if (booked.length) {
+      notes.push({ kind: "booked", text: msg("condense.noteBooked", { n: booked.length }) });
+    }
+    const { priority, why } = valueOf(data, keeper, reach - keeper.stars, feed, opts.useIndex);
     plans.push({
       s, keeper, fodder, verdict, fromStars: keeper.stars, reach,
-      feed, leftover: left, missing, nextCost,
-      notes: notesFor(all, fodder, keeper, feed, left),
+      feed, leftover, missing, nextCost, priority, why, notes,
     });
   }
 
+  /* Domen först – "nu" är det man kan göra i dag – men INOM domen sorteras det
+     på värde och inte på stjärnvinst. En art utan roll i boxen kan ha två
+     stjärnor att hämta och ändå vara det sämsta man kan lägga essens på. */
   return plans.sort((a, b) =>
     VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict]
+    || b.priority - a.priority
     || (b.reach - b.fromStars) - (a.reach - a.fromStars)
     || b.feed - a.feed
     || a.missing - b.missing

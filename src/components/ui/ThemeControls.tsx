@@ -13,7 +13,7 @@ export const THEME_KEY = "pa-theme";
 export const PAL_KEY = "pa-pal";
 
 type Theme = "system" | "light" | "dark";
-type Pal = "basalt" | "nightwood" | "deepwater";
+type Pal = "basalt" | "nightwood" | "deepwater" | "dusk";
 
 const THEMES: [Theme, MessageKey][] = [
   ["light", "theme.light"],
@@ -21,8 +21,10 @@ const THEMES: [Theme, MessageKey][] = [
   ["dark", "theme.dark"],
 ];
 
-/** The dot in the button shows the palette's accent colour in dark mode. */
+/** The dot in the button shows the palette's accent colour in dark mode.
+ *  Dusk first — it has been the default since the August 2026 design round. */
 const PALS: [Pal, MessageKey, string][] = [
+  ["dusk", "palette.dusk", "#ffcf6e"],
   ["basalt", "palette.basalt", "#8f7bff"],
   ["nightwood", "palette.nightwood", "#5ad06b"],
   ["deepwater", "palette.deepwater", "#4aa8ff"],
@@ -30,7 +32,7 @@ const PALS: [Pal, MessageKey, string][] = [
 
 export function ThemeControls() {
   const [theme, setTheme] = useState<Theme>("system");
-  const [pal, setPal] = useState<Pal>("basalt");
+  const [pal, setPal] = useState<Pal>("dusk");
   const { locale, setLocale } = useLocale();
   const t = useT();
 
@@ -38,7 +40,7 @@ export function ThemeControls() {
   useEffect(() => {
     const el = document.documentElement;
     setTheme((el.dataset.theme as Theme) || "system");
-    setPal((el.dataset.pal as Pal) || "basalt");
+    setPal((el.dataset.pal as Pal) || "dusk");
   }, []);
 
   const applyTheme = (next: Theme) => {

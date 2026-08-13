@@ -3,8 +3,8 @@
 This guide covers the app in depth. If you just want to get going, the [README](../README.md) is
 enough: install, click **Read from the game**, done.
 
-> The interface is currently in Swedish. Swedish labels are given in **bold** below with a
-> translation, so you can follow along.
+> The interface is in English by default (Swedish is complete too — pick your language behind the
+> gear in the top bar), so the **bold** labels below match what you see.
 
 ---
 
@@ -68,35 +68,70 @@ Search, filter and sort along the top. Search matches species, nickname, element
 
 ---
 
-## Recommendations
+## Recommendations — the five roles
 
-The page is a work order, read top to bottom, in the order the three sections appear.
+One page, five tabs, one per role: **The box · Combat · The base · Mounts & fishing · The
+player**. The five gauges at the top are the tabs — each carries its role's game icon, the one
+number that matters for that role and a meter, so every role's state is in view no matter which
+tab you are on. One role shows at a time; the back button returns to the previous tab.
 
-### Keep these
+Inside a tab everything sits in **modules**: a framed panel with a small title and a count in
+its header, so you can tell at a glance where one thing ends and the next begins. Sources and
+caveats live in the module's footer rather than mixed into what you are reading.
 
-What *not* to feed, grouped by reason — several gold passives, a complete set, a clean carrier,
-perfect IVs, Lucky, best of its species. It comes before the queue on purpose: recognise a pal here
-first, and you will not go looking for it further down. Click any pal for Base Info.
+### 01 · The box
 
-### Condense
+The **condense queue** is one row per species, biggest gain first. Each row shows the star jump
+as four lamps (filled = stars it already has, lit = stars you get now), how many specimens it
+consumes, the gain as a meter against the +20 % ceiling a 4★ gives, and warning dots for
+anything you might regret. Click a row and you also get **what the one you keep is good at**,
+with the game's work icons and "best in box" in green — plus what the stars are actually worth
+in HP, attack and defence, rather than a star count you have to convert yourself. That part is
+there for a reason: it is easy to feed away your best miner just because it happened to be a
+duplicate. *Why condense* — and its price, that fed pals never come back — sits in the module's
+footer.
 
-One row per species that already has enough duplicates, biggest gain first. The row tells you the
-star jump, how many specimens it consumes, how many box slots it frees, and warning dots for
-anything you might regret. Expand it and you also get **what the one you keep is good at**, with
-the game's work icons and "best in box" in green — plus what the stars are actually worth in HP,
-attack and defence, rather than a star count you have to convert yourself.
+**Keep these** is everything the keep rules protect, as one bar split by reason: how big
+"clean carrier" is next to "already condensed" is a thing you can see rather than count. The
+chips under the bar pick a reason and the pals in it appear as tiles; a pal only counts in its
+first reason. Colour groups the reasons by *kind* — gold for "the passive is the reason", blue
+for IV, violet for the pal's own state.
 
-That first part is there for a reason: it is easy to feed away your best miner just because it
-happened to be a duplicate.
-
-### Almost there
-
-Species a few duplicates short of the next star, plus a collapsed list of the ones that are far off
-or already maxed. Worth knowing before you release a pal.
+Then **More to do** (the best expedition to send right now, what is worth butchering),
+**Almost there** — species a few duplicates short of the next star — and every expedition site
+with your idle firepower.
 
 Costs are **cumulative, not a total**: 4 duplicates for the first star, then 8 more for the second,
 12 for the third and 24 for the fourth — 48 in all. So the same pile of duplicates is worth very
 different amounts depending on where the species already stands.
+
+### 02 · Combat
+
+**Do this** holds the passives your attack team is still missing (click a task and you land in a
+breeding plan with them pre-filled — or the app tells you it can be implanted, if you own the
+module), the cheap soul ranks and your next tower fight. Next to it: the attack formation, the
+loadout cards, the best-in-slot template, the rankings (top attackers you own and globally) and
+**Find a pal for…** (element × job, owned or not).
+
+### 03 · The base
+
+**Do this** holds crew members still standing in the box while a worse specimen works, a producer
+worth keeping for the ranch before you condense the species, base defense and worker soul ranks.
+Next to it: the base dream team, the loadout cards, **the ranch guide** (the species IS the
+product — the level only sets the pace), the base-defense picks and best workers per work type
+(your own and the game's).
+
+### 04 · Mounts & fishing
+
+**Do this** holds what your fastest mounts are missing (including the reserved stamina slot — a
+mount without stamina drops to walking speed when the meter runs out), mount soul ranks and
+fishing helpers to get. Next to it: the podium, the loadout cards, the mount template and the
+full fishing list.
+
+### 05 · The player
+
+Pals whose partner skill buffs **you**, not themselves — the classic 4× Gobfin stack first. The
+reason shown is the game's own skill text.
 
 ---
 
@@ -117,8 +152,8 @@ suggestions sorted by work level, tagged OWNED / BREED ×n / CATCH. One click se
 your target.
 
 There is deliberately no *fishing* purpose: no passive in the game affects fishing. How well a pal
-fishes comes from its partner skill, so it is the species that matters — see **Fishing pals** on
-*Best for…*.
+fishes comes from its partner skill, so it is the species that matters — see **Mounts & fishing**
+under *Recommendations*.
 
 ### 3. Pick the passives you want
 
@@ -192,18 +227,6 @@ They're good enough for what they're used for: comparing two plans against each 
 
 Target, purpose, wanted passives and IV goal survive a trip to the box and back. **Clear all** at
 the top resets them.
-
----
-
-## Best for…
-
-- **Attack team** and **base dream team** from your own box.
-- **Best workers per work type**, both from your own box and globally. Global rows are clickable and
-  take you straight to a breeding plan for that species.
-- **Fishing pals** (Palworld 1.0) and **fastest mounts**.
-
-Each suggestion also shows the four passives the role really wants, against what the pal already
-carries.
 
 ---
 

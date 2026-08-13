@@ -276,3 +276,39 @@ describe("taket för rena bärare", () => {
     assert.equal(kept.length, 4);
   });
 });
+
+/* IV-byggstenen: EN 100:a i en stat, inte ett högt snitt.
+ *
+ * `Warsect 15/100/100` (ivSum 215, en passiv) är den 2-i-1-donator
+ * avelsplaneraren själv rekommenderar – och räknades som kondensmat, eftersom
+ * reglerna mätte snittet (240/270) eller alla tre på 100. IV ärvs per stat och
+ * oberoende, så en enda 100:a är en byggsten och inte ett halvt misslyckande.
+ */
+describe("IV-byggstenar sparas", () => {
+  it("en 100:a i en stat räcker, även med lågt snitt", () => {
+    const [donor, filler] = keepOf([
+      owned([], { iv: [15, 100, 100] }),
+      owned([], { iv: [20, 20, 20] }),
+    ]);
+    assert.equal(donor!.ivSum, 215, "under snitt-tröskeln 240");
+    assert.equal(donor!.keep, true);
+    assert.match(reasons(donor!), /IV-byggsten/);
+    assert.equal(filler!.keep, false);
+  });
+
+  it("men bara två per art och stat – resten är mat", () => {
+    const kept = keepOf([
+      owned([], { iv: [100, 10, 10], g: "M" }),
+      owned([], { iv: [100, 10, 10], g: "F" }),
+      owned([], { iv: [100, 10, 10], g: "M" }),
+      owned(["PAL_rude", "Deffence_down1"], { iv: [100, 10, 10], g: "M" }),
+    ]);
+    assert.equal(kept.filter((p) => p.keep).length, 2, "taket är två per stat");
+    assert.equal(kept.at(-1)!.keep, false, "den smutsigaste bäraren är mat");
+  });
+
+  it("en pal utan någon 100:a får inget IV-skäl", () => {
+    const [p99] = keepOf([owned([], { iv: [99, 99, 99] })]);
+    assert.ok(!p99!.reasons.some((m) => m.key === "keep.ivBlock"));
+  });
+});

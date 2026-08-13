@@ -64,3 +64,14 @@ Allt som behövs. Du behöver inte installera Node, Python eller något annat.
 Node.js ingår under node\ och är MIT-licensierat; licenstexten ligger bredvid.
 Avkodningen av sparfilen bygger på palworld-save-tools och libooz (zao/ooz).
 Spelets ikoner och artdata tillhör Pocketpair.
+
+
+Licens
+------
+
+Programmet är fri programvara under GNU Affero General Public License version 3.
+Hela licenstexten ligger i LICENSE.txt i den här mappen, och NOTICE.txt räknar
+upp allt som ingår men INTE omfattas av den – Pocketpairs ikoner och artdata,
+och de komponenter som har egna villkor.
+
+Källkoden når du via länken längst ner i programmet.

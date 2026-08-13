@@ -24,20 +24,33 @@
  *     arten flaggas det i stället.
  *   - Sökningen håller sig inom målarten. Att para två arter byter art på ungen,
  *     så all IV-möda måste göras med exemplar av arten man faktiskt vill ha.
+ *     **Undantaget är importerade byggstenar** (`imports`, se `ivImport.ts`): en
+ *     stat ingen av artens pals har 100 i kan bara komma ur 40 %-omslumpningen,
+ *     ~253 ägg, och det var i praktiken hela planens kostnad. En 100:a kan i
+ *     stället *bäras in* genom artkedjan för ~3,3 ägg per steg. Importen räknas
+ *     färdig utanför den här sökningen och kommer in som ett extra löv: en
+ *     individ av målarten med EN 100:a, som kostade några ägg att skaffa.
  */
 import { translate } from "../i18n";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 
 import { childrenOf, inheritOdds } from "./breeding";
+/* Bara typen – `ivImport` importerar `statOddsFromHas` härifrån, och en
+   typimport försvinner vid kompilering så cirkeln aldrig finns i körningen. */
+import type { IvImport } from "./ivImport";
 import { IV_FROM_PARENT, IV_RANDOM, type IvIndex } from "./ivPlan";
 import type { AppData, ScoredPal } from "./types";
 
-/** Att en omslumpad stat landar på exakt 100 (0–100 likformigt). */
-const RANDOM_HITS_100 = 1 / 101;
-
-/** Chans att barnet får 100 i en stat, givet om föräldrarna har 100 eller inte. */
-export const statOddsFromHas = (a: boolean, b: boolean): number =>
-  IV_FROM_PARENT * (a ? 1 : 0) + IV_FROM_PARENT * (b ? 1 : 0) + IV_RANDOM * RANDOM_HITS_100;
+/**
+ * Chans att barnet når statens mål, givet om föräldrarna gör det.
+ *
+ * `target` är 100 för perfekt och 90 för nära (`ivTargetOf`). Omslumpningen
+ * träffar 100 i 1 fall av 101 men 90-eller-bättre i 11 – och det är hela skälet
+ * att "nära" är ett eget läge: samma sökning, elva gånger bättre lott.
+ */
+export const statOddsFromHas = (a: boolean, b: boolean, target = 100): number =>
+  IV_FROM_PARENT * (a ? 1 : 0) + IV_FROM_PARENT * (b ? 1 : 0)
+  + IV_RANDOM * ((100 - target + 1) / 101);
 
 const IV_BITS: IvIndex[] = [0, 1, 2];
 const bit = (i: number) => 1 << i;
@@ -57,6 +70,8 @@ interface Node {
   eggs: number;
   /** Ägd pal – noden kostar inget att skaffa. */
   pal?: ScoredPal;
+  /** Importerad byggsten: en individ av målarten med en 100:a, buren in utifrån. */
+  imported?: IvImport;
   /** Parningen som skapade noden. */
   via?: { a: Node; b: Node; odds: number };
 }
@@ -69,6 +84,13 @@ export interface PlanParent {
   pal: ScoredPal | null;
   /** 1-baserat stegnummer när föräldern kommer ur ett tidigare steg. */
   fromStep?: number;
+  /**
+   * Satt när föräldern är **importerad**: en individ av målarten som du avlar
+   * fram ur en annan art för att få in en 100:a arten saknar (`ivImport.ts`).
+   * Den är alltså varken en pal du äger eller ett tidigare steg i den här
+   * planen – den har sin egen lilla led, och den måste synas i gränssnittet.
+   */
+  imported?: IvImport;
   ivMask: number;
   pvMask: number;
   junk: number;
@@ -109,11 +131,21 @@ export interface PerfectPlan {
   /** Bästa direktparningen, för jämförelse mot den etappvisa planen. */
   direct: { a: ScoredPal; b: ScoredPal; odds: number; eggs: number } | null;
   missingGender: boolean;
+  /**
+   * Importerade byggstenar planen faktiskt använder – varje sådan är en egen
+   * liten led som måste göras FÖRST, och dess ägg ligger i `totalEggs`.
+   *
+   * De räknas **en gång per individ**, inte en gång per steg som använder dem:
+   * föräldrar förbrukas inte när man avlar, så samma importerade pal kan stå som
+   * förälder i flera steg. Sökningen är däremot medvetet snålare och betalar per
+   * användning – den överskattar alltså hellre än att välja en plan som ser
+   * billig ut bara för att den återanvänder importen.
+   */
+  imports: IvImport[];
 }
 
-const isMax = (v: number) => v >= 100;
-const ivMaskOf = (p: ScoredPal) =>
-  IV_BITS.reduce<number>((m, i) => (isMax(p.iv[i] ?? 0) ? m | bit(i) : m), 0);
+const ivMaskOf = (p: ScoredPal, target: number) =>
+  IV_BITS.reduce<number>((m, i) => ((p.iv[i] ?? 0) >= target ? m | bit(i) : m), 0);
 
 /**
  * Söker den billigaste vägen till 100/100/100 med alla önskade passiver,
@@ -122,8 +154,23 @@ const ivMaskOf = (p: ScoredPal) =>
 export function planPerfectLine(
   palsOfSpecies: ScoredPal[],
   wanted: string[],
+  /**
+   * Byggstenar som inte finns i boxen än, men som går att avla fram ur en annan
+   * art: en individ av målarten med en 100:a i en stat arten saknar
+   * (`planIvImports`). Varje sådan kommer in som ett löv som kostar sina ägg –
+   * sökningen väljer själv om den är värd det, precis som med allt annat.
+   */
+  imports: readonly IvImport[] = [],
+  /**
+   * IV-värdet varje stat ska nå: 100 för perfekt, 90 för "nära" (`ivTargetOf`).
+   * Tröskeln byter INTE modell – den byter bara vad som räknas som uppnått, och
+   * omslumpningens lott (1/101 mot 11/101). Det är därför läget "nära" är samma
+   * sökning och inte en egen kodväg.
+   */
+  target = 100,
 ): PerfectPlan {
   const goalIv = 0b111;
+  const meets = (v: number) => v >= target;
   const pvIndex = new Map(wanted.map((id, i) => [id, i]));
   // Passiver kan inte slumpas fram ur tomma intet – de måste redan finnas hos
   // någon av artens pals. Saknas en, är den ett förkrav som passivplanen får
@@ -138,10 +185,11 @@ export function planPerfectLine(
 
   const plan: PerfectPlan = {
     possible: false, steps: [], totalEggs: 0, alreadyDone: null,
-    gaps: IV_BITS.filter((i) => !palsOfSpecies.some((p) => isMax(p.iv[i] ?? 0))),
+    gaps: IV_BITS.filter((i) => !palsOfSpecies.some((p) => meets(p.iv[i] ?? 0))),
     missingPassives: wanted.filter((id) => !palsOfSpecies.some((p) => p.pv.includes(id))),
     direct: null,
     missingGender: males.length === 0 || females.length === 0,
+    imports: [],
   };
 
   // Utgångsnoder: varje ägd pal, gratis men med sitt eget skräp i bagaget.
@@ -151,7 +199,7 @@ export function planPerfectLine(
       return i === undefined ? m : m | bit(i);
     }, 0);
     return {
-      ivMask: ivMaskOf(p),
+      ivMask: ivMaskOf(p, target),
       pvMask,
       junk: p.pv.reduce((n, id) => n + (pvIndex.has(id) ? 0 : 1), 0),
       eggs: 0,
@@ -172,7 +220,7 @@ export function planPerfectLine(
     for (const f of females) {
       const a = leaves.find((n) => n.pal === m)!;
       const b = leaves.find((n) => n.pal === f)!;
-      const { odds } = combineOdds(a, b, goalIv, goalPv);
+      const { odds } = combineOdds(a, b, goalIv, goalPv, target);
       if (odds > 0 && (!plan.direct || odds > plan.direct.odds)) {
         plan.direct = { a: m, b: f, odds, eggs: 1 / odds };
       }
@@ -214,6 +262,19 @@ export function planPerfectLine(
     return true;
   };
   for (const l of leaves) offer(l);
+  /* Importerade byggstenar. De är kläckta ungar, inte ägda pals: därför inget
+     `pal` (könet är slumpat, `genderExtra` tar det) och inget skräp (man kläcker
+     tills ungen är ren, samma antagande som resten av planeraren). Kostnaden är
+     importens egna ägg.
+     De erbjuds även för stats arten redan HAR 100 i, och det är med flit: en ägd
+     pal är gratis men kan vara en enda individ med fyra skräp-passiver och fel
+     kön, medan en importerad är ren. Sökningen tar bara importen när den blir
+     billigare totalt – att erbjuda den kan alltså inte göra planen sämre. */
+  for (const im of imports) {
+    const ivMask = im.stats.reduce<number>((m, i) => m | bit(i), 0);
+    if (!ivMask) continue;
+    offer({ ivMask, pvMask: 0, junk: 0, eggs: im.eggs, imported: im });
+  }
 
   /* ---- Relaxering: para ihop allt med allt tills inget blir billigare ----
      Barnet siktar normalt på unionen av föräldrarnas 100:or, men en stat som
@@ -247,7 +308,7 @@ export function planPerfectLine(
           if (ivMask === a.ivMask && pvMask === a.pvMask) continue;
           if (ivMask === b.ivMask && pvMask === b.pvMask) continue;
 
-          const { odds } = combineOdds(a, b, ivMask, pvMask);
+          const { odds } = combineOdds(a, b, ivMask, pvMask, target);
           if (odds <= 0) continue;
           const child: Node = {
             ivMask, pvMask, junk: 0,
@@ -273,7 +334,13 @@ export function planPerfectLine(
      här, över de faktiskt unika stegen. */
   const stepNo = new Map<Node, number>();
   const raw: { node: Node; a: Node; b: Node; odds: number }[] = [];
+  const usedImports: IvImport[] = [];
   const walk = (n: Node): void => {
+    if (n.imported) {
+      // En gång per individ: samma importerade pal kan vara förälder i flera steg.
+      if (!usedImports.includes(n.imported)) usedImports.push(n.imported);
+      return;
+    }
     if (!n.via || stepNo.has(n)) return;
     walk(n.via.a);
     walk(n.via.b);
@@ -281,6 +348,7 @@ export function planPerfectLine(
     raw.push({ node: n, a: n.via.a, b: n.via.b, odds: n.via.odds });
   };
   walk(goal);
+  plan.imports = usedImports;
 
   /* Steg som delar föräldrapar hämtar sina ungar ur SAMMA kull. Att samla båda
      kostar mindre än summan av var för sig – för två utfall med sannolikhet
@@ -324,6 +392,11 @@ export function planPerfectLine(
      snitt dubbelt så många ägg. Är båda föräldrarna mellansteg räcker det att
      jaga kön på den billigare av dem. */
   const prodCost = (n: Node) => {
+    /* En importerad byggsten är också en kläckt unge: har den fel kön kläcker
+       man om, alltså en importkedja till. Utan raden hade sökningen tagit
+       kostnaden (`genderExtra`) men stegen inte redovisat den, och totalen –
+       som summeras ur stegen – blivit lägre än den planen räknat på. */
+    if (n.imported) return n.eggs;
     const i = raw.findIndex((r) => r.node === n);
     return i < 0 ? 0 : stepEggs[i]!;
   };
@@ -335,10 +408,11 @@ export function planPerfectLine(
   };
 
   raw.forEach((r, i) => {
-    const { ivOdds, pvOdds, odds } = combineOdds(r.a, r.b, r.node.ivMask, r.node.pvMask);
+    const { ivOdds, pvOdds, odds } = combineOdds(r.a, r.b, r.node.ivMask, r.node.pvMask, target);
     const desc = (x: Node): PlanParent => ({
       pal: x.pal ?? null,
-      fromStep: x.pal ? undefined : stepNo.get(x),
+      fromStep: x.pal || x.imported ? undefined : stepNo.get(x),
+      imported: x.imported,
       ivMask: x.ivMask, pvMask: x.pvMask, junk: x.junk,
     });
     const gender = genderOf(r);
@@ -355,7 +429,10 @@ export function planPerfectLine(
     });
   });
 
-  plan.totalEggs = plan.steps.reduce((s, st) => s + st.eggs, 0);
+  /* Importerna ligger utanför stegen och måste med i totalen – annars lovar
+     planen en kostnad som inte innehåller det man gör först. */
+  plan.totalEggs = plan.steps.reduce((s, st) => s + st.eggs, 0)
+    + usedImports.reduce((s, im) => s + im.eggs, 0);
   return plan;
 }
 
@@ -372,9 +449,13 @@ function genderExtra(a: Node, b: Node): number {
 }
 
 /** Oddsen för att en parning ger ett barn som täcker `ivMask` och `pvMask`. */
-function combineOdds(a: Node, b: Node, ivMask: number, pvMask: number) {
+function combineOdds(a: Node, b: Node, ivMask: number, pvMask: number, target = 100) {
   const ivOdds = IV_BITS.reduce<number>(
-    (acc, i) => (has(ivMask, i) ? acc * statOddsFromHas(has(a.ivMask, i), has(b.ivMask, i)) : acc),
+    /* Tröskeln MÅSTE med här: utan den räknade sökningen med 100:ans lott
+       (1/101) även i nära-läget, och planen blev pessimistisk i varje steg.
+       Lintens "target is never used" var det som avslöjade det. */
+    (acc, i) =>
+      (has(ivMask, i) ? acc * statOddsFromHas(has(a.ivMask, i), has(b.ivMask, i), target) : acc),
     1,
   );
   const k = popcount(pvMask);
@@ -411,6 +492,7 @@ export function findIvDonors(
   allPals: ScoredPal[],
   speciesIdx: number,
   gaps: IvIndex[],
+  target = 100,
 ): { stat: IvIndex; pals: ScoredPal[] }[] {
   const keepsSpecies = new Map<number, boolean>();
   const staysInSpecies = (other: number): boolean => {
@@ -423,7 +505,7 @@ export function findIvDonors(
   return gaps.map((stat) => ({
     stat,
     pals: allPals
-      .filter((p) => isMax(p.iv[stat] ?? 0) && staysInSpecies(p.s))
+      .filter((p) => (p.iv[stat] ?? 0) >= target && staysInSpecies(p.s))
       .sort((x, y) => x.pv.length - y.pv.length || y.ivSum - x.ivSum)
       .slice(0, 4),
   }));

@@ -7,6 +7,7 @@ import { useT } from "@/i18n/LocaleContext";
 import { WORK_META, WORK_TYPES } from "@/lib/constants";
 import type { PassiveRec, Purpose, PurposeId, SpeciesRec } from "@/lib/purpose";
 import { PURPOSES } from "@/lib/purpose";
+import { catchInfo } from "@/lib/worldmap";
 import type { Species, WorkType } from "@/lib/types";
 import { MaskIcon } from "./GameIcon";
 import { passiveVisual } from "./PassiveRow";
@@ -39,11 +40,19 @@ export interface PurposePickerProps {
   full: boolean;
 }
 
-/** ÄGD / AVLAS ×n / FÅNGA – korta former, annars trycks artnamnet bort (designregel 6). */
-function ReachTag({ reach }: { reach: SpeciesRec["reach"] }) {
+/** ÄGD / AVLAS ×n / FÅNGA – korta former, annars trycks artnamnet bort (designregel 6).
+ *  FÅNGA preciseras när källan är känd: en legendar utan vild spawn står som
+ *  alfaboss med nivå, en raid-art som raid-ägg (Kens fynd: rakt "FÅNGA" på en
+ *  legendar lovar en spawn som inte finns). */
+function ReachTag({ reach, code }: { reach: SpeciesRec["reach"]; code: string }) {
   const t = useT();
   if (reach.kind === "owned") return <Tag kind="keep">{t("purpose.reachOwned")}</Tag>;
-  if (reach.kind === "catch") return <Tag kind="cond">{t("purpose.reachCatch")}</Tag>;
+  if (reach.kind === "catch") {
+    const how = catchInfo(code);
+    if (how?.kind === "raid") return <Tag kind="cond">{t("best.own.catchRaid")}</Tag>;
+    if (how?.kind === "alpha") return <Tag kind="cond">{t("best.own.catchAlpha", { lv: how.lv })}</Tag>;
+    return <Tag kind="cond">{t("purpose.reachCatch")}</Tag>;
+  }
   return <Tag kind="lucky">{t("purpose.reachBreed", { n: reach.pairings })}</Tag>;
 }
 
@@ -143,7 +152,7 @@ export function PurposePicker({
                 <ElementIcons sp={speciesOf(r.s)} size={14} />
                 <DeckNo sp={speciesOf(r.s)} />
                 <span className="lvl">{r.level}</span>
-                <ReachTag reach={r.reach} />
+                <ReachTag reach={r.reach} code={speciesOf(r.s).code} />
               </button>
             ))}
           </div>

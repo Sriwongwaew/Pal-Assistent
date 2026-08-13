@@ -1,6 +1,6 @@
 "use client";
 
-/* Hover över vilken passiv-banner som helst → vad den faktiskt gör.
+/* Hover över en passiv-banner ELLER en vara → vad den faktiskt gör.
  *
  * En enda värd i layouten i stället för en tooltip per komponent. Banners ritas
  * på ett dussin ställen (boxen, planeraren, väljarna, målbilden, bärarkorten,
@@ -9,6 +9,13 @@
  * lyssnar värden på hela dokumentet och plockar upp `data-passive="<id>"`:
  * en ny plats där en passiv visas behöver bara attributet, och en `title` som
  * hade konkurrerat med den här rutan kan tas bort.
+ *
+ * **Varor gick in i samma värd aug 2026** (Kens fråga: "kan vi hovra så man ser
+ * vad det faktiska itemet gör?") via `data-item="<engelskt namn>"`. Två hostar
+ * med var sitt dokumentlyssnare hade kunnat visa två rutor samtidigt, och
+ * positioneringen nedan – portal, tvåstegsmätning, touch-undantaget,
+ * scroll i capture-läge – är för subtil att ha i två exemplar. Anchorn bär
+ * därför en `kind` och bara innehållet skiljer sig.
  *
  * Tre saker som avgör hur den ser ut:
  *
@@ -26,7 +33,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
+import { formatNumber, msg, type Msg } from "@/i18n";
 import { isKnownModule } from "@/lib/implants";
+import { itemInfo, type ItemKind } from "@/lib/itemInfo";
 import { passiveText, tierLabel } from "@/lib/passiveText";
 import { isEquipmentOnly } from "@/lib/purpose";
 
@@ -52,12 +61,34 @@ function tierToken(tier: number): string {
   return "var(--muted)";
 }
 
+/** Varutypen i ord. Spelets egna kategorier, en nyckel var. */
+function itemKindLabel(kind: ItemKind): Msg {
+  switch (kind) {
+    case "Weapon": case "SpecialWeapon": return msg("itip.kind.weapon");
+    case "Armor": return msg("itip.kind.armor");
+    case "Accessory": return msg("itip.kind.accessory");
+    case "Glider": return msg("itip.kind.glider");
+    case "Material": return msg("itip.kind.material");
+    case "Consume": return msg("itip.kind.consume");
+    case "Food": return msg("itip.kind.food");
+    case "Ammo": return msg("itip.kind.ammo");
+    case "Blueprint": return msg("itip.kind.blueprint");
+    default: return msg("itip.kind.other");
+  }
+}
+
 interface Anchor {
+  /** Vilken sorts ruta: en passiv eller en vara. */
+  kind: "passive" | "item";
+  /** Passiv-id, eller varans engelska namn. */
   id: string;
   /** Extra rad från platsen bannern står på (`data-passive-note`). */
   note: string | null;
   rect: DOMRect;
 }
+
+/** Elementen värden reagerar på. Ett attribut per sort, samma lyssnare. */
+const ANCHOR_SELECTOR = "[data-passive],[data-item]";
 
 export function PassiveTipHost() {
   const { data, pals } = usePalData();
@@ -85,16 +116,22 @@ export function PassiveTipHost() {
 
   useEffect(() => {
     const show = (el: HTMLElement) => {
-      const id = el.dataset.passive;
-      if (!id) return;
+      /* Passiven vinner när ett element bär båda – en passiv-banner inne i ett
+         varukort är fortfarande en passiv. I praktiken händer det inte, men
+         ordningen ska vara bestämd och inte bero på attributens ordning. */
+      const passive = el.dataset.passive;
+      const item = el.dataset.item;
+      const kind = passive ? "passive" : item ? "item" : null;
+      const id = passive ?? item;
+      if (!kind || !id) return;
       current.current = el;
-      setAnchor({ id, note: el.dataset.passiveNote ?? null, rect: el.getBoundingClientRect() });
+      setAnchor({ kind, id, note: el.dataset.passiveNote ?? null, rect: el.getBoundingClientRect() });
       setPos(null);
     };
 
     const anchorOf = (target: EventTarget | null): HTMLElement | null =>
       target instanceof Element
-        ? (target.closest("[data-passive]") as HTMLElement | null)
+        ? (target.closest(ANCHOR_SELECTOR) as HTMLElement | null)
         : null;
 
     const onOver = (e: PointerEvent) => {
@@ -154,6 +191,55 @@ export function PassiveTipHost() {
   }, [anchor, pos]);
 
   if (!anchor || typeof document === "undefined") return null;
+
+  if (anchor.kind === "item") {
+    const info = itemInfo(anchor.id);
+    // Ingen känd beskrivning = ingen ruta. En tom ruta är värre än ingen.
+    if (!info) return null;
+    /* Siffrorna i spelets ordning, och bara de som betyder något för sorten –
+       generatorn utelämnar fält som inte gäller (ett svärd har inget magasin). */
+    const stats: [string, number][] = [];
+    if (info.atk !== undefined) stats.push([t("itip.atk"), info.atk]);
+    if (info.def !== undefined) stats.push([t("itip.def"), info.def]);
+    if (info.hp !== undefined) stats.push([t("itip.hp"), info.hp]);
+    if (info.shield !== undefined) stats.push([t("itip.shield"), info.shield]);
+    if (info.mag !== undefined) stats.push([t("itip.mag"), info.mag]);
+    if (info.dur !== undefined) stats.push([t("itip.dur"), info.dur]);
+    if (info.w !== undefined) stats.push([t("itip.weight"), info.w]);
+    if (info.g !== undefined) stats.push([t("itip.gold"), info.g]);
+
+    return createPortal(
+      <div
+        ref={tipRef}
+        className={`ptip itip ${pos ? "on" : ""}`}
+        style={{ left: pos?.left ?? 0, top: pos?.top ?? 0 }}
+        role="tooltip"
+      >
+        <div className="pthd">
+          <b>{anchor.id}</b>
+          <span className="pttier">{t.msg(itemKindLabel(info.t))}</span>
+        </div>
+        <div className="ptbody">{info.d}</div>
+        {stats.length > 0 && (
+          <div className="itstats">
+            {stats.map(([label, value]) => (
+              <span key={label}>
+                {label} <b className="num">{formatNumber(value, t.locale)}</b>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="ptmeta">
+          {/* Förbehållen är inte finstilt: en spelare som läser basvariantens
+              attack på en legendarisk ritning tror att vapnet är svagare än det
+              är och väljer bort det. Se itemInfo.ts. */}
+          {info.base && t("itip.base")}
+          {info.blueprint && t("itip.blueprint")}
+        </div>
+      </div>,
+      document.body,
+    );
+  }
 
   const def = data.passives[anchor.id];
   const tier = def?.r ?? 0;

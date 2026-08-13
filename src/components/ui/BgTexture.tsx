@@ -2,16 +2,17 @@
 
 /* Dumb-ish: Habitats bakgrundsstruktur, ritad i canvas.
    Varje palett har sin egen struktur – stenkorn (basalt), höjdkurvor
-   (nightwood) och vattenstrata (deepwater). Mönstret är deterministiskt
-   (egen LCG, ingen Math.random) så det inte flimrar mellan omritningar. */
+   (nightwood), vattenstrata (deepwater) och horisontband + stjärnfält (dusk).
+   Mönstret är deterministiskt (egen LCG, ingen Math.random) så det inte
+   flimrar mellan omritningar. */
 import { useEffect, useRef } from "react";
 
-type Pal = "basalt" | "nightwood" | "deepwater";
+type Pal = "basalt" | "nightwood" | "deepwater" | "dusk";
 
 /** Läser av vilket läge <html> faktiskt hamnat i just nu. */
 function readState(): { pal: Pal; dark: boolean } {
   const el = document.documentElement;
-  const pal = (el.dataset.pal as Pal) || "basalt";
+  const pal = (el.dataset.pal as Pal) || "dusk";
   const theme = el.dataset.theme;
   const dark = theme === "dark"
     || (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -63,6 +64,36 @@ function draw(cv: HTMLCanvasElement) {
         if (x) g.lineTo(x, yy); else g.moveTo(x, yy);
       }
       g.stroke();
+    }
+    return;
+  }
+
+  if (pal === "dusk") {
+    /* Skymningens horisontband: flacka vågor som tätnar mot nederkanten, som
+       ljusbanden i en solnedgång. I mörkt läge dessutom ett glest stjärnfält
+       på övre halvan – deterministiskt, precis som basaltens korn. */
+    g.strokeStyle = dark ? "rgba(200,185,255,.09)" : "rgba(120,80,60,.075)";
+    g.lineWidth = 1.1;
+    for (let i = 0; i < 14; i++) {
+      const y = h * (0.30 + Math.pow(i / 14, 1.35) * 0.75);
+      g.beginPath();
+      for (let x = 0; x <= w; x += 10) {
+        const yy = y + 7 * Math.sin(x * 0.004 + i * 1.7) + 3 * Math.sin(x * 0.013 - i);
+        if (x) g.lineTo(x, yy); else g.moveTo(x, yy);
+      }
+      g.stroke();
+    }
+    if (dark) {
+      let seed = 20260810;
+      const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+      g.fillStyle = "rgba(230,220,255,.35)";
+      const stars = Math.round(w / 9);
+      for (let i = 0; i < stars; i++) {
+        const x = rnd() * w, y = rnd() * rnd() * h * 0.45, r = rnd() * 0.9 + 0.3;
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.fill();
+      }
     }
     return;
   }

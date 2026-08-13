@@ -102,6 +102,34 @@ export function checkOutcome(check: UpdateCheck | null): CheckOutcome {
 }
 
 /**
+ * Repot projektet flyttar till när PalAssistent byter namn till PalCompanion.
+ *
+ * Den här raden finns för att namnbytet inte ska stranda dem som redan har
+ * appen installerad. `PA_REPO` bakas in vid bygget, och GitHub svarar med
+ * utgåvans URL under det namn repot heter **nu** – alltså det nya. En koll som
+ * bara godtar det inbakade namnet skulle därför säga "det finns en ny version"
+ * och sedan vägra installera den, för alltid.
+ *
+ * Två saker gör att det här inte luckrar upp spärren:
+ *
+ * 1. Adressen är en **fast sträng här i koden**, inte något GitHub eller
+ *    klienten får bestämma. Kontrollsumman kontrolleras precis som förut.
+ * 2. Den gäller bara när det inbakade repot har **samma ägare**. En fork bygger
+ *    med sitt eget `PA_REPO` och ska aldrig börja hämta binärer från oss – det
+ *    är samma tanke som att en fork får sin egen källkodslänk i foten.
+ */
+export const SUCCESSOR_REPO = "Sriwongwaew/PalCompanion";
+
+const ownerOf = (repo: string) => repo.split("/")[0] ?? "";
+
+/** Repona en nedladdning får komma ifrån, givet det inbakade `PA_REPO`. */
+export function trustedRepos(repo: string): string[] {
+  if (!repo) return [];
+  if (repo === SUCCESSOR_REPO) return [repo];
+  return ownerOf(repo) === ownerOf(SUCCESSOR_REPO) ? [repo, SUCCESSOR_REPO] : [repo];
+}
+
+/**
  * Får den här filen laddas ner och **köras**?
  *
  * GitHub kan i teorin svara med vilken URL som helst i `browser_download_url`,
@@ -116,7 +144,8 @@ export function checkOutcome(check: UpdateCheck | null): CheckOutcome {
  * har värden `ond.se`, vilket en strängjämförelse missar helt.
  */
 export function isTrustedAssetUrl(url: string, repo: string): boolean {
-  if (!repo) return false;
+  const repos = trustedRepos(repo);
+  if (repos.length === 0) return false;
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -125,7 +154,7 @@ export function isTrustedAssetUrl(url: string, repo: string): boolean {
   }
   if (parsed.protocol !== "https:") return false;
   if (parsed.host !== "github.com") return false;
-  return parsed.pathname.startsWith(`/${repo}/releases/download/`);
+  return repos.some((r) => parsed.pathname.startsWith(`/${r}/releases/download/`));
 }
 
 /**
@@ -135,6 +164,20 @@ export function isTrustedAssetUrl(url: string, repo: string): boolean {
  */
 export const UPDATE_SCRIPT_NAME = "uppdatera.cmd";
 export const UPDATE_INSTALLER_NAME = "PalAssistent-Setup.exe";
+
+/**
+ * Namnen en installationsfil kan ha i en utgåva, det nyaste först.
+ *
+ * Samma skäl som `SUCCESSOR_REPO`: utgåvan efter namnbytet heter
+ * `PalCompanion-Setup.exe`, och en app som bara letar efter det gamla namnet
+ * hittar ingen installer alls i den. Listan är ordnad, inte en mängd – hittas
+ * båda i samma utgåva (vilket övergångsutgåvan kan göra) ska den nya väljas.
+ *
+ * Filen appen sedan skriver till disk heter `UPDATE_INSTALLER_NAME` oavsett
+ * vilket av namnen den kom ifrån; det är ett lokalt filnamn i en mapp som
+ * töms varje gång, och skriptet läser samma konstant.
+ */
+export const INSTALLER_ASSET_NAMES = ["PalCompanion-Setup.exe", "PalAssistent-Setup.exe"];
 
 /**
  * Skriptet som byter ut programmet mot den nedladdade versionen.
@@ -176,13 +219,17 @@ export function updateScript(): string {
         '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalAssistent\\PalAssistent.exe"',
       'set "PA_WORK=%~dp0"',
       'set "PA_WORK=%PA_WORK:~0,-1%"',
+      "rem The process to wait for is whatever the launcher is called - read it",
+      "rem from the path instead of hardcoding it, so the script still works",
+      "rem across the release that renames the program.",
+      'for %%I in ("%PA_APP_EXE%") do set "PA_APP_NAME=%%~nxI"',
       "",
       "rem Wait for the app to let go of its files. Not with timeout: it needs a",
       "rem console and exits immediately when stdin is redirected, which it is.",
       "set /a PA_TRIES=0",
       ":wait",
-      'tasklist /fi "imagename eq PalAssistent.exe" /nh 2>nul | ' +
-        'find /i "PalAssistent.exe" >nul || goto install',
+      'tasklist /fi "imagename eq %PA_APP_NAME%" /nh 2>nul | ' +
+        'find /i "%PA_APP_NAME%" >nul || goto install',
       "set /a PA_TRIES+=1",
       "if %PA_TRIES% GEQ 60 goto install",
       "ping -n 2 127.0.0.1 >nul",
@@ -191,6 +238,11 @@ export function updateScript(): string {
       ":install",
       `"%PA_WORK%\\${UPDATE_INSTALLER_NAME}" /SILENT /SUPPRESSMSGBOXES /NORESTART ` +
         '/LOG="%PA_WORK%\\..\\update.log"',
+      "rem The renaming release installs under a new name, so the path we came",
+      "rem from is gone once it has run. Without this the update succeeds and",
+      "rem nothing starts again, which reads as a failed update.",
+      'if not exist "%PA_APP_EXE%" set ' +
+        '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalCompanion\\PalCompanion.exe"',
       'start "" "%PA_APP_EXE%"',
       "",
       "rem Remove our own folder. (goto) makes cmd let go of this file first,",

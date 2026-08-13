@@ -35,13 +35,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { updateScript, UPDATE_INSTALLER_NAME, UPDATE_SCRIPT_NAME } from "@/lib/update";
-import {
-  ASSET_NAME,
-  isTrustedAssetUrl,
-  latestRelease,
-  releaseIsNewer,
-  SUMS_NAME,
-} from "@/server/release";
+import { isTrustedAssetUrl, latestRelease, releaseIsNewer, SUMS_NAME } from "@/server/release";
 
 export const dynamic = "force-dynamic";
 
@@ -135,9 +129,12 @@ export async function POST() {
       download(release.sums.url).then((b) => b.toString("utf8")),
     ]);
 
-    const expected = sumFor(sums, ASSET_NAME);
+    // Kontrollsumman slås upp på namnet filen har i UTGÅVAN, inte på det namn
+    // vi själva bygger under: efter namnbytet till PalCompanion är de två
+    // olika, och ett uppslag på fel rad hade sett ut som en trasig utgåva.
+    const expected = sumFor(sums, release.installer.name);
     if (!expected) {
-      return fail(t("api.noSumLine", { sums: SUMS_NAME, asset: ASSET_NAME }));
+      return fail(t("api.noSumLine", { sums: SUMS_NAME, asset: release.installer.name }));
     }
 
     const actual = createHash("sha256").update(binary).digest("hex");

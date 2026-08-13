@@ -178,6 +178,16 @@ jobs:
           # passive ids are precisely the stash the barrier exists to keep in.
           $impl = @($prop.Value.PSObject.Properties).Count
           if ($impl -ne 0) { throw "The payload carries $impl implants from someone's stash." }
+          # Progress (towers, effigies, quest log) is save-derived too. Unlike
+          # implants the right blank is ABSENCE: undefined means "nothing read
+          # yet" and makes the map/quests pages show their import hint.
+          if ($data.PSObject.Properties['progress']) {
+            throw "The payload carries someone's progression (towers/effigies/quests)."
+          }
+          # The Pal Soul wallet comes from the same containers as implants.
+          if ($data.PSObject.Properties['souls']) {
+            throw "The payload carries someone's Pal Soul wallet."
+          }
           Write-Host "The box is empty - $($data.species.Count) species left."
 
       # The installer is started for real.

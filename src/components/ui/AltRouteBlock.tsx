@@ -6,7 +6,12 @@
    Den ersätter aldrig planen. Poängen är att man ska kunna se att det man
    *just* har fått fram öppnade en genväg, utan att tappa den plan man redan
    följer: rubriken säger hur mycket den sparar, texten säger vilka två pals som
-   gjorde den möjlig, och stegen står under i samma form som planens egna. */
+   gjorde den möjlig, och stegen står under i samma form som planens egna.
+
+   Två slags vägar ritas här, och **föräldrarna kan vara av olika art**: när
+   parets unge är målarten görs hela planen i ett steg (se `directPair.ts`).
+   Därför tar varje förälder sin egen art – förut ritades båda med
+   hopsamlingsartens porträtt, vilket bara var sant för par av samma art. */
 
 import { useT } from "@/i18n/LocaleContext";
 import type { AltRoute } from "@/lib/altRoutes";
@@ -61,9 +66,13 @@ export function AltRouteBlock({
       {routes.map((r) => {
         const sp = speciesOf(r.species);
         const wanted = [...new Set([...r.a.pv, ...r.b.pv])].filter((id) => !r.poolJunk.includes(id));
+        /* Olika art hos föräldrarna = unge på målarten, alltså ett enda steg.
+           Nyckeln måste bära individerna: flera sådana vägar landar på samma
+           art och `r.species` räcker då inte som identitet. */
+        const cross = r.a.s !== r.b.s;
         return (
           <div
-            key={r.species}
+            key={`${r.species}-${r.a.id}-${r.b.id}`}
             className="altroute"
             style={{ ["--elc" as string]: elementColor(sp) }}
           >
@@ -76,19 +85,26 @@ export function AltRouteBlock({
             </div>
 
             <div className="altwhy">
-              {t("alt.why", { name: sp.name, n: wanted.length })}
+              {cross
+                ? t("alt.whyCross", {
+                  a: speciesOf(r.a.s).name, b: speciesOf(r.b.s).name,
+                  name: sp.name, n: wanted.length,
+                })
+                : t("alt.why", { name: sp.name, n: wanted.length })}
               {r.cleanAssembly
                 ? t("alt.whyClean")
                 : t("alt.whyJunk", { names: r.poolJunk.map(nameOf).join(", ") })}
-              {r.chain.length > 0
+              {/* Korsartade par landar alltid på målet – då säger en tredje
+                  mening samma sak en gång till. */}
+              {!cross && (r.chain.length > 0
                 ? t("alt.whyChain", { n: r.chain.length, target: speciesOf(target).name })
-                : t("alt.whyTarget", { name: sp.name })}
+                : t("alt.whyTarget", { name: sp.name }))}
             </div>
 
             <div className="altpair">
-              <Parent pal={r.a} sp={sp} nameOf={nameOf} tierOf={tierOf} wanted={wanted} />
+              <Parent pal={r.a} sp={speciesOf(r.a.s)} nameOf={nameOf} tierOf={tierOf} wanted={wanted} />
               <span className="altplus">＋</span>
-              <Parent pal={r.b} sp={sp} nameOf={nameOf} tierOf={tierOf} wanted={wanted} />
+              <Parent pal={r.b} sp={speciesOf(r.b.s)} nameOf={nameOf} tierOf={tierOf} wanted={wanted} />
             </div>
 
             <ol className="altsteps">
