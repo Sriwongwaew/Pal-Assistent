@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: major -->
+## 3.0.0 – 2026-08-14
+
 
 - **The app is called PalCompanion now.** Same program, same box, same plans — a new name, and it
   is gone from every corner of the old one: the window, the Start menu, the desktop shortcut, the
