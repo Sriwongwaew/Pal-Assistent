@@ -1530,7 +1530,7 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   Verify every UI change with a headless screenshot (Playwright + `/opt/pw-browsers/chromium` in
   the cloud sandbox) **before** delivering, and compare against his reference.
 - Delivery loop used so far: build green → tar (exclude `node_modules`, `.next`) → write to
-  `C:\Repository\palassistent` (extract with `tar --strip-components=1 --overwrite`; the device
+  `C:\Repository\PalCompanion` (extract with `tar --strip-components=1 --overwrite`; the device
   mount cannot delete files — old archives are parked in `_to_delete/`).
 - `_to_delete/` is junk the user empties himself; never rely on its contents.
 - **Ken arbetar i samma träd samtidigt som du. Kör aldrig `git add -A` på en granskning som är
