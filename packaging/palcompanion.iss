@@ -53,6 +53,14 @@ DefaultDirName={localappdata}\Programs\{#AppName}
 ; annars börjar visa sig igen just för dem som uppgraderar.
 UsePreviousAppDir=no
 DefaultGroupName={#AppName}
+; Och Startmenygruppen ärvs på EXAKT samma sätt, ur samma registerpost. Att bara
+; stänga av mappen räckte därför inte: [InstallDelete] tog den gamla gruppen,
+; och sedan skapade [Icons] den igen eftersom {group} fortfarande löstes till
+; "PalAssistent" – de nya genvägarna landade i en mapp med det gamla namnet.
+; Loggen från 3.0.0 säger det rakt ut: "Dest filename: …\PalAssistent\
+; PalCompanion.lnk" följt av "Creating directory: …\PalAssistent". Städningen
+; ligger före ikonerna i körordningen och kan alltså aldrig hinna före dem.
+UsePreviousGroup=no
 DisableProgramGroupPage=yes
 DisableDirPage=yes
 PrivilegesRequired=lowest

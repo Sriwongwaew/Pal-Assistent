@@ -13,6 +13,15 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **The Start menu said PalAssistent after updating to 3.0.0.** The shortcuts inside it were
+  named correctly, but Windows remembers the old folder from the previous installation and the
+  update put the new shortcuts straight back into it. The folder is now created under the new
+  name, and the old one is removed. If you already updated, this fixes it on the way past — no
+  need to do anything.
+
+- **The old installation left almost a gigabyte behind.** A browser profile under the previous
+  name that nothing reads any more. It is deleted the first time this version starts.
+
 ## 3.0.0 – 2026-08-14
 
 

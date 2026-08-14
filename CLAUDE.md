@@ -806,15 +806,28 @@ Femton saker som är inlärda med möda – ändra inte tillbaka:
     Paketsteget skriver därför sitt fel som en `::error::`-annotering, och **annoteringar går
     att läsa utan konto**. Ta inte bort det – det var det som gav svaret på första försöket
     efter tre blinda körningar.
-15. **Installationsmappen är låst till `{localappdata}\Programs\PalCompanion`**
-    (`UsePreviousAppDir=no` + `DisableDirPage=yes`), och det är namnbytets skuld. Programmet hette
-    **PalAssistent** till och med 2.6.0, och 2.6.0:s uppdateringsskript – som redan ligger ute hos
+15. **Installationsmappen OCH Startmenygruppen är låsta** (`UsePreviousAppDir=no` +
+    `UsePreviousGroup=no` + `DisableDirPage=yes`), och det är namnbytets skuld.
+    **Båda `UsePrevious*` måste stängas av, inte bara den ena** – de läser samma registerpost, och
+    3.0.0 släpptes med bara mappen avstängd. Följden gick inte att gissa: `[InstallDelete]` tog
+    mycket riktigt bort den gamla gruppen, men `{group}` löstes fortfarande till `PalAssistent`, så
+    `[Icons]` skapade mappen igen och la `PalCompanion.lnk` i den. Städning kan aldrig hinna före
+    ikonerna – den ligger före dem i körordningen. Loggen (`/LOG=` i uppdateringsskriptet) sa det
+    rakt ut, och den är enda stället det syns: på disken ser det bara ut som att städningen
+    misslyckades.
+    Mappen är därmed låst till `{localappdata}\Programs\PalCompanion`, och det är inte kosmetik:
+    programmet hette **PalAssistent** till och med 2.6.0, och 2.6.0:s uppdateringsskript – som redan ligger ute hos
     alla som ska hämta 3.0.0 – startar om programmet på **exakt den sökvägen** när den det kom
     ifrån är borta. Ärvde Inno den gamla mappen skulle 3.0.0 landa som `PalCompanion.exe` i en mapp
     som heter `PalAssistent`, och reserven pekade på ingenting: *uppdateringen lyckas och
     ingenting startar igen*. `AppId` är oförändrat (punkt 9 i utgåvedelen), så Windows uppgraderar
     i stället för att lägga en andra installation vid sidan om, och `[InstallDelete]` städar bort
     den gamla mappen, Startmenygruppen och skrivbordsgenvägen. Ta inte bort de raderna förrän
+    Den gamla **statmappen** (`%LOCALAPPDATA%\PalAssistent`, ~1 GB Edge-profil) städas däremot av
+    **launchern** vid start (`DropOldState`) och inte av installern: när 2.6.0 uppdaterar sig kör
+    både installern och uppdateringsskriptet *ur* den mappen, och Inno läser sin nyttolast ur
+    originalfilen hela installationen igenom. En `[InstallDelete]` där river undan mattan för sig
+    själv. Ta inte bort de raderna förrän
     ingen kör 2.x längre – och skriv aldrig in en absolut sökväg någon annanstans i kedjan; att
     just den här finns i ett redan utgivet skript är hela problemet.
 

@@ -75,6 +75,9 @@ internal static class Program
     private static string PortFile { get { return Path.Combine(StateDir, "port"); } }
     private static string BrowserProfile { get { return Path.Combine(StateDir, "browser"); } }
 
+    /// Statmappen programmet hade när det hette PalAssistent. Se DropOldState.
+    private const string OldAppName = "PalAssistent";
+
     /// Där /api/update/install lägger sin nedladdade installer och sitt skript.
     /// Samma sökväg finns i route.ts – ändras den ena måste den andra med.
     private static string UpdateDir { get { return Path.Combine(StateDir, "update"); } }
@@ -117,6 +120,7 @@ internal static class Program
         }
 
         Directory.CreateDirectory(StateDir);
+        DropOldState();
 
         // Tidsstämpeln avgör senare om en väntande uppdatering hör till den här
         // körningen eller är en rest från en avbruten. Se RunPendingUpdate.
@@ -158,6 +162,33 @@ internal static class Program
             // poängen.
             RunPendingUpdate(startedUtc);
         }
+    }
+
+    /// Slänger statmappen från tiden programmet hette PalAssistent.
+    ///
+    /// Den innehåller en egen Edge-profil, alltså närmare en gigabyte som ingen
+    /// längre läser – programmet använder StateDir ovan. Städningen ligger HÄR och
+    /// inte i installern med flit: när 2.6.0 uppdaterar sig kör både installern och
+    /// uppdateringsskriptet *ur* den mappen (`%LOCALAPPDATA%\PalAssistent\update\`),
+    /// och Inno läser dessutom sin egen nyttolast ur originalfilen hela vägen genom
+    /// installationen. En `[InstallDelete]` där hade rivit undan mattan för sig
+    /// själv. Vid nästa start är ingen av dem kvar, och då är mappen fri.
+    ///
+    /// Går det inte sägs ingenting: en gigabyte kvarglömd diskplats är inte värd en
+    /// felruta, och nästa start försöker igen.
+    private static void DropOldState()
+    {
+        try
+        {
+            string old = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                OldAppName);
+            // Skyddsräcke: skulle namnen någon gång sammanfalla vore det här radera
+            // programmets egen profil under fötterna på det.
+            if (string.Equals(old, StateDir, StringComparison.OrdinalIgnoreCase)) return;
+            if (Directory.Exists(old)) Directory.Delete(old, true);
+        }
+        catch { }
     }
 
     /// Kör uppdateringsskriptet som /api/update/install lagt ut, om det finns.
