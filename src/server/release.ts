@@ -22,9 +22,10 @@ export const VERSION = process.env.PA_VERSION ?? "0.0.0";
 /**
  * Filnamnen i utgåvan. Stabila med flit – `latest`-länken bygger på dem.
  *
- * Installern har två godtagna namn under namnbytet till PalCompanion, se
- * `INSTALLER_ASSET_NAMES`. `ASSET_NAME` är det vi själva bygger och det som
- * står i felmeddelanden; uppslaget nedan tar det första som finns i utgåvan.
+ * `ASSET_NAME` är det vi själva bygger och det som står i felmeddelanden.
+ * Uppslaget nedan går ändå via `INSTALLER_ASSET_NAMES` och inte via den här
+ * konstanten: skulle namnet någon gång behöva bytas är det listan som får bära
+ * övergången, och då finns bara ett ställe att lägga den på.
  */
 export const ASSET_NAME = "PalCompanion-Setup.exe";
 export const SUMS_NAME = "SHA256SUMS.txt";

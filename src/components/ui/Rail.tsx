@@ -50,7 +50,7 @@ export function Rail() {
       <div className="rzone rl">
         {/* Ett enda textelement för ordbilden – flex-gapen mellan lösa
             textnoder gjorde märket till "Pal A". */}
-        <div className="brand"><ItemIcon slug="pal-sphere" size={21} /><span>Pal<em>A</em></span></div>
+        <div className="brand"><ItemIcon slug="pal-sphere" size={21} /><span>Pal<em>C</em></span></div>
       </div>
       <div className="rzone rc">
         {TABS.map(({ href, key, icon }) => (
