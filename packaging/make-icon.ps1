@@ -9,7 +9,7 @@
 # ICO stöds från Vista och uppåt, och slipper AND-maskens fallgropar.
 
 # Samma ikon skrivs på två ställen och ska alltid vara identiska:
-#   app.ico          bakas in i PalAssistent.exe och i installern
+#   app.ico          bakas in i PalCompanion.exe och i installern
 #   src/app/favicon.ico   blir ikonen i app-fönstrets titelrad (Edge tar den
 #                    från sidans favicon, inte från exe:n)
 

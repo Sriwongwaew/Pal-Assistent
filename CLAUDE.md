@@ -1,4 +1,4 @@
-# CLAUDE.md – PalAssistent
+# CLAUDE.md – PalCompanion
 
 Instructions for Claude agents working in this repo. **Swedish is for talking to Ken — that is the
 only thing that defaults to it.** Everything written down has its own rule:
@@ -8,7 +8,7 @@ only thing that defaults to it.** Everything written down has its own rule:
   `packaging/build.ps1`. That covers what they *print*, too — job output, warnings and thrown
   errors are read in the Actions tab, by anyone, and half of them end up in a public annotation.
 - **Code comments in the app itself are Swedish** — `src/**`, `tools/**`, `packaging/Launcher.cs`,
-  `packaging/palassistent.iss`, `globals.css`. Keep it that way.
+  `packaging/palcompanion.iss`, `globals.css`. Keep it that way.
 - **Anything a user or an outsider reads is English**: README, CHANGELOG, the release text, the
   repo's own docs.
 
@@ -724,18 +724,18 @@ varje namn som inte fick en rad.
 
 ## Paketering – installern för andra datorer
 
-`npm run package` (→ `packaging/build.ps1`) bygger `dist\PalAssistent-<version>-Setup.exe`.
+`npm run package` (→ `packaging/build.ps1`) bygger `dist\PalCompanion-Setup.exe`.
 Mottagaren kör installationsfilen och startar programmet från Startmenyn: eget fönster utan
 adressrad, egen ikon, ingen terminal. **Inget behöver finnas installerat** – Node, save-läsaren
 och allt annat ligger i paketet (~184 MB nyttolast, ~70 MB installer).
 
-Delarna: `packaging/Launcher.cs` → `PalAssistent.exe` (kompileras med `csc.exe` ur .NET
+Delarna: `packaging/Launcher.cs` → `PalCompanion.exe` (kompileras med `csc.exe` ur .NET
 Framework, som finns på varje Windows – därför ingen verktygskedja att installera),
 Next i `output: "standalone"`, `palsave.exe` (PyInstaller `--onedir`), maskinens egen
-`node.exe` (MIT, fri att distribuera) och `packaging/palassistent.iss` (Inno Setup).
+`node.exe` (MIT, fri att distribuera) och `packaging/palcompanion.iss` (Inno Setup).
 Byggberoenden på **din** maskin: `pip install pyinstaller` + `winget install JRSoftware.InnoSetup`.
 
-Fjorton saker som är inlärda med möda – ändra inte tillbaka:
+Femton saker som är inlärda med möda – ändra inte tillbaka:
 
 1. **`PA_PACKAGE=1` ger både standalone och egen `distDir`.** Paketbygget skriver till
    `.next-package/`, aldrig `.next/`. Det är därför du kan paketera medan dev-servern kör –
@@ -781,11 +781,11 @@ Fjorton saker som är inlärda med möda – ändra inte tillbaka:
 12. **`Process.MainWindowTitle` ger fönstret som ligger ÖVERST, inte appens fönster.** Hela
     Edge-profilen är *en* process med flera fönster, och .NET väljer det första `EnumWindows`
     hittar – alltså det översta i z-ordningen. Lägger sig ett annat Edge-fönster ovanpå appen
-    ser launchern inget PalAssistent-fönster alls, `WaitForShutdown` tolkar det som att
+    ser launchern inget PalCompanion-fönster alls, `WaitForShutdown` tolkar det som att
     användaren stängt programmet och dödar servern 1,2 s senare. Symptomet är en app som
     stänger sig själv strax efter start, utan felmeddelande, "ibland". `AppWindowExists` går
     därför igenom **alla** synliga toppnivåfönster och kräver att fönstret tillhör en
-    msedge-process (annars håller Utforskarens "PalAssistent"-fönster servern vid liv).
+    msedge-process (annars håller Utforskarens "PalCompanion"-fönster servern vid liv).
 13. **Egen profil är inte tom profil.** `--user-data-dir` isolerar inte från användarens
     tillägg som man kunde tro: på en dator med jobbkonto loggar Edge in sig själv i den nya
     profilen och **synkar ner alla tillägg** – Kens app-profil hade 20 stycken, däribland
@@ -806,9 +806,20 @@ Fjorton saker som är inlärda med möda – ändra inte tillbaka:
     Paketsteget skriver därför sitt fel som en `::error::`-annotering, och **annoteringar går
     att läsa utan konto**. Ta inte bort det – det var det som gav svaret på första försöket
     efter tre blinda körningar.
+15. **Installationsmappen är låst till `{localappdata}\Programs\PalCompanion`**
+    (`UsePreviousAppDir=no` + `DisableDirPage=yes`), och det är namnbytets skuld. Programmet hette
+    **PalAssistent** till och med 2.6.0, och 2.6.0:s uppdateringsskript – som redan ligger ute hos
+    alla som ska hämta 3.0.0 – startar om programmet på **exakt den sökvägen** när den det kom
+    ifrån är borta. Ärvde Inno den gamla mappen skulle 3.0.0 landa som `PalCompanion.exe` i en mapp
+    som heter `PalAssistent`, och reserven pekade på ingenting: *uppdateringen lyckas och
+    ingenting startar igen*. `AppId` är oförändrat (punkt 9 i utgåvedelen), så Windows uppgraderar
+    i stället för att lägga en andra installation vid sidan om, och `[InstallDelete]` städar bort
+    den gamla mappen, Startmenygruppen och skrivbordsgenvägen. Ta inte bort de raderna förrän
+    ingen kör 2.x längre – och skriv aldrig in en absolut sökväg någon annanstans i kedjan; att
+    just den här finns i ett redan utgivet skript är hela problemet.
 
 Installern är **osignerad**, så SmartScreen säger "Windows skyddade din dator" första gången.
-Det står i `packaging/LÄS-MIG.txt`; ett certifikat kostar tusenlappar per år och en hårdvarutoken.
+Det står i `packaging/README.txt`; ett certifikat kostar tusenlappar per år och en hårdvarutoken.
 
 ## Utgåvor och självuppdatering
 
@@ -820,8 +831,8 @@ git push --follow-tags   # .github/workflows/release.yml tar över
 ```
 
 Workflowen bygger på `windows-latest`, kör typecheck + test, bygger paketet och publicerar
-`PalAssistent-Setup.exe` + `SHA256SUMS.txt`. **Båda filnamnen är stabila med flit** – hela
-poängen är att `…/releases/latest/download/PalAssistent-Setup.exe` alltid ska peka på den
+`PalCompanion-Setup.exe` + `SHA256SUMS.txt`. **Båda filnamnen är stabila med flit** – hela
+poängen är att `…/releases/latest/download/PalCompanion-Setup.exe` alltid ska peka på den
 senaste. Versionen syns i installerarens egenskaper, inte i filnamnet.
 
 **Tre värden bakas in vid bygget** via `env` i `next.config.ts` och finns därmed som vanliga
@@ -829,6 +840,17 @@ strängar i den byggda appen: `PA_VERSION` (ur package.json), `PA_REPO` (sätts 
 `github.repository`) och `PA_DONATE` (repo-variabeln med samma namn). `PA_REPO` är strömbrytaren
 för hela uppdateringsfunktionen – ett bygge från källkoden har den tom och erbjuder därför aldrig
 en uppdatering. Det är avsiktligt: ingen ska få en ruta som vill installera över sin arbetskopia.
+
+**Repot bytte namn med 3.0.0** (`Pal-Assistent` → `PalCompanion`), och att den övergången
+fungerade hänger på tre saker som redan låg i 2.6.0 – kolla dem innan du någonsin byter namn på
+repot igen: `PA_REPO` är inbakad i varje utgivet bygge, så en 2.6.0-app frågar fortfarande efter
+**det gamla sökvägsnamnet** och räddas bara av att GitHub svarar 301 på det omdöpta repot (bevara
+därför alltid omdirigeringen – skapa inte ett nytt tomt repo på det gamla namnet); 2.6.0:s
+`INSTALLER_ASSET_NAMES` innehöll `PalCompanion-Setup.exe` **först**, så den känner igen tillgången;
+och dess `trustedRepos` godtog efterföljaren under **samma ägare**. Alla tre är
+övergångsstöttor för de byggen som redan är ute — 3.0.0 självt litar bara på sitt eget `PA_REPO`
+och sitt eget tillgångsnamn, och det är rätt läge att stå i. Byts namnet igen är det den **då**
+utgivna versionen som måste förberedas, en utgåva i förväg.
 
 Uppdateringsflödet, och varför varje del ser ut som den gör:
 
@@ -873,7 +895,7 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
    på: *appen stängs, ingenting installeras, och nästa start är samma version.* Så här hänger det
    ihop nu, och ingen del av kedjan är valfri:
    - Rutten laddar ner, kontrollsummerar och lägger installern + `uppdatera.cmd` i mappen
-     **launchern pekat ut** med `PA_UPDATE_DIR` (`%LOCALAPPDATA%\PalAssistent\update\`).
+     **launchern pekat ut** med `PA_UPDATE_DIR` (`%LOCALAPPDATA%\PalCompanion\update\`).
      **Skriptet skrivs sist** — det är dess existens launchern går på. Sedan svarar den och
      avslutar sig efter 1,5 s. Den startar ingenting.
      Rutten räknar med flit *inte* ut sökvägen själv, och det är inte bara för att slippa två
@@ -887,7 +909,7 @@ Uppdateringsflödet, och varför varje del ser ut som den gör:
      job-handtaget släppt. Launchern är själv inte medlem i jobbet, så det den startar går fritt.
      Den kör bara ett skript som är **nyare än launcherns egen starttid**; ett äldre är en rest
      från en avbruten uppdatering och raderas i stället för att köras vid nästa vanliga avslut.
-   - Skriptet (`updateScript` i `src/lib/update.ts`, testat) väntar tills `PalAssistent.exe`
+   - Skriptet (`updateScript` i `src/lib/update.ts`, testat) väntar tills `PalCompanion.exe`
      verkligen är borta, kör installern tyst, startar programmet igen och raderar sin egen mapp.
      Två fällor i den texten, båda tysta: **`timeout` går inte att använda** — den kräver en
      konsol och avslutar direkt med "Input redirection is not supported" när stdin är

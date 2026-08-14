@@ -1,4 +1,4 @@
-# PalAssistent
+# PalCompanion
 
 **A box manager and breeding planner for Palworld.** It reads your own save file and answers the
 questions that otherwise cost you hours in front of the breeding pen: which pals should I keep,
@@ -17,11 +17,11 @@ uploaded anywhere.
 
 ## Download
 
-### ▶ [Get PalAssistent](../../releases/latest/download/PalAssistent-Setup.exe)
+### ▶ [Get PalCompanion](../../releases/latest/download/PalCompanion-Setup.exe)
 
 Windows 10/11 · about 60 MB · free
 
-Run the installer, start PalAssistent from the Start menu, and click **Read from the game**. That's
+Run the installer, start PalCompanion from the Start menu, and click **Read from the game**. That's
 it. You don't need Node, Python or anything else — it's all in the package.
 
 > The first time, Windows may show *"Windows protected your PC"*. That's because the installer
@@ -123,7 +123,7 @@ comparing two plans against each other.
 
 ## Support the project
 
-PalAssistent is free and will stay that way. If it has saved you a few hours, feel free to buy me a
+PalCompanion is free and will stay that way. If it has saved you a few hours, feel free to buy me a
 coffee — the link is at the bottom of the left-hand column in the app.
 
 ## Development
@@ -140,7 +140,7 @@ npm test            # node:test over src/lib
 npm run lint
 npm run docs-images # every image the docs point at exists
 npm run docs-shots  # retake the five README screenshots
-npm run package     # -> dist/PalAssistent-Setup.exe
+npm run package     # -> dist/PalCompanion-Setup.exe
 ```
 
 Run `npm test` after every change in `src/lib`. A miscalculated probability looks exactly as
@@ -200,7 +200,7 @@ and someone who supports anonymously has to be able to keep doing so.
 
 Copyright © 2026 **Kensiwat Sriwongwaew**
 
-PalAssistent is free software: you can redistribute it and/or modify it under the terms of the
+PalCompanion is free software: you can redistribute it and/or modify it under the terms of the
 **GNU Affero General Public License, version 3** as published by the Free Software Foundation.
 The full text is in [LICENSE](LICENSE), and the summary below is also kept as [NOTICE](NOTICE) —
 the file that ships inside the installer, since that is the only form most people ever see.

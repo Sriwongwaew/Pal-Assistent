@@ -102,31 +102,23 @@ export function checkOutcome(check: UpdateCheck | null): CheckOutcome {
 }
 
 /**
- * Repot projektet flyttar till när PalAssistent byter namn till PalCompanion.
+ * Repona en nedladdning får komma ifrån: bara det inbakade `PA_REPO`.
  *
- * Den här raden finns för att namnbytet inte ska stranda dem som redan har
- * appen installerad. `PA_REPO` bakas in vid bygget, och GitHub svarar med
- * utgåvans URL under det namn repot heter **nu** – alltså det nya. En koll som
- * bara godtar det inbakade namnet skulle därför säga "det finns en ny version"
- * och sedan vägra installera den, för alltid.
+ * Under namnbytet (2.4.0–2.6.0) stod här också en `SUCCESSOR_REPO`, så en app
+ * byggd under det gamla namnet kunde hämta binären ur det omdöpta repot. Utan
+ * den hade en installerad app sett den nya versionen, annonserat den och sedan
+ * vägrat installera den – för alltid. Den raden hörde till de gamla byggena, och
+ * de har den redan: `PA_REPO` pekar numera på PalCompanion, och GitHub
+ * omdirigerar dessutom det gamla namnet hit.
  *
- * Två saker gör att det här inte luckrar upp spärren:
- *
- * 1. Adressen är en **fast sträng här i koden**, inte något GitHub eller
- *    klienten får bestämma. Kontrollsumman kontrolleras precis som förut.
- * 2. Den gäller bara när det inbakade repot har **samma ägare**. En fork bygger
- *    med sitt eget `PA_REPO` och ska aldrig börja hämta binärer från oss – det
- *    är samma tanke som att en fork får sin egen källkodslänk i foten.
+ * Spärren är oförändrad i sak. Adressen jämförs mot ett repo som bakats in vid
+ * bygget, aldrig mot något GitHub eller klienten får bestämma, och
+ * kontrollsumman kontrolleras som förut. En fork bygger med sitt eget `PA_REPO`
+ * och hämtar därför bara från sig själv – samma tanke som att den får sin egen
+ * källkodslänk i foten.
  */
-export const SUCCESSOR_REPO = "Sriwongwaew/PalCompanion";
-
-const ownerOf = (repo: string) => repo.split("/")[0] ?? "";
-
-/** Repona en nedladdning får komma ifrån, givet det inbakade `PA_REPO`. */
 export function trustedRepos(repo: string): string[] {
-  if (!repo) return [];
-  if (repo === SUCCESSOR_REPO) return [repo];
-  return ownerOf(repo) === ownerOf(SUCCESSOR_REPO) ? [repo, SUCCESSOR_REPO] : [repo];
+  return repo ? [repo] : [];
 }
 
 /**
@@ -163,21 +155,20 @@ export function isTrustedAssetUrl(url: string, repo: string): boolean {
  * launchern skickar den till servern som `PA_UPDATE_DIR`.
  */
 export const UPDATE_SCRIPT_NAME = "uppdatera.cmd";
-export const UPDATE_INSTALLER_NAME = "PalAssistent-Setup.exe";
+export const UPDATE_INSTALLER_NAME = "PalCompanion-Setup.exe";
 
 /**
  * Namnen en installationsfil kan ha i en utgåva, det nyaste först.
  *
- * Samma skäl som `SUCCESSOR_REPO`: utgåvan efter namnbytet heter
- * `PalCompanion-Setup.exe`, och en app som bara letar efter det gamla namnet
- * hittar ingen installer alls i den. Listan är ordnad, inte en mängd – hittas
- * båda i samma utgåva (vilket övergångsutgåvan kan göra) ska den nya väljas.
+ * Ett namn numera. Listan var två lång under namnbytet (2.4.0–2.6.0), så att en
+ * app byggd under det gamla namnet skulle hitta installern i den omdöpta
+ * utgåvan. Den här byggnaden uppdaterar bara till versioner som redan heter
+ * PalCompanion, så det andra namnet har spelat ut sin roll.
  *
- * Filen appen sedan skriver till disk heter `UPDATE_INSTALLER_NAME` oavsett
- * vilket av namnen den kom ifrån; det är ett lokalt filnamn i en mapp som
- * töms varje gång, och skriptet läser samma konstant.
+ * Formen är kvar som lista eftersom uppslaget är **ordnat**: nästa gång något
+ * byter namn läggs det nya först, och då fungerar övergången av sig själv.
  */
-export const INSTALLER_ASSET_NAMES = ["PalCompanion-Setup.exe", "PalAssistent-Setup.exe"];
+export const INSTALLER_ASSET_NAMES = ["PalCompanion-Setup.exe"];
 
 /**
  * Skriptet som byter ut programmet mot den nedladdade versionen.
@@ -208,7 +199,7 @@ export function updateScript(): string {
   return (
     [
       "@echo off",
-      "rem PalAssistent update. Started by PalAssistent.exe when the server has",
+      "rem PalCompanion update. Started by PalCompanion.exe when the server has",
       "rem exited - never by the server itself, whose children die with the job",
       "rem object that keeps node.exe and the window in check.",
       "setlocal",
@@ -216,7 +207,7 @@ export function updateScript(): string {
       "rem Where to start again afterwards. The launcher passes this as an",
       "rem environment variable; the fallback is the default install location.",
       "if not defined PA_APP_EXE set " +
-        '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalAssistent\\PalAssistent.exe"',
+        '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalCompanion\\PalCompanion.exe"',
       'set "PA_WORK=%~dp0"',
       'set "PA_WORK=%PA_WORK:~0,-1%"',
       "rem The process to wait for is whatever the launcher is called - read it",
@@ -238,11 +229,6 @@ export function updateScript(): string {
       ":install",
       `"%PA_WORK%\\${UPDATE_INSTALLER_NAME}" /SILENT /SUPPRESSMSGBOXES /NORESTART ` +
         '/LOG="%PA_WORK%\\..\\update.log"',
-      "rem The renaming release installs under a new name, so the path we came",
-      "rem from is gone once it has run. Without this the update succeeds and",
-      "rem nothing starts again, which reads as a failed update.",
-      'if not exist "%PA_APP_EXE%" set ' +
-        '"PA_APP_EXE=%LOCALAPPDATA%\\Programs\\PalCompanion\\PalCompanion.exe"',
       'start "" "%PA_APP_EXE%"',
       "",
       "rem Remove our own folder. (goto) makes cmd let go of this file first,",

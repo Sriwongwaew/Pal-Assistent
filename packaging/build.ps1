@@ -1,10 +1,10 @@
 ﻿# Builds the complete installation package: npm run package runs this.
 #
-# The result is dist\PalAssistent-<version>-Setup.exe - an installer that does not
+# The result is dist\PalCompanion-Setup.exe - an installer that does not
 # require the recipient to have Node, Python or anything else. Everything needed
 # is in the package:
 #
-#   PalAssistent.exe   the launcher (packaging\Launcher.cs, compiled with csc)
+#   PalCompanion.exe   the launcher (packaging\Launcher.cs, compiled with csc)
 #   server.js + .next-package\   Next in standalone mode
 #   node\node.exe      your own Node, MIT licensed and free to ship
 #   tools\palsave\     the save reader as an exe, with libooz.dll baked in
@@ -186,7 +186,7 @@ Step 'Compiling the launcher'
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path $csc)) { throw "Cannot find csc.exe ($csc)" }
 & $csc /nologo /target:winexe /platform:anycpu /optimize+ `
-    /out:"$(Join-Path $payload 'PalAssistent.exe')" `
+    /out:"$(Join-Path $payload 'PalCompanion.exe')" `
     /win32icon:"$(Join-Path $PSScriptRoot 'app.ico')" `
     /r:System.dll /r:System.Windows.Forms.dll `
     "$(Join-Path $PSScriptRoot 'Launcher.cs')"
@@ -216,7 +216,7 @@ if (-not $SkipInstaller) {
 
     Step "Building the installer (version $version)"
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
-    & $iscc /Qp "/DAppVersion=$version" (Join-Path $PSScriptRoot 'palassistent.iss')
+    & $iscc /Qp "/DAppVersion=$version" (Join-Path $PSScriptRoot 'palcompanion.iss')
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
 
     # The checksums the update feature verifies against before it runs anything.
@@ -236,13 +236,13 @@ if (-not $SkipInstaller) {
     # loading in this script**: it always runs as a child process of someone
     # else's shell. The .NET call exists in every PowerShell that can start it.
     Step 'Computing checksums'
-    $setup = Join-Path $distDir 'PalAssistent-Setup.exe'
+    $setup = Join-Path $distDir 'PalCompanion-Setup.exe'
     $sha = [System.Security.Cryptography.SHA256]::Create()
     $stream = [System.IO.File]::OpenRead($setup)
     try { $hash = ([BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '').ToLower() }
     finally { $stream.Dispose(); $sha.Dispose() }
     $sums = Join-Path $distDir 'SHA256SUMS.txt'
-    [System.IO.File]::WriteAllText($sums, "$hash  PalAssistent-Setup.exe`n",
+    [System.IO.File]::WriteAllText($sums, "$hash  PalCompanion-Setup.exe`n",
         (New-Object System.Text.UTF8Encoding($false)))
     Write-Host "    $hash" -ForegroundColor DarkGray
 

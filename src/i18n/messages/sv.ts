@@ -114,7 +114,7 @@ export const sv: Catalogue = {
   "itip.blueprint": "Det här är ritningens egen text: vapnet självt finns inte i item-datan, så dess siffror och beskrivning är okända.",
 
   // ── Översikt ──────────────────────────────────────────────────────────────
-  "overview.welcome.title": "Välkommen till PalAssistent",
+  "overview.welcome.title": "Välkommen till PalCompanion",
   "overview.welcome.sub": "Boxen är tom – sparfilen är inte inläst än.",
   "overview.welcome.read":
     "Klicka {action} uppe till höger. Då letas din senaste sparfil upp under {path} och boxen fylls med dina egna pals.",

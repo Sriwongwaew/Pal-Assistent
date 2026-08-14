@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   CHECK_INTERVAL_MS, checkOutcome, emptyUpdatePrefs, isTrustedAssetUrl, notesToBlocks,
-  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow, SUCCESSOR_REPO, trustedRepos,
+  parseUpdatePrefs, serializeUpdatePrefs, shouldCheck, shouldShow, trustedRepos,
   updateScript, UPDATE_INSTALLER_NAME,
   type UpdateCheck, type UpdatePrefs,
 } from "../src/lib/update";
@@ -146,8 +146,8 @@ describe("notesToBlocks", () => {
  * adresser en angripare skulle försöka med: alla utom den första pekar bort
  * från våra egna utgåvor, och en av dem passerade den gamla strängjämförelsen. */
 describe("isTrustedAssetUrl", () => {
-  const REPO = "Sriwongwaew/Pal-Assistent";
-  const asset = `https://github.com/${REPO}/releases/download/v2.2.1/PalAssistent-Setup.exe`;
+  const REPO = "Sriwongwaew/PalCompanion";
+  const asset = `https://github.com/${REPO}/releases/download/v2.2.1/PalCompanion-Setup.exe`;
 
   it("godtar en riktig utgåvefil ur vårt repo", () => {
     assert.equal(isTrustedAssetUrl(asset, REPO), true);
@@ -186,25 +186,27 @@ describe("isTrustedAssetUrl", () => {
     );
   });
 
-  /* Namnbytet till PalCompanion. En app som byggdes före bytet bär det gamla
-   * repot i PA_REPO, medan GitHub svarar med utgåvans URL under det nya – utan
-   * det här ser den uppdateringen men kan aldrig installera den. */
-  it("godtar repot projektet flyttat till", () => {
-    const moved = `https://github.com/${SUCCESSOR_REPO}/releases/download/v3.0.0/PalCompanion-Setup.exe`;
-    assert.equal(isTrustedAssetUrl(moved, REPO), true);
-    assert.equal(isTrustedAssetUrl(moved, SUCCESSOR_REPO), true);
-    // Och det gamla namnet fortsätter fungera – övergångsutgåvan ligger kvar där.
+  /* Namnbytet är gjort (3.0.0). Övergångsraden som lät en app byggd under det
+   * gamla namnet hämta ur det omdöpta repot hörde till DE byggena – de har den
+   * redan, och den här bygger med det nya repot i PA_REPO. Kvar ska bara vara
+   * "det inbakade repot, och inget annat". */
+  it("godtar bara det inbakade repot", () => {
+    assert.deepEqual(trustedRepos(REPO), [REPO]);
     assert.equal(isTrustedAssetUrl(asset, REPO), true);
+    // Det gamla repot är inte längre en betrodd källa för ett nytt bygge.
+    const legacy = "https://github.com/Sriwongwaew/Pal-Assistent"
+      + "/releases/download/v2.6.0/PalAssistent-Setup.exe";
+    assert.equal(isTrustedAssetUrl(legacy, REPO), false);
   });
 
   it("låter inte en fork börja hämta binärer från oss", () => {
     // En fork bygger med sitt eget PA_REPO och får sin egen källkodslänk. Att
     // den skulle installera VÅRA utgåvor över sig själv vore precis fel.
-    const fork = "NagonAnnan/Pal-Assistent";
+    const fork = "NagonAnnan/PalCompanion";
     assert.deepEqual(trustedRepos(fork), [fork]);
     assert.equal(
       isTrustedAssetUrl(
-        `https://github.com/${SUCCESSOR_REPO}/releases/download/v3.0.0/PalCompanion-Setup.exe`,
+        `https://github.com/${REPO}/releases/download/v3.0.0/PalCompanion-Setup.exe`,
         fork,
       ),
       false,
@@ -252,15 +254,21 @@ describe("updateScript", () => {
   it("väntar på launcherns eget namn, inte på ett inskrivet", () => {
     assert.match(script, /for %%I in \("%PA_APP_EXE%"\) do set "PA_APP_NAME=%%~nxI"/);
     assert.match(script, /imagename eq %PA_APP_NAME%/);
-    // Väntan får inte peka ut ett namn som inte längre gäller efter bytet.
+    // Väntan får inte peka ut ett hårdkodat programnamn alls – det läses ur
+    // sökvägen, så skriptet överlever nästa namnbyte också.
     assert.equal(/imagename eq PalAssistent\.exe/.test(script), false);
+    assert.equal(/imagename eq PalCompanion\.exe/.test(script), false);
   });
 
-  it("hittar programmet igen när installationen bytt namn på det", () => {
+  it("startar programmet igen ur den sökväg launchern gav", () => {
+    /* Rename-reserven ("finns inte PA_APP_EXE efteråt, prova PalCompanion")
+       hörde till övergångsutgåvan: efter bytet installerar 3.0.x under samma
+       namn som den kom ifrån, så sökvägen finns kvar. Kvar ska vara EN start,
+       ur variabeln, efter installationen. */
     const install = script.indexOf(UPDATE_INSTALLER_NAME);
-    const fallback = script.indexOf("PalCompanion.exe");
-    assert.ok(fallback > install, "reservvägen står före installationen");
-    assert.ok(fallback < script.indexOf('start "" "%PA_APP_EXE%"'), "reservvägen står efter starten");
+    const start = script.indexOf('start "" "%PA_APP_EXE%"');
+    assert.ok(start > install, "starten står efter installationen");
+    assert.equal(script.split('start "" "%PA_APP_EXE%"').length - 1, 1, "exakt en start");
   });
 
   it("är helt fritt från sökvägar och från å, ä, ö", () => {

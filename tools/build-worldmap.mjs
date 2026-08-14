@@ -60,7 +60,7 @@ function inFrame(layer) {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url, { headers: { "user-agent": "palassistent-build" } });
+  const res = await fetch(url, { headers: { "user-agent": "palcompanion-build" } });
   if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
   return res.text();
 }

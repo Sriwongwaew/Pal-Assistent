@@ -34,7 +34,7 @@ export function Credits() {
   return (
     <div className="credits">
       <p className="crlic">
-        {VERSION ? `PalAssistent ${VERSION}` : "PalAssistent"} © {year} Kensiwat Sriwongwaew ·{" "}
+        {VERSION ? `PalCompanion ${VERSION}` : "PalCompanion"} © {year} Kensiwat Sriwongwaew ·{" "}
         <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noreferrer">
           AGPL-3.0
         </a>

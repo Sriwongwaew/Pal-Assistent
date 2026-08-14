@@ -1,4 +1,4 @@
-﻿PalAssistent
+﻿PalCompanion
 ============
 
 En box- och avelsplanerare för Palworld. Den läser din egen sparfil och visar
@@ -9,7 +9,7 @@ avlar fram en pal med rätt passiver och 100/100/100 i IV.
 Komma igång
 -----------
 
-1. Starta PalAssistent från Startmenyn eller skrivbordet.
+1. Starta PalCompanion från Startmenyn eller skrivbordet.
 2. Klicka "Läs in från spelet" uppe till höger.
 3. Klart. Boxen fylls med dina egna pals.
 

@@ -13,6 +13,14 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: major -->
+
+- **The app is called PalCompanion now.** Same program, same box, same plans — a new name, and it
+  is gone from every corner of the old one: the window, the Start menu, the desktop shortcut, the
+  installer and the folder it installs into. Updating from 2.6.0 replaces the old installation
+  rather than sitting beside it, and the leftovers under the old name are removed for you. Nothing
+  you have to do, and nothing to read in again.
+
 ## 2.6.0 – 2026-08-14
 
 
@@ -505,7 +513,7 @@ assets.
   This fix cannot fix itself: to get it, install this version by hand once. From here on, updating
   from inside the app works.
 
-- **The app now only listens to itself.** PalAssistent runs a small web server on your own machine,
+- **The app now only listens to itself.** PalCompanion runs a small web server on your own machine,
   and until now any web page you happened to have open in another tab could send it requests —
   enough to make the app start installing an update you never asked for, or, with a DNS trick, to
   read your box straight out of it. Every request is now checked against where it came from and

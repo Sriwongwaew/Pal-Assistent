@@ -1,6 +1,6 @@
-﻿; Installer för PalAssistent. Byggs av packaging\build.ps1 via ISCC.
+﻿; Installer för PalCompanion. Byggs av packaging\build.ps1 via ISCC.
 ;
-; Två val som styr allt annat:
+; Tre val som styr allt annat:
 ;
 ; 1. Installationen är PER ANVÄNDARE, i {localappdata}\Programs. Programmet
 ;    skriver sin inlästa box till public\data\pal-data.json inne i sin egen
@@ -14,8 +14,22 @@
 ;    för att rädda boxen skulle en ny version aldrig få nya arter. Boxen kostar
 ;    ett klick att läsa in igen, och med Live-läget kommer den tillbaka av sig
 ;    själv vid nästa autospar.
+;
+; 3. Mappen är LÅST till {localappdata}\Programs\PalCompanion (UsePreviousAppDir
+;    =no), och det är inte kosmetik. Programmet hette PalAssistent till och med
+;    2.6.0, och 2.6.0:s uppdateringsskript – som redan ligger ute hos alla som
+;    ska hämta 3.0.0 – startar om programmet på exakt den sökvägen när den det
+;    kom ifrån är borta. Låter vi Inno återanvända den gamla mappen installeras
+;    3.0.0 som PalCompanion.exe i en mapp som heter PalAssistent, och skriptets
+;    reserv pekar då på ingenting: uppdateringen lyckas och ingenting startar,
+;    vilket är den enda felformen som ser ut som ett trasigt bygge.
+;    AppId är oförändrat, så Windows känner igen programmet och uppgraderar i
+;    stället för att lägga en andra installation vid sidan om – men mappen,
+;    genvägarna och exe:n byter namn, och det gamla städas av [InstallDelete].
 
-#define AppName "PalAssistent"
+#define AppName "PalCompanion"
+; Det gamla namnet, som bara finns kvar för att kunna städas bort. Se punkt 3.
+#define OldName "PalAssistent"
 ; Versionen kommer från package.json via build.ps1 (/DAppVersion=...). Reservet
 ; nedan gäller bara om någon kör ISCC för hand – två ställen att uppdatera vid
 ; varje utgåva är ett för mycket.
@@ -23,7 +37,7 @@
   #define AppVersion "0.0.0"
 #endif
 #define AppPublisher "Ken"
-#define AppExe "PalAssistent.exe"
+#define AppExe "PalCompanion.exe"
 
 [Setup]
 ; AppId får ALDRIG ändras mellan versioner – det är den Windows känner igen
@@ -34,15 +48,19 @@ AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={localappdata}\Programs\{#AppName}
+; Se punkt 3 i huvudet: mappen får inte ärvas från installationen som hette
+; PalAssistent. Sidan för att välja mapp döljs helt i stället för "auto", som
+; annars börjar visa sig igen just för dem som uppgraderar.
+UsePreviousAppDir=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-DisableDirPage=auto
+DisableDirPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist
 ; Filnamnet är MEDVETET utan versionsnummer. GitHubs "latest"-länk pekar ut en
-; fil per namn, så https://github.com/<repo>/releases/latest/download/PalAssistent-Setup.exe
+; fil per namn, så https://github.com/<repo>/releases/latest/download/PalCompanion-Setup.exe
 ; slutar fungera i samma stund som namnet börjar variera. Versionen syns i
 ; installerarens egenskaper och i Program och funktioner.
 OutputBaseFilename={#AppName}-Setup
@@ -75,7 +93,20 @@ Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Starta {#AppName}"; Flags: nowait postinstall skipifsilent
 
+[InstallDelete]
+; Resterna av PalAssistent. Uppgraderingen lägger programmet i en ny mapp med
+; nya genvägar, så utan det här står det gamla namnet kvar i Startmenyn och på
+; skrivbordet – och den gamla mappen ligger kvar med en hel Node-server i.
+; Ordningen spelar ingen roll; Inno kör hela sektionen innan filerna packas upp,
+; och CloseApplications ovan har redan stängt en app som råkade köra.
+Type: filesandordirs; Name: "{localappdata}\Programs\{#OldName}"
+Type: filesandordirs; Name: "{userprograms}\{#OldName}"
+Type: files; Name: "{userdesktop}\{#OldName}.lnk"
+
 [UninstallDelete]
 ; Portfilen och webbläsarprofilen ligger hos användaren, inte i programmappen,
 ; och städas därför inte bort av sig själva.
 Type: filesandordirs; Name: "{localappdata}\{#AppName}"
+; Och den mapp de hade före namnbytet. En avinstallation ska inte lämna kvar en
+; webbläsarprofil på ett par hundra megabyte under ett namn som inte finns.
+Type: filesandordirs; Name: "{localappdata}\{#OldName}"

@@ -75,7 +75,7 @@ function sumFor(document: string, filename: string): string | null {
 
 async function download(url: string): Promise<Buffer> {
   const response = await fetch(url, {
-    headers: { "User-Agent": "PalAssistent" },
+    headers: { "User-Agent": "PalCompanion" },
     signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
     redirect: "follow",
     cache: "no-store",

@@ -1,4 +1,4 @@
-﻿// PalAssistent – launchern som gör webbappen till ett program på datorn.
+﻿// PalCompanion – launchern som gör webbappen till ett program på datorn.
 //
 // Kompileras med csc.exe som redan finns i varje Windows (.NET Framework 4),
 // alltså utan någon verktygskedja att installera. /target:winexe = inget
@@ -46,9 +46,9 @@ using System.Windows.Forms;
 
 internal static class Program
 {
-    private const string AppName = "PalAssistent";
+    private const string AppName = "PalCompanion";
     /// Global\ så instanskollen gäller hela sessionen, inte bara en terminal.
-    private const string MutexName = @"Global\PalAssistentSingleInstance";
+    private const string MutexName = @"Global\PalCompanionSingleInstance";
     /// Portar vi helst tar. 3000 är medvetet undviket – det är utvecklingsservern.
     private const int PortFirst = 3123;
     private const int PortLast = 3199;
@@ -97,7 +97,7 @@ internal static class Program
             }
             catch (Exception ex)
             {
-                Fail("Något gick fel när PalAssistent skulle startas.\n\n" + ex.Message);
+                Fail("Något gick fel när PalCompanion skulle startas.\n\n" + ex.Message);
                 return 1;
             }
         }
@@ -112,7 +112,7 @@ internal static class Program
         if (!File.Exists(node) || !File.Exists(server))
         {
             Fail("Installationen ser ofullständig ut – hittar inte serverfilerna.\n\n" +
-                 "Installera om PalAssistent.");
+                 "Installera om PalCompanion.");
             return 1;
         }
 
@@ -139,7 +139,7 @@ internal static class Program
             if (!WaitForServer(port, serverProcess))
             {
                 string detail = log.ToString().Trim();
-                Fail("PalAssistent kunde inte starta." +
+                Fail("PalCompanion kunde inte starta." +
                      (detail.Length > 0 ? "\n\n" + Tail(detail, 600) : ""));
                 return 1;
             }
@@ -336,7 +336,7 @@ internal static class Program
 
             if (!WaitForAppWindow(true, 60000))
             {
-                Fail("PalAssistent kunde inte öppna sitt fönster.\n\n" +
+                Fail("PalCompanion kunde inte öppna sitt fönster.\n\n" +
                      "Stäng eventuella rester av programmet och försök igen.");
                 return;
             }
@@ -349,7 +349,7 @@ internal static class Program
         // stängs, så rutan blir användarens stoppknapp i stället.
         Process.Start(url);
         MessageBox.Show(
-            "PalAssistent körs och är öppen i din webbläsare.\n\n" +
+            "PalCompanion körs och är öppen i din webbläsare.\n\n" +
             "Klicka OK när du är klar, så stängs programmet.",
             AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
@@ -362,13 +362,13 @@ internal static class Program
     /// titeln på det som råkar ligga överst i z-ordningen. Lägger sig ett annat
     /// Edge-fönster ovanpå appen – ett tillägg som öppnar sitt "tack för att du
     /// använder …", en utskriftsruta, DevTools – hittar vi plötsligt inget
-    /// PalAssistent-fönster alls. WaitForShutdown nedan drar då slutsatsen att
+    /// PalCompanion-fönster alls. WaitForShutdown nedan drar då slutsatsen att
     /// användaren stängt programmet, och 1,2 sekunder senare är servern dödad
     /// och fönstret med den. Symptomet är en app som stänger sig själv strax
     /// efter start, utan felmeddelande, "ibland".
     ///
     /// Att bara leta efter titeln räcker inte heller: Utforskaren får ett fönster
-    /// som heter "PalAssistent" så fort någon öppnar installationsmappen, och det
+    /// som heter "PalCompanion" så fort någon öppnar installationsmappen, och det
     /// ska definitivt inte hålla servern vid liv. Därför kravet på msedge.
     private static bool AppWindowExists()
     {

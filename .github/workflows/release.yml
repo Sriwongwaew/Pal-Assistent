@@ -133,7 +133,7 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: PalAssistent-Setup
+          name: PalCompanion-Setup
           path: dist
 
       # The release text comes from CHANGELOG.md, never from the commit
@@ -155,7 +155,7 @@ jobs:
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
-            dist/PalAssistent-Setup.exe
+            dist/PalCompanion-Setup.exe
             dist/SHA256SUMS.txt
           body_path: release-notes.md
           draft: false

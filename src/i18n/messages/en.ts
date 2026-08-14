@@ -19,7 +19,7 @@
 
 export const en = {
   // ── App shell ─────────────────────────────────────────────────────────────
-  "meta.title": "PalAssistent",
+  "meta.title": "PalCompanion",
   "meta.description":
     "Palworld assistant built from Level.sav — box, breeding planner and recommendations",
 
@@ -76,7 +76,7 @@ export const en = {
   // ── Shared pal vocabulary ─────────────────────────────────────────────────
   // Base Info is a 1:1 replica of the game's own panel, so its labels (LEVEL,
   // NEXT, SAN, Attack, Current Task…) stay in the game's English along with
-  // species, passive, element and work names. Everything PalAssistent says in
+  // species, passive, element and work names. Everything PalCompanion says in
   // its own voice is a key.
   "pal.lv": "Lv {n}",
   "pal.deck": "No.{n}",
@@ -136,7 +136,7 @@ export const en = {
   "itip.blueprint": "This is the schematic's own text: the weapon itself is not in the item data, so its stats and description are unknown.",
 
   // ── Overview ──────────────────────────────────────────────────────────────
-  "overview.welcome.title": "Welcome to PalAssistent",
+  "overview.welcome.title": "Welcome to PalCompanion",
   "overview.welcome.sub": "The box is empty — the save has not been read yet.",
   "overview.welcome.read":
     "Click {action} at the top right. Your latest save is then looked up under {path} and the box fills with your own pals.",

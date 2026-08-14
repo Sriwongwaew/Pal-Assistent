@@ -6,7 +6,7 @@
    Etiketterna i själva replikan (LEVEL, NEXT, SAN, Attack, Current Task, Food,
    Paldeck …) står kvar på spelets engelska och är alltså inte nycklar: panelen
    är en avbild av spelets ruta, precis som art- och passivnamnen. Det
-   PalAssistent säger med egen röst under den – IV-raden, spara-flaggan,
+   PalCompanion säger med egen röst under den – IV-raden, spara-flaggan,
    skälen – är översatt. */
 /* eslint-disable @next/next/no-img-element */
 import { ELEMENT_ICON, ELEMENT_META, WORK_META, WORK_TYPES } from "@/lib/constants";
@@ -202,7 +202,7 @@ export function PalDetailBody({ pal, species, data, stats }: PalDetailBodyProps)
         )}
       </div>
 
-      {/* ===== PalAssistent-extra (IV m.m. – finns inte i spelet) ===== */}
+      {/* ===== PalCompanion-extra (IV m.m. – finns inte i spelet) ===== */}
       <div className="pd-extra">
         <span className={`pd-iv ${pal.iv[0] >= 100 ? "max" : ""}`}>IV HP <b>{pal.iv[0]}</b></span>
         <span className={`pd-iv ${pal.iv[1] >= 100 ? "max" : ""}`}>IV ATK <b>{pal.iv[1]}</b></span>

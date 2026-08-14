@@ -1,6 +1,6 @@
 ---
 name: release
-description: Släpp en ny version av PalAssistent. Sammanfattar ändringarna sedan förra utgåvan till patch notes i CHANGELOG.md, kör kvalitetsgrinden, höjer versionen och pushar taggen som bygger installern. Använd när Ken vill släppa, publicera, tagga eller "göra en ny version".
+description: Släpp en ny version av PalCompanion. Sammanfattar ändringarna sedan förra utgåvan till patch notes i CHANGELOG.md, kör kvalitetsgrinden, höjer versionen och pushar taggen som bygger installern. Använd när Ken vill släppa, publicera, tagga eller "göra en ny version".
 ---
 
 # Släpp en ny version
@@ -157,7 +157,7 @@ git push --follow-tags
 
 Workflowen `.github/workflows/release.yml` tar över: bygger på en Windows-runner, kör typecheck och
 tester, paketerar installern, kontrollerar att nyttolasten inte bär någons box, och publicerar
-`PalAssistent-Setup.exe` + `SHA256SUMS.txt` med CHANGELOG-avsnittet som beskrivning. Tar 5–8
+`PalCompanion-Setup.exe` + `SHA256SUMS.txt` med CHANGELOG-avsnittet som beskrivning. Tar 5–8
 minuter.
 
 ---
@@ -172,7 +172,7 @@ gh release view v<version>
 Kontrollera till slut att nedladdningslänken lever – det är den Ken sprider:
 
 ```
-https://github.com/<owner>/<repo>/releases/latest/download/PalAssistent-Setup.exe
+https://github.com/<owner>/<repo>/releases/latest/download/PalCompanion-Setup.exe
 ```
 
 ---
@@ -188,5 +188,5 @@ https://github.com/<owner>/<repo>/releases/latest/download/PalAssistent-Setup.ex
   notisen först när 2.2.0 finns.
 - **`docs/img/*.png` visar Kens riktiga box.** Har gränssnittet ändrats märkbart, fråga om
   skärmbilderna i README ska tas om.
-- **Ändra aldrig `AppId` i `packaging/palassistent.iss`.** Det är den Windows känner igen
+- **Ändra aldrig `AppId` i `packaging/palcompanion.iss`.** Det är den Windows känner igen
   programmet på vid uppgradering; byts den får användarna två installationer.

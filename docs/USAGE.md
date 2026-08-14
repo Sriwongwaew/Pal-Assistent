@@ -1,4 +1,4 @@
-# Using PalAssistent
+# Using PalCompanion
 
 This guide covers the app in depth. If you just want to get going, the [README](../README.md) is
 enough: install, click **Read from the game**, done.
@@ -11,7 +11,7 @@ enough: install, click **Read from the game**, done.
 ## Getting started
 
 1. Download and run the [installer](../README.md#download).
-2. Start **PalAssistent** from the Start menu.
+2. Start **PalCompanion** from the Start menu.
 3. Click **Read from the game** in the top right.
 
 The app finds your most recent save under `%LOCALAPPDATA%\Pal\Saved\SaveGames` by itself. Palworld
@@ -246,11 +246,11 @@ and `Believer_CrossBow` are humans, not pals, and are skipped on purpose.
 changed, so the data file is replaced. Click **Read from the game**, or let Live do it at the next
 autosave.
 
-**The app won't start.** Close any leftovers (`PalAssistent.exe` in Task Manager) and try again. The
+**The app won't start.** Close any leftovers (`PalCompanion.exe` in Task Manager) and try again. The
 program runs one instance at a time; starting it while it's already running just reopens the window.
 
-**How do I uninstall?** Settings → Apps → PalAssistent. The program lives in
-`%LOCALAPPDATA%\Programs\PalAssistent` and never touches the game's files.
+**How do I uninstall?** Settings → Apps → PalCompanion. The program lives in
+`%LOCALAPPDATA%\Programs\PalCompanion` and never touches the game's files.
 
 ---
 
@@ -258,13 +258,13 @@ program runs one instance at a time; starting it while it's already running just
 
 | What | Where |
 | --- | --- |
-| Your imported box | `%LOCALAPPDATA%\Programs\PalAssistent\public\data\pal-data.json` |
-| Previous version of that data | `…\PalAssistent\tools\backup\pal-data.prev.json` |
+| Your imported box | `%LOCALAPPDATA%\Programs\PalCompanion\public\data\pal-data.json` |
+| Previous version of that data | `…\PalCompanion\tools\backup\pal-data.prev.json` |
 | Theme and palette | browser storage, `pa-theme` / `pa-pal` |
 | Breeding planner choices | browser storage, `pa-breeding` |
 | Save location and Live | browser storage, `pa-save` |
 | Update check | browser storage, `pa-update` |
-| Window profile and port | `%LOCALAPPDATA%\PalAssistent` |
+| Window profile and port | `%LOCALAPPDATA%\PalCompanion` |
 
 None of it leaves your machine. The one time the app touches the network is its daily check for a
 new version.

@@ -202,11 +202,11 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Start-Process 'dist\PalAssistent-Setup.exe' `
+          Start-Process 'dist\PalCompanion-Setup.exe' `
             -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
-          $dir = "$env:LOCALAPPDATA\Programs\PalAssistent"
+          $dir = "$env:LOCALAPPDATA\Programs\PalCompanion"
 
-          foreach ($f in 'PalAssistent.exe','server.js','node\node.exe',
+          foreach ($f in 'PalCompanion.exe','server.js','node\node.exe',
                          'tools\palsave\palsave.exe','public\data\pal-data.json') {
             if (-not (Test-Path (Join-Path $dir $f))) { throw "The installation is missing $f." }
           }
@@ -273,9 +273,9 @@ jobs:
       - name: Upload the installer
         uses: actions/upload-artifact@v7
         with:
-          name: PalAssistent-Setup
+          name: PalCompanion-Setup
           path: |
-            dist/PalAssistent-Setup.exe
+            dist/PalCompanion-Setup.exe
             dist/SHA256SUMS.txt
           retention-days: 14
           if-no-files-found: error

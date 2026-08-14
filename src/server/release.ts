@@ -26,7 +26,7 @@ export const VERSION = process.env.PA_VERSION ?? "0.0.0";
  * `INSTALLER_ASSET_NAMES`. `ASSET_NAME` är det vi själva bygger och det som
  * står i felmeddelanden; uppslaget nedan tar det första som finns i utgåvan.
  */
-export const ASSET_NAME = "PalAssistent-Setup.exe";
+export const ASSET_NAME = "PalCompanion-Setup.exe";
 export const SUMS_NAME = "SHA256SUMS.txt";
 
 /** GitHub svarar snabbt eller inte alls; vi väntar inte in en hängd förbindelse. */
@@ -111,7 +111,7 @@ export async function latestRelease(maxAge = CACHE_MS): Promise<ReleaseInfo> {
       headers: {
         Accept: "application/vnd.github+json",
         // GitHub kräver en User-Agent och svarar 403 utan.
-        "User-Agent": `PalAssistent/${VERSION}`,
+        "User-Agent": `PalCompanion/${VERSION}`,
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
