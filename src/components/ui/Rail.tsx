@@ -1,13 +1,24 @@
 "use client";
 
-/* Dumb: Habitats topprad. Tre zoner — märket | flikarna | spelaren + kugghjulet —
-   där flikarna står i MITTEN (Kens rättning aug 2026: raden var vänsterklumpad
+/* Dumb: Habitats topprad, "Kapseln" (Kens val ur fem förslag aug 2026).
+   Raden är inte sidans kant utan en yta som LIGGER PÅ den: en kapsel med egen
+   ram och skugga, med en luftspalt runt om. Två saker följer av det och ska
+   inte ändras tillbaka var för sig:
+     - kapseln är ett eget element (.cap) inuti .rail, för .rail måste vara
+       sticky i FULL bredd medan kapseln är den smalare ytan inuti;
+     - .rail bär en slöja + blur i stället för en botten, eftersom innehållet
+       rullar förbi i luftspalten. Utan den glider text skarpt genom springan
+       och kapseln ser lös ut i stället för att sväva.
+   Tre zoner inuti — märket | flikarna | spelaren + kugghjulet — där flikarna
+   står i MITTEN (Kens rättning aug 2026: raden var vänsterklumpad
    och "väldigt tråkig" på en bred skärm). Varje flik bär en riktig spelikon:
    Pal Sphere för Boxen, ägget för Breeding, kartans egna kompassglyfer för
    Uppdrag/Kartan, spelets rank-pil för Rekommendationerna. Vita glyfer tonas
    med currentColor (MaskIcon) så de följer temat; färgsatta original ritas
-   som de är. Aktiv sida markeras med accentplattan – pricken ersattes av
-   ikonen. */
+   som de är. Aktiv sida markeras med en FYLLD accentplatta (kapselns egen
+   markering – den tonade räckte inte mot kapselns ljusare yta), och texten
+   tar --bg: bottentokenen håller kontrasten mot accenten i båda lägena, en
+   fast vit eller svart gör det bara i ett. */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -47,51 +58,53 @@ export function Rail() {
 
   return (
     <nav className="rail" aria-label={t("nav.aria")}>
-      <div className="rzone rl">
-        {/* Ett enda textelement för ordbilden – flex-gapen mellan lösa
-            textnoder gjorde märket till "Pal A". */}
-        <div className="brand"><ItemIcon slug="pal-sphere" size={21} /><span>Pal<em>C</em></span></div>
-      </div>
-      <div className="rzone rc">
-        {TABS.map(({ href, key, icon }) => (
-          <Link key={href} href={href} className={`ri ${pathname === href ? "on" : ""}`}
-            aria-current={pathname === href ? "page" : undefined}>
-            <span className="ric">{icon}</span>
-            {t(key)}
-          </Link>
-        ))}
-      </div>
-      <div className="rzone rr railfoot">
-        <div className="who">
-          <span className="k">{t("nav.player")}</span>
-          {/* Empty string before the first import — an empty <b> reads as a
-              rendering fault rather than as a state. */}
-          <b>{data.player || t("nav.noSave")}</b>
-          <span className="sm">
-            {t.plural("header.pals", pals.length)} · {t.plural("header.species", ownedSpecies.size)}
-          </span>
+      <div className="cap">
+        <div className="rzone rl">
+          {/* Ett enda textelement för ordbilden – flex-gapen mellan lösa
+              textnoder gjorde märket till "Pal A". */}
+          <div className="brand"><ItemIcon slug="pal-sphere" size={21} /><span>Pal<em>C</em></span></div>
         </div>
-        {/* Everything that CONFIGURES the app lives behind the gear — the top
-            bar itself only navigates. Ken's call: the full theme/language/
-            update cluster made the bar look messy. */}
-        <details className="navmore">
-          <summary aria-label={t("nav.settings")} title={t("nav.settings")}>⚙</summary>
-          <div className="navpanel">
-            <ThemeControls />
-            {/* Checking for a new version is something you do to the app —
-                it stays with the other controls. Renders nothing in a build
-                from source (see UpdateCheck). */}
-            <UpdateCheck />
-            {/* Baked in at build time. Empty in a build from source, and then
-                the link does not exist at all — nobody should end up asking
-                for money in someone else's name. */}
-            {DONATE && (
-              <a className="donate" href={DONATE} target="_blank" rel="noreferrer">
-                {t("nav.donate")}
-              </a>
-            )}
+        <div className="rzone rc">
+          {TABS.map(({ href, key, icon }) => (
+            <Link key={href} href={href} className={`ri ${pathname === href ? "on" : ""}`}
+              aria-current={pathname === href ? "page" : undefined}>
+              <span className="ric">{icon}</span>
+              {t(key)}
+            </Link>
+          ))}
+        </div>
+        <div className="rzone rr railfoot">
+          <div className="who">
+            <span className="k">{t("nav.player")}</span>
+            {/* Empty string before the first import — an empty <b> reads as a
+                rendering fault rather than as a state. */}
+            <b>{data.player || t("nav.noSave")}</b>
+            <span className="sm">
+              {t.plural("header.pals", pals.length)} · {t.plural("header.species", ownedSpecies.size)}
+            </span>
           </div>
-        </details>
+          {/* Everything that CONFIGURES the app lives behind the gear — the top
+              bar itself only navigates. Ken's call: the full theme/language/
+              update cluster made the bar look messy. */}
+          <details className="navmore">
+            <summary aria-label={t("nav.settings")} title={t("nav.settings")}>⚙</summary>
+            <div className="navpanel">
+              <ThemeControls />
+              {/* Checking for a new version is something you do to the app —
+                  it stays with the other controls. Renders nothing in a build
+                  from source (see UpdateCheck). */}
+              <UpdateCheck />
+              {/* Baked in at build time. Empty in a build from source, and then
+                  the link does not exist at all — nobody should end up asking
+                  for money in someone else's name. */}
+              {DONATE && (
+                <a className="donate" href={DONATE} target="_blank" rel="noreferrer">
+                  {t("nav.donate")}
+                </a>
+              )}
+            </div>
+          </details>
+        </div>
       </div>
     </nav>
   );

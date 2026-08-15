@@ -4,9 +4,9 @@
    navigation och elementets färg som informationsbärare.
    Bakgrunden ritas i canvas (BgTexture), inte som gradient.
 
-   Sju paletter väljs med data-pal på <html>, Kens urval aug 2026: dusk
-   (standard), basalt, nightwood, graphite, glacier och de två avstegen press
-   och instrument. Ljust/mörkt styrs av
+   Sju paletter väljs med data-pal på <html>, Kens urval aug 2026: press
+   (**standard**, se BLADET nedan), dusk, basalt, nightwood, graphite, glacier
+   och avsteget instrument. Ljust/mörkt styrs av
    data-theme med systeminställningen som fallback. Ordningen nedan är viktig:
      1. :root                          = ljusa tokens
      2. @media (prefers-color-scheme)  = system-mörkt, men bara om
@@ -18,26 +18,23 @@
    Den gamla in-game-repliken ligger kvar i tools/backup/globals.ingame.css.
    ============================================================ */
 
-/* ---------- palett: SKYMNING/GRYNING (standard sedan designrundan aug 2026;
-   basalt var standard före det) ----------
-   Ljust läge = gryning: varm sand, plommonbläck, teal-accent. Tokensen ligger
-   på bara :root så även ett JS-löst första ögonblick får rätt palett. */
-:root, :root[data-pal="dusk"] {
-  --bg: #f1e8d7; --panel: rgba(255, 252, 244, .94); --panel2: rgba(255, 250, 238, .66);
-  --inset: rgba(70, 45, 80, .05); --strip: rgba(255, 252, 244, .72);
-  --line: rgba(70, 45, 80, .13); --line2: rgba(70, 45, 80, .24);
-  --ink: #2a2138; --ink2: #5d5270; --muted: #8d8399;
-  --acc: #1f7f8c; --acc-soft: rgba(31, 127, 140, .13);
-  --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
-  --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
-}
-/* ---------- palett: BASALT ---------- */
+/* ---------- palett: BASALT (standard före dusk) ---------- */
 :root[data-pal="basalt"] {
   --bg: #e7e6e3; --panel: rgba(255, 255, 255, .94); --panel2: rgba(255, 255, 255, .66);
   --inset: rgba(0, 0, 0, .045); --strip: rgba(255, 255, 255, .72);
   --line: rgba(0, 0, 0, .10); --line2: rgba(0, 0, 0, .18);
   --ink: #16181b; --ink2: #4c525a; --muted: #7d838c;
   --acc: #5b46d8; --acc-soft: rgba(91, 70, 216, .13);
+}
+/* ---------- palett: SKYMNING/GRYNING (standard mellan aug 2026 och Kens byte
+   till Bladet) ----------
+   Ljust läge = gryning: varm sand, plommonbläck, teal-accent. */
+:root[data-pal="dusk"] {
+  --bg: #f1e8d7; --panel: rgba(255, 252, 244, .94); --panel2: rgba(255, 250, 238, .66);
+  --inset: rgba(70, 45, 80, .05); --strip: rgba(255, 252, 244, .72);
+  --line: rgba(70, 45, 80, .13); --line2: rgba(70, 45, 80, .24);
+  --ink: #2a2138; --ink2: #5d5270; --muted: #8d8399;
+  --acc: #1f7f8c; --acc-soft: rgba(31, 127, 140, .13);
 }
 :root[data-pal="nightwood"] {
   --bg: #e4e9e4; --panel: rgba(255, 255, 255, .92); --panel2: rgba(255, 255, 255, .62);
@@ -82,18 +79,32 @@
    om spakarna behövs igen.)
    ============================================================ */
 
-/* ---------- palett: BLADET ----------
+/* ---------- palett: BLADET (STANDARD sedan aug 2026 – Kens val; dusk var
+   standard före det, basalt före den) ----------
    Trycksak: HELT fyrkantiga ytor (--r = 0), ogenomskinligt vitt papper på
    gråtonad botten, och linjer som syns — tryckets streck, inte en hårfin
-   antydan. Det är avsteget från "Habitat är rundat", med flit. */
-:root[data-pal="press"] {
+   antydan. Det är avsteget från "Habitat är rundat", med flit — och numera
+   alltså det appen möter en ny användare med.
+   Två saker om att standarden bor på bara `:root`:
+   - De SEMANTISKA färgerna (grön/guld/blå …) ligger här men hör till ALLA
+     paletter; ingen annan överskriver dem. Byter standarden palett ska de
+     följa med, annars tappar de sex andra sina statusfärger.
+   - Radierna får DÄREMOT inte stå här, utan bara på attributselektorn nedan.
+     En palett utan egna radier (basalt, dusk …) ärver annars nollan, och hela
+     appen blir fyrkantig för alla. Attributselektorn vinner ändå över `:root`
+     oavsett ordning, så press får sina nollor i praktiken alltid — det enda
+     som saknar dem är ett första ögonblick innan inline-skriptet satt
+     data-pal, och då är rundade hörn rätt sorts fel. */
+:root, :root[data-pal="press"] {
   --bg: #eeece7; --panel: #ffffff; --panel2: rgba(20, 20, 20, .045);
   --inset: rgba(20, 20, 20, .06); --strip: rgba(255, 255, 255, .88);
   --line: rgba(20, 20, 20, .26); --line2: rgba(20, 20, 20, .50);
   --ink: #101010; --ink2: #3d3d3d; --muted: #6e6e6e;
   --acc: #c8321e; --acc-soft: rgba(200, 50, 30, .10);
-  --r1: 0px; --r2: 0px; --r3: 0px; --r4: 0px;
+  --green: #128a55; --gold: #a4700a; --orange: #b4651a; --red: #c0392b;
+  --blue: #1668c0; --violet: #6b4fd8; --cyan: #0a6f80; --pink: #b03a6a;
 }
+:root[data-pal="press"] { --r1: 0px; --r2: 0px; --r3: 0px; --r4: 0px; }
 /* ---------- palett: INSTRUMENTET ----------
    Tunga ramar (--line .30/.26 mot vanliga .12) och nästan skarpa hörn: varje
    yta är inramad som ett mätinstrument i stället för att antydas. Mörkt läge
@@ -108,14 +119,16 @@
 }
 
 /* ---------- systemets mörka läge (om inget uttryckligt ljusval) ----------
-   Basen är skymningen: djup violett natt med varmt guld. */
+   Basen är Bladet i negativ: svart papper, samma tydliga streck, röd accent.
+   De semantiska mörka färgerna ligger i samma block av samma skäl som i det
+   ljusa – de hör till alla paletter. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
-    --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
-    --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
-    --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
-    --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
+  :root:not([data-theme="light"]), :root:not([data-theme="light"])[data-pal="press"] {
+    --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
+    --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
+    --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
+    --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
+    --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
     --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
     --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
   }
@@ -125,6 +138,14 @@
     --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
     --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
     --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
+  }
+  /* Skymningen mörk: djup violett natt med varmt guld. */
+  :root:not([data-theme="light"])[data-pal="dusk"] {
+    --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
+    --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
+    --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
+    --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
+    --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
   }
   :root:not([data-theme="light"])[data-pal="nightwood"] {
     --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
@@ -149,14 +170,7 @@
     --ink: #eef5f9; --ink2: #b0c4d0; --muted: #8199a7;
     --acc: #7fe3f0; --acc-soft: rgba(127, 227, 240, .16);
   }
-  /* Bladet i negativ: samma fyrkanter och samma tydliga streck, svart papper. */
-  :root:not([data-theme="light"])[data-pal="press"] {
-    --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
-    --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
-    --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
-    --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
-    --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
-  }
+  /* (Bladets mörka läge står högst upp i blocket – det är standarden.) */
   /* Instrumentet mörkt: svartast i urvalet, ramarna lyser fortfarande. */
   :root:not([data-theme="light"])[data-pal="instrument"] {
     --bg: #07090c; --panel: rgba(15, 19, 25, .94); --panel2: rgba(26, 32, 40, .80);
@@ -168,12 +182,12 @@
 }
 
 /* ---------- uttryckligt mörkt läge (vinner över systemet) ---------- */
-:root[data-theme="dark"] {
-  --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
-  --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
-  --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
-  --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
-  --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
+:root[data-theme="dark"], :root[data-theme="dark"][data-pal="press"] {
+  --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
+  --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
+  --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
+  --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
+  --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
   --green: #35c07a; --gold: #e8b93f; --orange: #e0952f; --red: #ff6b6b;
   --blue: #4aa8ff; --violet: #a78bfa; --cyan: #62d4e3; --pink: #ff7eb2;
 }
@@ -183,6 +197,13 @@
   --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .20);
   --ink: #eceef2; --ink2: #a9b2be; --muted: #78828f;
   --acc: #8f7bff; --acc-soft: rgba(143, 123, 255, .16);
+}
+:root[data-theme="dark"][data-pal="dusk"] {
+  --bg: #131022; --panel: rgba(35, 30, 58, .90); --panel2: rgba(47, 42, 76, .72);
+  --inset: rgba(0, 0, 0, .32); --strip: rgba(47, 42, 76, .6);
+  --line: rgba(200, 185, 255, .13); --line2: rgba(200, 185, 255, .26);
+  --ink: #f0edfa; --ink2: #b5aecb; --muted: #7d7694;
+  --acc: #ffcf6e; --acc-soft: rgba(255, 207, 110, .16);
 }
 :root[data-theme="dark"][data-pal="nightwood"] {
   --bg: #0b1411; --panel: rgba(22, 38, 32, .88); --panel2: rgba(32, 54, 45, .72);
@@ -205,14 +226,7 @@
   --ink: #eef5f9; --ink2: #b0c4d0; --muted: #8199a7;
   --acc: #7fe3f0; --acc-soft: rgba(127, 227, 240, .16);
 }
-/* Bladet i negativ: samma fyrkanter och samma tydliga streck, svart papper. */
-:root[data-theme="dark"][data-pal="press"] {
-  --bg: #0b0b0b; --panel: #141414; --panel2: rgba(255, 255, 255, .06);
-  --inset: rgba(0, 0, 0, .50); --strip: rgba(20, 20, 20, .90);
-  --line: rgba(255, 255, 255, .26); --line2: rgba(255, 255, 255, .50);
-  --ink: #f4f2ee; --ink2: #b8b6b1; --muted: #8a8884;
-  --acc: #ff5a3d; --acc-soft: rgba(255, 90, 61, .15);
-}
+/* (Bladets mörka läge står först i det här avsnittet – det är standarden.) */
 /* Instrumentet mörkt: svartast i urvalet, ramarna lyser fortfarande. */
 :root[data-theme="dark"][data-pal="instrument"] {
   --bg: #07090c; --panel: rgba(15, 19, 25, .94); --panel2: rgba(26, 32, 40, .80);
@@ -254,18 +268,34 @@ a { color: inherit; }
    ============================================================ */
 .shell { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
 
+/* KAPSELN (Kens val ur fem navbar-förslag aug 2026): raden ligger PÅ sidan i
+   stället för att vara dess kant. `.rail` är luftspalten – sticky i full bredd
+   – och `.cap` är ytan. Delningen är inte kosmetisk: en sticky yta med
+   marginal hade lämnat en genomskinlig remsa där innehållet rullar förbi i
+   full skärpa.
+   Slöjan är därför en gradient av bottenfärgen som tonar ut nedåt, plus blur:
+   texten som passerar i springan mattas i stället för att glida skarpt förbi.
+   `--bg` är ogenomskinlig, så färgen blandas ned med color-mix — annars
+   försvinner canvas-strukturen i toppbandet, och den ska anas hela vägen upp. */
+.rail {
+  position: sticky; top: 0; z-index: 50; width: 100%;
+  padding: 11px 18px;
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--bg) 86%, transparent) 58%, transparent);
+  backdrop-filter: blur(7px);
+}
 /* Tre zoner: märket | flikarna | spelaren + kugghjulet. Flikarna står i
    MITTEN (Kens rättning aug 2026: raden var vänsterklumpad och tråkig på en
    bred skärm) – 1fr-zonerna på var sida håller dem centrerade oavsett hur
-   breda kanterna är. */
-.rail {
-  position: sticky; top: 0; z-index: 50; width: 100%;
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
-  padding: 9px 22px; border-bottom: 1px solid var(--line);
-  /* Egen botten + blur: innehållet rullar under raden, och utan botten flyter
-     brickornas färger rakt in i navigationen. --strip är halvgenomskinlig med
-     flit – strukturen i bakgrunden ska anas, inte försvinna. */
-  background: var(--strip); backdrop-filter: blur(10px);
+   breda kanterna är.
+   Kapseln är ALLTID ett piller (999px), också i press och instrument: det är
+   formen Ken valde, och den fyrkantiga paletten får sin skillnad i ytorna
+   under i stället. */
+.rail .cap {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+  padding: 7px 10px 7px 15px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
 }
 .rail .rzone { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .rail .rc { justify-content: center; flex-wrap: wrap; }
@@ -287,15 +317,17 @@ a { color: inherit; }
 }
 .rail a.ri:hover { color: var(--ink); background: var(--panel2); }
 .rail a.ri:hover .ric { opacity: 1; }
-.rail a.ri.on {
-  background: var(--acc-soft); color: var(--ink);
-  border-color: color-mix(in srgb, var(--acc) 30%, transparent);
-}
+/* Fylld markering, inte tonad: kapselns yta är ljusare än sidan, och den
+   tonade plattan syntes knappt mot den. Texten tar bottentokenen – se
+   Rail.tsx om varför det inte är en fast vit. */
+.rail a.ri.on { background: var(--acc); color: var(--bg); border-color: transparent; }
 .rail a.ri.on .ric { opacity: 1; }
 .rail .railfoot { display: flex; flex-direction: row; align-items: center; gap: 9px; }
-/* Smal skärm: zonerna radbryts – märket + spelaren först, flikarna under. */
+/* Smal skärm: zonerna radbryts – märket + spelaren först, flikarna under.
+   Ett piller som blir två rader högt blir en blob, så kapseln tappar sin
+   pillerform här och blir en rundad platta i stället. */
 @media (max-width: 1180px) {
-  .rail { display: flex; flex-wrap: wrap; }
+  .rail .cap { display: flex; flex-wrap: wrap; border-radius: 26px; padding: 8px 10px; }
   .rail .rr { margin-left: auto; }
   .rail .rc { order: 3; width: 100%; justify-content: flex-start; }
 }
@@ -3443,7 +3475,13 @@ footer {
 
 /* ---------- smala skärmar: toppraden bantas ---------- */
 @media (max-width: 900px) {
-  .rail { position: static; gap: 6px; padding: 12px 14px; }
+  /* Inte sticky här: en kapsel som ligger kvar över en smal skärm äter en
+     tredjedel av den. Då behövs heller ingen slöja under den. */
+  .rail { position: static; padding: 10px 12px; background: none; backdrop-filter: none; }
+  /* Fast radie, inte --r4: i press är den 0, och då blev kapseln en låda tvärs
+     över skärmen. Formen är det Ken valde och ska överleva en fyrkantig
+     palett – samma skäl som pillren håller sina 999px. */
+  .rail .cap { gap: 6px; padding: 8px; border-radius: 22px; }
   .rail .brand { margin: 0 10px 0 0; font-size: 20px; }
   .rail a.ri { padding: 8px 12px; font-size: 12.5px; }
   .rail .who { display: none; }

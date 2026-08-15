@@ -24,24 +24,25 @@ const THEMES: [Theme, MessageKey][] = [
 ];
 
 /** The dot in the button shows the palette's accent colour in dark mode.
- *  Dusk first — it is the default. After it the order runs from the softest
- *  surface to the hardest: the two older tinted palettes, then the two that
- *  only change colour, then the two that change the structure as well
- *  (square corners, drawn frames). Ken picked these seven out of thirteen in
- *  the August 2026 palette round. */
+ *  Press first — it is the default (Ken's call, August 2026; dusk held the
+ *  slot before it, basalt before that). After it the order runs from the
+ *  softest surface to the hardest, which is where press came from: dusk,
+ *  basalt and nightwood are tinted, graphite and glacier only change colour,
+ *  instrument draws its frames. Ken picked these seven out of thirteen in the
+ *  August 2026 palette round. */
 const PALS: [Pal, MessageKey, string][] = [
+  ["press", "palette.press", "#ff5a3d"],
   ["dusk", "palette.dusk", "#ffcf6e"],
   ["basalt", "palette.basalt", "#8f7bff"],
   ["nightwood", "palette.nightwood", "#5ad06b"],
   ["graphite", "palette.graphite", "#ffb02e"],
   ["glacier", "palette.glacier", "#7fe3f0"],
-  ["press", "palette.press", "#ff5a3d"],
   ["instrument", "palette.instrument", "#35d6e8"],
 ];
 
 export function ThemeControls() {
   const [theme, setTheme] = useState<Theme>("system");
-  const [pal, setPal] = useState<Pal>("dusk");
+  const [pal, setPal] = useState<Pal>("press");
   const { locale, setLocale } = useLocale();
   const t = useT();
 
@@ -49,7 +50,7 @@ export function ThemeControls() {
   useEffect(() => {
     const el = document.documentElement;
     setTheme((el.dataset.theme as Theme) || "system");
-    setPal((el.dataset.pal as Pal) || "dusk");
+    setPal((el.dataset.pal as Pal) || "press");
   }, []);
 
   const applyTheme = (next: Theme) => {

@@ -45,8 +45,8 @@ export async function generateMetadata(): Promise<Metadata> {
 const themeInit = `(function(){try{var d=document.documentElement,
 t=localStorage.getItem("pa-theme"),p=localStorage.getItem("pa-pal");
 if(t==="light"||t==="dark")d.dataset.theme=t;
-d.dataset.pal="dusk basalt nightwood graphite glacier press instrument".split(" ").indexOf(p)>=0?p:"dusk";
-}catch(e){document.documentElement.dataset.pal="dusk";}})();`;
+d.dataset.pal="dusk basalt nightwood graphite glacier press instrument".split(" ").indexOf(p)>=0?p:"press";
+}catch(e){document.documentElement.dataset.pal="press";}})();`;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await activeLocale();

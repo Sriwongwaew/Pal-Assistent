@@ -13,6 +13,24 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **The top bar is a capsule now.** It floats above the page with its own frame and shadow
+  instead of being the edge of the window, and the page you are on is a filled tab rather than a
+  faint tint — you can tell where you are from the corner of your eye. Nothing moved: the same
+  seven tabs in the same order, the same gear.
+
+- **"Read from the game" works again after the latest Palworld update.** The game added a new
+  field to the world save, and reading it stopped with *Unknown property value type: Int64Property*
+  before your box was ever loaded. The reader now walks past everything it does not need instead
+  of decoding it — which also makes reading a save roughly three times faster, and means the next
+  field the game adds cannot break the import the same way.
+
+- **A new installation opens in the Press sheet palette.** Squared surfaces, lines you can
+  actually see and a red accent — the palette this app is designed in day to day. Nothing changes
+  if you have already picked one: your choice is remembered, and all seven are still behind the
+  gear.
+
 ## 3.0.1 – 2026-08-14
 
 - **The Start menu said PalAssistent after updating to 3.0.0.** The shortcuts inside it were

@@ -20,7 +20,7 @@ function lcg(seed: number) {
 /** Läser av vilket läge <html> faktiskt hamnat i just nu. */
 function readState(): { pal: Pal; dark: boolean } {
   const el = document.documentElement;
-  const pal = (el.dataset.pal as Pal) || "dusk";
+  const pal = (el.dataset.pal as Pal) || "press";
   const theme = el.dataset.theme;
   const dark = theme === "dark"
     || (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);

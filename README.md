@@ -121,11 +121,6 @@ comparing two plans against each other.
 
 **How do I quit?** Close the window. The server closes with it.
 
-## Support the project
-
-PalCompanion is free and will stay that way. If it has saved you a few hours, feel free to buy me a
-coffee — the link is at the bottom of the left-hand column in the app.
-
 ## Development
 
 ```bash
@@ -168,33 +163,6 @@ the Actions tab, or by hand with `npm version minor && git push --follow-tags`.
 
 Architecture, design rules and every hard-won pitfall live in [CLAUDE.md](CLAUDE.md) (in Swedish).
 User guide: [docs/USAGE.md](docs/USAGE.md).
-
-## Supporting the project
-
-There is a Ko-fi link in the rail and in the footer, but only in an official build. Both read
-`PA_DONATE`, which GitHub Actions takes from the repository variable of the same name
-(*Settings → Secrets and variables → Actions → Variables*). A build from source has no address
-baked in and shows no link at all — nobody should end up asking for money in someone else's name.
-
-**Recurring tiers are configured on Ko-fi**, under Memberships. The app cannot read them: Ko-fi
-has webhooks but no API that lists your members. The thank-you in the footer is therefore driven
-by [data/supporters.json](data/supporters.json), which you edit by hand:
-
-```json
-{
-  "tiers": [
-    { "tier": "Alpha", "names": ["Someone", "Someone else"] },
-    { "tier": "Lucky", "names": ["A third"] }
-  ]
-}
-```
-
-`tier` is the membership name exactly as it reads on Ko-fi — it is a proper noun and is never
-translated. Order the list most expensive first; that is the order the app renders. An empty
-`tiers` array hides the whole section.
-
-**Ask before you add anyone.** Buying a coffee is not consent to appear by name inside a program,
-and someone who supports anonymously has to be able to keep doing so.
 
 ## License and bundled content
 

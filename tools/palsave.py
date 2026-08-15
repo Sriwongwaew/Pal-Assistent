@@ -116,13 +116,68 @@ class _StopParsing(Exception):
     """Kastas när vi läst klart de fält vi bryr oss om."""
 
 
+#: Typer där headern efter storleksfältet bara är en optional_guid.
+_PLAIN_PROPS = frozenset({
+    "IntProperty", "UInt16Property", "UInt32Property", "Int64Property",
+    "FixedPoint64Property", "FloatProperty", "StrProperty", "NameProperty",
+})
+
+
+def _skip_property(reader: Any, type_name: str, size: int, where: str) -> None:
+    """Går förbi en property utan att tolka den.
+
+    `size` täcker bara *värdet*. Varje typ har en egen header före det, och den
+    måste läsas för att nästa property ska börja på rätt byte – tabellen nedan är
+    avläst ur bibliotekets egen `FArchiveReader.property`.
+
+    En okänd typ kastar hellre än gissar: en felräknad byte här ger inte ett fel
+    utan en pal med påhittade siffror, och det är inget någon upptäcker. `where`
+    säger var i saven det hände, för felet är det enda användaren ser.
+    """
+    if type_name == "BoolProperty":
+        # Enda typen vars värde ligger i headern; `size` är 0.
+        reader.bool()
+        reader.optional_guid()
+        return
+    if type_name == "StructProperty":
+        reader.fstring()
+        reader.guid()
+        reader.optional_guid()
+    elif type_name == "MapProperty":
+        reader.fstring()
+        reader.fstring()
+        reader.optional_guid()
+    elif type_name in ("ArrayProperty", "EnumProperty", "ByteProperty"):
+        reader.fstring()
+        reader.optional_guid()
+    elif type_name in _PLAIN_PROPS:
+        reader.optional_guid()
+    else:
+        raise RuntimeError(f"Okänd property-typ {type_name!r} i {where}.")
+    reader.skip(size)
+
+
 def _read_world(data: bytes, wanted: set[str]) -> dict[str, Any]:
-    """Parsar Level.sav men slutar så fort `wanted` är inlästa.
+    """Parsar Level.sav men läser bara `wanted` och slutar när de är inne.
 
     Level.sav är ~27 MB och innehåller hela världen (kartobjekt, dungeons, foliage).
-    Vi behöver bara pals + containrar, som ligger tidigt i filen. Att stanna där
-    är både mycket snabbare och gör oss immuna mot nya property-typer längre bak
-    som palworld-save-tools ännu inte kan läsa (t.ex. SetProperty i Palworld 1.0).
+    Vi behöver bara pals + containrar. Två saker gör oss immuna mot resten:
+
+    1. **Nycklar vi inte vill ha passeras oläst** (`_skip_property`). Det räckte
+       länge att bara stanna tidigt, men en speluppdatering la in
+       `LevelObjectRecoverPartySaveData` som nyckel FEM – före både
+       `ItemContainerSaveData` och `CharacterContainerSaveData` – och den bär en
+       karta med `Int64Property` som värde, en typ bibliotekets `prop_value` inte
+       kan läsa. Hela inläsningen dog med "Unknown property value type" fast
+       fältet inte angår oss. Att passera dem är dessutom det som gör läsningen
+       snabb: `MapObjectSaveData` (12 MB) och `MapObjectSpawnerInStageSaveData`
+       (8,6 MB) tolkades förut i sin helhet för att sedan slängas.
+    2. **Vi stannar ändå så fort `wanted` är inne**, så allt efter den sista
+       nyckeln rörs aldrig – t.ex. `InLockerCharacterInstanceIDArray`, som
+       palworld-save-tools inte kan tolka alls.
+
+    Skiptabellen kastar hellre än gissar, så en framtida nyckel av en typ vi inte
+    känner igen ger ett tydligt fel i stället för pals med påhittade siffror.
     """
     from palworld_save_tools.archive import FArchiveReader
     from palworld_save_tools.gvas import GvasFile
@@ -138,8 +193,11 @@ def _read_world(data: bytes, wanted: set[str]) -> dict[str, Any]:
                 break
             type_name = self.fstring()
             size = self.u64()
+            if path == ".worldSaveData" and name not in wanted:
+                _skip_property(self, type_name, size, "Level.sav")
+                continue
             props[name] = self.property(type_name, size, f"{path}.{name}")
-            if path == ".worldSaveData" and name in wanted:
+            if path == ".worldSaveData":
                 grabbed[name] = props[name]
                 if wanted <= grabbed.keys():
                     raise _StopParsing()
@@ -592,46 +650,6 @@ _DPS_FIELDS = frozenset({
     "FullStomach", "SanityValue",
 })
 
-#: Typer där headern efter storleksfältet bara är en optional_guid.
-_PLAIN_PROPS = frozenset({
-    "IntProperty", "UInt16Property", "UInt32Property", "Int64Property",
-    "FixedPoint64Property", "FloatProperty", "StrProperty", "NameProperty",
-})
-
-
-def _skip_property(reader: Any, type_name: str, size: int) -> None:
-    """Går förbi en property utan att tolka den.
-
-    `size` täcker bara *värdet*. Varje typ har en egen header före det, och den
-    måste läsas för att nästa property ska börja på rätt byte – tabellen nedan är
-    avläst ur bibliotekets egen `FArchiveReader.property`.
-
-    En okänd typ kastar hellre än gissar: en felräknad byte här ger inte ett fel
-    utan en pal med påhittade siffror, och det är inget någon upptäcker.
-    """
-    if type_name == "BoolProperty":
-        # Enda typen vars värde ligger i headern; `size` är 0.
-        reader.bool()
-        reader.optional_guid()
-        return
-    if type_name == "StructProperty":
-        reader.fstring()
-        reader.guid()
-        reader.optional_guid()
-    elif type_name == "MapProperty":
-        reader.fstring()
-        reader.fstring()
-        reader.optional_guid()
-    elif type_name in ("ArrayProperty", "EnumProperty", "ByteProperty"):
-        reader.fstring()
-        reader.optional_guid()
-    elif type_name in _PLAIN_PROPS:
-        reader.optional_guid()
-    else:
-        raise RuntimeError(f"Okänd property-typ {type_name!r} i den globala palboxen.")
-    reader.skip(size)
-
-
 def _skim_properties(reader: Any, wanted: frozenset[str]) -> dict[str, Any]:
     """Läser en property-lista men tolkar bara `wanted`; resten passeras."""
     props: dict[str, Any] = {}
@@ -646,7 +664,7 @@ def _skim_properties(reader: Any, wanted: frozenset[str]) -> dict[str, Any]:
             # aldrig kan glida isär från hur värdena faktiskt tolkas.
             props[name] = reader.property(type_name, size, f".{name}")
         else:
-            _skip_property(reader, type_name, size)
+            _skip_property(reader, type_name, size, "den globala palboxen")
     return props
 
 
@@ -715,7 +733,7 @@ def _read_dps(dps_path: Path) -> list[dict[str, Any]]:
                 inner = reader.property(field_type, size, ".InstanceId")
                 instance = _guid(inner.get("value", {}).get("InstanceId"))
             else:
-                _skip_property(reader, field_type, size)
+                _skip_property(reader, field_type, size, "den globala palboxen")
         if param is None:
             continue
         # Sloten är postens plats i arrayen, inte `SlotId.SlotIndex`: det fältet
@@ -804,10 +822,12 @@ def read_save(level_path: Path) -> dict[str, Any]:
     """Läser Level.sav och returnerar pals + spelarnamn i appens format."""
     world = _read_world(
         decompress_sav(level_path),
-        # ItemContainerSaveData är nyckel 8 och CharacterContainerSaveData 10, så
+        # ItemContainerSaveData är nyckel 9 och CharacterContainerSaveData 11, så
         # implantaten är gratis: vi går redan förbi dem innan vi stannar. De
         # ligger dessutom före InLockerCharacterInstanceIDArray, som biblioteket
-        # inte kan tolka alls – ordningen är alltså inte en detalj.
+        # inte kan tolka alls – ordningen är alltså inte en detalj. (Numren steg
+        # ett steg aug 2026 när LevelObjectRecoverPartySaveData kom in som femma;
+        # ordningen är alltså inte heller något att skriva in i logiken.)
         {"CharacterSaveParameterMap", "ItemContainerSaveData", "CharacterContainerSaveData"},
     )
     characters = world["CharacterSaveParameterMap"]["value"]

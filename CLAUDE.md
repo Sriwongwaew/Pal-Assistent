@@ -386,10 +386,22 @@ build, always, and if a whole page reports empty, suspect the server before the 
   alla heron delar; `wide`/`stack` på en fakta är layout-krav, inte kosmetik — se filens huvud).
   Only their search box/filter chip keep local state; the selection itself always lives in the
   container.
-- **Skalet** (client components): `Rail` (toppraden i **tre zoner**: märket | flikarna
+- **Skalet** (client components): `Rail` — toppraden som **"Kapseln"** (Kens val ur fem
+  navbar-förslag aug 2026): raden ligger PÅ sidan i stället för att vara dess kant. Tre saker
+  hänger ihop och får inte plockas isär var för sig:
+  1. **`.rail` är luftspalten, `.cap` är ytan.** `.rail` måste vara sticky i full bredd medan
+     kapseln är den smalare ytan inuti — en sticky yta med marginal hade lämnat en genomskinlig
+     remsa där innehållet rullar förbi i full skärpa.
+  2. **`.rail` bär en slöja + blur i stället för en botten.** Bottenfärgen blandas ned med
+     `color-mix` eftersom `--bg` är ogenomskinlig och annars dödar canvas-strukturen i toppbandet.
+  3. **Kapselns form överlever en fyrkantig palett.** 999px brett, 26/22px när zonerna radbryts —
+     aldrig `var(--r4)`, som är 0 i `press` och gjorde kapseln till en låda tvärs över skärmen.
+  Inuti: **tre zoner** — märket | flikarna
   **centrerade** med spelets egna ikoner (sfär/ägg/rank-pil/torn/kompass; vita glyfer tonas med
   currentColor via `MaskIcon`) | spelarrutan + kugghjulet — Kens rättning aug 2026: den
-  vänsterklumpade prickraden var "väldigt tråkig" på bred skärm),
+  vänsterklumpade prickraden var "väldigt tråkig" på bred skärm. Aktiv flik är en **fylld**
+  accentplatta med `color: var(--bg)`: den tonade syntes knappt mot kapselns ljusare yta, och
+  bottentokenen är det enda som håller kontrasten mot accenten i BÅDA lägena.
   `ThemeControls` (ljust/auto/mörkt + de tre paletterna, sparas i `localStorage` under
   `pa-theme`/`pa-pal`), `BgTexture` (canvas-bakgrunden), `PageTitle` (h1 ur pathname).
 - `src/app/` – App Router; pages are thin wrappers around containers. `globals.css` holds the
@@ -472,7 +484,9 @@ skärm, en tom gör det aldrig.
    över `:root` oavsett ordning i filen), `--line`/`--line2`s **tyngd** (hårfin antydan ↔ ritad
    ram) och `--bg`s **ljushet** (nästan vitt ↔ mellanton där panelerna lyfter). Dra i dem innan du
    hittar på en nionde grön nyans.
-   Ordningen i `PALS` är mjukast yta → hårdast, och den är information: `dusk` (standard: gryning
+   Ordningen i `PALS` är standarden först och sedan mjukast yta → hårdast, och den är information:
+   `press` (**standard sedan aug 2026**, Kens val — se nedan; `dusk` hade platsen före den och
+   `basalt` före dess), `dusk` (gryning
    → violett natt med guld, horisontband + stjärnfält), `basalt` (neutral sten så elementet blir
    skärmens enda färg, stenkorn), `nightwood` (grönt + höjdkurvor), `graphite` (helt omättade ytor,
    bärnstensaccent, penseldrag), `glacier` (högt tonläge, **enda paletten vars mörka läge är stål
@@ -482,14 +496,23 @@ skärm, en tom gör det aldrig.
    **Sex paletter togs bort i samma runda** och ska inte byggas tillbaka utan att Ken ber om det:
    `deepwater` (fanns sedan tidigare), `fieldbook`, `ember`, `sakura` (låg för nära dagens look)
    samt `glass` och `chalk` (avsteg han inte valde). En **borttagen palett i localStorage faller
-   tyst tillbaka på `dusk`** via valideringen i `layout.tsx` — det är hela skälet att listan står
+   tyst tillbaka på standarden** via valideringen i `layout.tsx` — det är hela skälet att listan står
    där, och det som gör en rensning ofarlig för den som redan valt.
+   **Standardpaletten står på BARA `:root`** (och i de två mörka blocken utan `[data-pal]`), så en
+   sida som laddas innan inline-skriptet hunnit köra får rätt palett. Två fällor i just det:
+   - De semantiska färgerna (`--green`, `--gold`, `--blue` …) bor i samma block men hör till alla
+     paletter — byter standarden palett ska de FÖLJA MED, annars tappar de sex andra sina
+     statusfärger.
+   - Det som ändrar STRUKTUREN får däremot inte följa med dit. `press` sätter `--r1..--r4` till 0,
+     och står de på bara `:root` ärver varje palett utan egna radier nollan — hela appen blir
+     fyrkantig för alla. De ligger därför kvar på `:root[data-pal="press"]`, som vinner ändå
+     oavsett ordning i filen. Samma sak gäller `instrument`s radier om den någon gång blir standard.
    Ljust och mörkt läge är likvärdiga — designa alltid båda.
    **De 54 hårdkodade `999px` överlever en fyrkantig palett** (chips, flikar, knappar är piller
    oavsett `--r`). Det är avsiktligt i `press`/`instrument` — trycksak med taggar — men räkna inte
    med att `--r: 0` gör hela gränssnittet skarpt.
    Fem ställen känner palettlistan, och en ny palett som glöms på något av dem faller tyst tillbaka
-   på `dusk`: tokensen (tre block – ljust, systemmörkt, uttryckligt mörkt), grenen i `BgTexture`,
+   på standarden: tokensen (tre block – ljust, systemmörkt, uttryckligt mörkt), grenen i `BgTexture`,
    `Pal`-unionen + `PALS` i `ThemeControls`, valideringen i `layout.tsx`:s inline-skript och
    `palette.<id>` i **båda** språkkatalogerna.
    Past rejects: aurora backgrounds, glow effects, collector-card frames, display fonts.
@@ -615,11 +638,28 @@ Hard-won details — don't undo these:
    Oodle is decoded through `tools/libooz.dll` (prebuilt from [`zao/ooz`](https://github.com/zao/ooz),
    sole export `Ooz_Decompress`) via ctypes. UE5 links Oodle statically, so there is no
    `oo2core_*.dll` in the game folder to borrow. Byte 11 = save type; `0x32` means double-packed.
-2. **Parsing stops early, on purpose.** `Level.sav` is ~27 MB of whole-world data, but
-   `CharacterSaveParameterMap` is the *first* key and `CharacterContainerSaveData` the tenth.
-   We patch `properties_until_end` to raise once both are read (~1.5 s). This also dodges
-   `InLockerCharacterInstanceIDArray` — a Palworld 1.0 `SetProperty` that palworld-save-tools
-   0.24 cannot parse at all.
+2. **We read the keys we want and nothing else — early stop is only half of it.**
+   `Level.sav` is ~27 MB of whole-world data; we want three keys out of it.
+   `properties_until_end` is patched to do two things, and both are load-bearing:
+   - **Unwanted top-level keys are stepped over unread** (`_skip_property`). Stopping early
+     only ever protected us from keys *after* the last one we want — `InLockerCharacterInstanceIDArray`,
+     a Palworld 1.0 `SetProperty` the library cannot parse at all. It gave nothing against a
+     key that lands *before* them, and aug 2026 an update did exactly that:
+     `LevelObjectRecoverPartySaveData` came in as key **five**, ahead of `ItemContainerSaveData`
+     and `CharacterContainerSaveData` (which it pushed from 8 and 10 to **9 and 11** — key
+     positions are worth writing in a comment, never in the logic), carrying a map whose
+     values are `Int64Property`
+     — a type `FArchiveReader.prop_value` doesn't handle. The whole import died with
+     "Unknown property value type" over a field we have no use for. Stepping over them is also
+     what makes the read fast: `MapObjectSaveData` (12 MB) and `MapObjectSpawnerInStageSaveData`
+     (8.6 MB) used to be parsed in full and thrown away. Measured on Ken's save: **1.63 s → 0.45 s**,
+     byte-identical output on a pre-update backup the old path could still read.
+   - **It still raises once all three are in**, so nothing past the last wanted key is touched.
+   `_skip_property` is shared with the `_dps.sav` skimmer and **throws on a type it doesn't know**
+   rather than guessing a header length — a miscounted byte here doesn't raise, it yields pals
+   with invented numbers. Adding the missing type to the library's `prop_value` would have fixed
+   the symptom only; the next unknown type in a field we never asked for would break the import
+   again.
 3. **Two of the library's rawdata decoders reject 1.0 saves** ("EOF not reached"): `character`
    and `character_container`. We use a tolerant inline replacement for pal RawData and simply
    don't decode container slots (`SlotNum` is a normal property).
@@ -631,7 +671,7 @@ Hard-won details — don't undo these:
    `OtomoCharacterContainerId` → Party, the rest → `Bas/övrigt N` sorted by GUID for stability.
    **Den globala palboxen är inte en av dem** – se punkt 9.
 6. **Implantaten i förrådet läses ur `ItemContainerSaveData`, och det är gratis.** Nyckeln ligger
-   som **nummer 8**, alltså före `CharacterContainerSaveData` (10) som ändå avslutar inläsningen —
+   som **nummer 9**, alltså före `CharacterContainerSaveData` (11) som ändå avslutar inläsningen —
    och före `InLockerCharacterInstanceIDArray`, som biblioteket inte kan tolka alls. Den ordningen
    är inte en detalj: hade den legat efter hade fältet kostat både tid och risk.
    Slotarna går **inte** att läsa med bibliotekets avkodare — `paltypes` markerar själv
@@ -848,9 +888,9 @@ Workflowen bygger på `windows-latest`, kör typecheck + test, bygger paketet oc
 poängen är att `…/releases/latest/download/PalCompanion-Setup.exe` alltid ska peka på den
 senaste. Versionen syns i installerarens egenskaper, inte i filnamnet.
 
-**Tre värden bakas in vid bygget** via `env` i `next.config.ts` och finns därmed som vanliga
-strängar i den byggda appen: `PA_VERSION` (ur package.json), `PA_REPO` (sätts av workflowen till
-`github.repository`) och `PA_DONATE` (repo-variabeln med samma namn). `PA_REPO` är strömbrytaren
+**Värdena bakas in vid bygget** via `env` i `next.config.ts` och finns därmed som vanliga
+strängar i den byggda appen: `PA_VERSION` (ur package.json) och `PA_REPO` (sätts av workflowen
+till `github.repository`). `PA_REPO` är strömbrytaren
 för hela uppdateringsfunktionen – ett bygge från källkoden har den tom och erbjuder därför aldrig
 en uppdatering. Det är avsiktligt: ingen ska få en ruta som vill installera över sin arbetskopia.
 
