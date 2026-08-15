@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 3.1.0 – 2026-08-15
+
 
 - **The top bar is a capsule now.** It floats above the page with its own frame and shadow
   instead of being the edge of the window, and the page you are on is a filled tab rather than a
