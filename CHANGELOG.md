@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 3.2.1 – 2026-08-16
+
 - **The Box now tells you where the pal is standing.** It said "Palbox" and left you to find the
   one you meant among eight hundred; it now says which box, row and square, the same way the
   breeding plan has always pointed out a carrier. Pals outside the Palbox — the party, a base,
