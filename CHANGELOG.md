@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 3.2.0 – 2026-08-16
+
 
 - **Legendary pals could not be used as breeding parents, and the app said that was the rule.**
   It is not. A legendary breeds with anything — what you cannot do is get a legendary out of the
