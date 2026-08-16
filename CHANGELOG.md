@@ -28,7 +28,6 @@ Comments are stripped before the text is published.
 - **An active filter used to stretch into a bar across the page.** It was rendered inside the
   grid meant for passive banners, so each chip was blown up to half a row. They are chips again.
 
-
 - **The planner now says which cake to bake.** Four of the game's five cakes do something beyond
   the egg, and the plan already knows what you are after: chasing passives points at Special Cake,
   which the game says makes pals "more likely inherit multiple passive skills from their parents";
