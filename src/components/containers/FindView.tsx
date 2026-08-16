@@ -54,7 +54,7 @@ import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
 import { childrenOf, isReachable } from "@/lib/breeding";
-import { EXPEDITION_SITES, idleSquad } from "@/lib/expedition";
+import { idleSquad } from "@/lib/expedition";
 import { ownedImplants } from "@/lib/implants";
 import {
   schematicsMatching, LEGENDARY_SCHEMATICS, type Schematic,
@@ -68,9 +68,9 @@ import {
 import { partnerSkill } from "@/lib/partnerSkills";
 import { RAIDS, type RaidInfo } from "@/lib/questsData";
 import type { ExpeditionSite } from "@/lib/expedition";
-import { catchInfo, foundSets, igCoord, WORLD_MAP } from "@/lib/worldmap";
+import { catchInfo, foundSets, igCoord, TREE_MAP, WORLD_MAP, type GameMapId } from "@/lib/worldmap";
 import {
-  ELEMENT_GAME_NAME, ELEMENT_ICON, ELEMENT_META, FISHING_PALS, ranchItemsOf,
+  ELEMENT_GAME_NAME, ELEMENT_ICON, FISHING_PALS, ranchItemsOf,
   WORK_META, WORK_TYPES,
 } from "@/lib/constants";
 import { WEAK_TO } from "@/lib/quests";
@@ -87,18 +87,23 @@ import {
   ComboHero, ExpedHero, Fact, ItemHero, PlaceHero, RaidHero, SkillHero,
 } from "@/components/ui/FindBits";
 
-const ELEMENTS = Object.keys(ELEMENT_ICON) as ElementType[];
-
 /** Kategorierna i sidans fasta ordning – första med träffar blir vald.
  *  `combos` står först med flit: har frågan tolkats som ett par är paret
- *  svaret, och då ska heron visa det utan att man byter chip. */
+ *  svaret, och då ska heron visa det utan att man byter chip.
+ *
+ *  **Element är INGEN kategori** (Kens beslut aug 2026: "det känns inte som vi
+ *  får value av detta"). Nio brickor som säger Fire/Water/Grass är en meny över
+ *  något man kan utantill efter en vecka – varje annan kategori bär ett tal per
+ *  rad. Elementen är fortfarande sökbara: art-sökningen matchar både datasetets
+ *  namn (Leaf/Earth) och spelets (Grass/Ground), så "fire" ger arterna direkt,
+ *  och styrka/svaghet plus bästa egna motpal står i ARTENS hero där frågan
+ *  faktiskt ställs. Bygg inte tillbaka den som egen kategori. */
 type FindCat =
-  | "combos" | "species" | "element" | "items" | "passives" | "skills"
+  | "combos" | "species" | "items" | "passives" | "skills"
   | "schem" | "places" | "exped" | "raids" | "fishing";
 const CATS: [FindCat, MessageKey][] = [
   ["combos", "find.combos"],
   ["species", "find.species"],
-  ["element", "find.cat.element"],
   ["items", "find.items"],
   ["passives", "find.passives"],
   ["skills", "find.skills"],
@@ -112,11 +117,6 @@ const CATS: [FindCat, MessageKey][] = [
 /** Hur många brickor som ritas innan "visa fler". Träffräknaren visar alltid
  *  hela mängden – taket styr ritningen, aldrig sanningen. */
 const PAGE = 24;
-
-/** Vad varje element är STARKT mot – inversen av quests-cirkeln. */
-function strongAgainst(el: ElementType): ElementType[] {
-  return ELEMENTS.filter((e) => WEAK_TO[e] === el);
-}
 
 export function FindView() {
   const { data, pals, ownedSpecies, freeSolve } = usePalData();
@@ -146,10 +146,17 @@ export function FindView() {
     [data],
   );
   /* Alfaboss-spawns per artkod – artheron visar var arten står som boss,
-     och saven svarar på om den redan är nedlagd. */
+     och saven svarar på om den redan är nedlagd. BÅDA kartorna: sex av
+     Världsträdets sju alfor finns ingen annanstans, och stod utan plats här
+     så länge bara huvudkartan lästes. Kartan följer med spawnen – en koordinat
+     utan karta pekar ut fel ställe när det finns två. */
   const alphasByCode = useMemo(() => {
-    const m = new Map<string, typeof WORLD_MAP.alphas>();
-    for (const a of WORLD_MAP.alphas) {
+    const m = new Map<string, (typeof WORLD_MAP.alphas[number] & { map: GameMapId })[]>();
+    const all = [
+      ...WORLD_MAP.alphas.map((a) => ({ ...a, map: "main" as const })),
+      ...TREE_MAP.alphas.map((a) => ({ ...a, map: "tree" as const })),
+    ];
+    for (const a of all) {
       const k = a.sp.toLowerCase();
       m.set(k, [...(m.get(k) ?? []), a]);
     }
@@ -207,14 +214,13 @@ export function FindView() {
       .sort((a, b) => b[1].r - a[1].r || a[1].n.localeCompare(b[1].n));
 
     /* Tomt fält är inte en tom sida (Kens modell "sök + översikt"):
-       elementläran, varorna, de legendariska passiverna, partnerskills,
+       varorna, de legendariska passiverna, partnerskills,
        schematics, platserna, expeditionerna, raiderna och fisket är
        bläddringsbara – arterna är trehundra och kräver en fråga. */
     if (!q) {
       return {
         combos: [] as { a: number; b: number }[],
         species: [] as { sp: Species; i: number; work?: readonly [WorkType, number] }[],
-        element: ELEMENTS,
         items: allItems,
         passives: passivesByTier(),
         skills: allSkills,
@@ -258,8 +264,6 @@ export function FindView() {
     return {
       combos: combo ? [combo] : [],
       species: scored,
-      element: ELEMENTS.filter((e) =>
-        e.toLowerCase().startsWith(q) || ELEMENT_GAME_NAME[e].toLowerCase().startsWith(q)),
       items: itemsMatching(allItems, q),
       /* Passiverna söks på namn OCH på vad de gör: "attack", "work speed" och
          "stamina" gav förr noll träffar fast beskrivningen står i repot
@@ -286,7 +290,6 @@ export function FindView() {
   const counts: Record<FindCat, number> = {
     combos: hits.combos.length,
     species: hits.species.length,
-    element: hits.element.length,
     items: hits.items.length,
     passives: hits.passives.length,
     skills: hits.skills.length,
@@ -315,6 +318,19 @@ export function FindView() {
   useEffect(() => {
     if (activeIdx >= limit) setLimit(Math.ceil((activeIdx + 1) / PAGE) * PAGE);
   }, [activeIdx, limit]);
+
+  /* Svaret ligger OVANFÖR sökpanelen, och brickorna nedanför den. Klickar man
+     en bricka när sidan rullat ner ändras alltså en yta som ligger utanför bild
+     – för användaren "händer ingenting" (Kens rättning aug 2026, elementbrickan
+     Ice). Undantaget från regeln nedan är därför just det här: när användaren
+     VALT något ska valets svar synas.
+     `nearest` gör ingenting när heron redan är i bild, så den rycker inte i
+     sidan medan man bläddrar; `pick` är null tills man faktiskt väljer, så
+     första renderingen och varje ny sökning rullar aldrig. */
+  useEffect(() => {
+    if (!pick) return;
+    document.querySelector(".fhero")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [pick]);
 
   /* Den valda brickan ska synas – remsans egen scrollLeft, aldrig sidans
      (samma läxa som PalPicker: rulla aldrig hela sidan åt användaren). */
@@ -413,7 +429,6 @@ export function FindView() {
         const h = hits.passives[activeIdx];
         return h ? `/breeding?wanted=${h[0]}` : null;
       }
-      case "element": return "/best-for";
       case "places": return "/map";
       case "exped": return "/recommendations#rh-box";
       case "raids": return "/quests";
@@ -485,7 +500,11 @@ export function FindView() {
               {ownCount > 0 && <span>{t.plural("find.hero.inBox", ownCount)}</span>}
               {alpha && (
                 <span>
-                  {t("find.alphaAt", { lv: alpha.lv, coord: igCoord(alpha.x, alpha.y) })}{" "}
+                  {t("find.alphaAt", {
+                    lv: alpha.lv,
+                    coord: igCoord(alpha.x, alpha.y)
+                      + (alpha.map === "tree" ? `, ${t("map.name.tree")}` : ""),
+                  })}{" "}
                   {found?.spawners.has(alpha.spawner)
                     ? <b className="fdone">{t("find.hero.alphaDone")}</b>
                     : <b className="ftodo">{t("find.hero.alphaTodo")}</b>}
@@ -604,96 +623,6 @@ export function FindView() {
     );
   };
 
-  const heroElement = (el: ElementType) => {
-    const strong = strongAgainst(el);
-    const name = ELEMENT_GAME_NAME[el];
-    /* Elementheron var en återvändsgränd (Kens rättning aug 2026: "när man väljer
-       elements gör det ingenting"): den visade typtabellen – som man kan utantill
-       efter en vecka – och länkade till en generisk sida. Allt annat i Find
-       svarar på en fråga man faktiskt har. De två frågorna här är "vad äger jag
-       av det här elementet?" och "vad tar jag MOT det?", plus expeditionernas
-       elementkrav som är det enda stället i spelet där man räknar pals per
-       element. */
-    const mine = pals
-      .filter((p) => data.species[p.s]?.elements.includes(el))
-      .sort((a, b) => b.combat - a.combat);
-    const top = [...new Set(mine.map((p) => data.species[p.s]?.name).filter((n): n is string => !!n))].slice(0, 4);
-    /* Motelementet: det som slår `el` är `WEAK_TO[el]`, alltså är din bästa pal
-       av DEN sorten svaret på "jag ska slåss mot en Fire-boss". */
-    const counterEl = WEAK_TO[el];
-    const counter = bestByElement.get(counterEl);
-    const counterSp = counter ? data.species[counter.s] : undefined;
-    /* Expeditionerna räknar pals per element, och boxen vet hur många du har
-       lediga – det är ett konkret svar och inte en typtabell. */
-    const needSites = EXPEDITION_SITES.filter((site) => site.need?.el === el);
-    const idle = squad?.byElement.get(el) ?? null;
-    return (
-      <div className="fhero" style={{ "--elc": ELEMENT_META[el]?.color ?? "#8f7bff" } as CSSProperties}>
-        <div className="fpor fel"><GameIcon name={ELEMENT_ICON[el]} size={54} /></div>
-        <div className="fbody">
-          <div className="fname">{name}<Tag kind="info">{t("find.cat.element")}</Tag></div>
-          <div className="ffacts">
-            <Fact k={t("find.hero.strong")}>
-              {strong.length === 0 && "—"}
-              {strong.map((e) => (
-                <span key={e} className="fws"><GameIcon name={ELEMENT_ICON[e]} size={17} /> {ELEMENT_GAME_NAME[e]}</span>
-              ))}
-            </Fact>
-            <Fact k={t("find.hero.weak")} wide>
-              <span className="fws"><GameIcon name={ELEMENT_ICON[counterEl]} size={17} /> {ELEMENT_GAME_NAME[counterEl]}</span>
-              {counterSp && (
-                <span className="fws">
-                  — {t("find.hero.bestAgainst", { el: name })}{" "}
-                  <button type="button" className="fchip fsp on" onClick={() => setQueryAndReset(counterSp.name)}>
-                    <SpeciesIcon sp={counterSp} size={18} radius={9} />{counterSp.name}
-                  </button>
-                  <span className="meta">Lv {counter!.lv}</span>
-                </span>
-              )}
-            </Fact>
-            {/* "Vad äger jag?" – starkast först, och en knapp som ställer om
-                sökningen till hela artlistan för elementet (art-söket matchar
-                redan elementnamn, så brickan blir en genväg dit). */}
-            <Fact k={t("find.hero.yourPals")} wide>
-              {mine.length > 0
-                ? (
-                  <>
-                    <span className="fws">{t.plural("find.hero.palsOfEl", mine.length)}</span>
-                    {speciesChips(top.map((n) => ({ n })))}
-                  </>
-                )
-                : <span className="ftodo">{t("find.hero.noneOwned")}</span>}
-              <button type="button" className="fchip" onClick={() => setQueryAndReset(name)}>
-                {t("find.hero.allOfEl", { el: name })}
-              </button>
-            </Fact>
-            {needSites.length > 0 && (
-              <Fact k={t("find.hero.expedNeed", { el: name })} wide>
-                {needSites.map((site) => {
-                  const enough = idle !== null && idle >= site.need!.n;
-                  return (
-                    <span key={site.name} className="fws">
-                      {site.name}
-                      <b className={idle === null ? "meta" : enough ? "fdone" : "ftodo"}>
-                        {idle === null
-                          ? t("find.hero.expedNeedN", { n: site.need!.n })
-                          : t("find.hero.expedHave", { have: idle, need: site.need!.n })}
-                      </b>
-                    </span>
-                  );
-                })}
-              </Fact>
-            )}
-          </div>
-        </div>
-        <div className="flinks">
-          <Link className="fchip" href="/recommendations#rh-fight">{t("find.linkCombat")}</Link>
-          <Link className="fchip" href="/best-for">{t("find.linkBest")}</Link>
-        </div>
-      </div>
-    );
-  };
-
   /** Varuheron: alla kända källor på ett ställe. Ranchen är en KÄLLA här,
    *  inte en egen kategori – "Wool" ska ge ett svar, inte två chips. */
   const heroItem = (e: ItemEntry) => {
@@ -807,7 +736,8 @@ export function FindView() {
               {sp ? speciesChips([{ n: s.source }]) : s.source}
               <span className="meta">
                 {s.lv !== undefined && <>Lv ≈{s.lv}</>}
-                {coord && <> · {igCoord(coord[0], coord[1])}</>}
+                {coord && <> · {igCoord(coord[0], coord[1])}
+                  {alphaAt?.kind === "alpha" && alphaAt.map === "tree" && <>, {t("map.name.tree")}</>}</>}
               </span>
             </Fact>
             {/* Regionen är spelets eget namn med nivåspann – det som gör en
@@ -968,10 +898,6 @@ export function FindView() {
         const h = hits.species[activeIdx];
         return h ? heroSpecies(h.sp, h.i) : null;
       }
-      case "element": {
-        const el = hits.element[activeIdx];
-        return el ? heroElement(el) : null;
-      }
       case "items": {
         const e = hits.items[activeIdx];
         return e ? heroItem(e) : null;
@@ -1076,22 +1002,6 @@ export function FindView() {
         <div className="fstrip" ref={stripRef}>
           {hits.species.slice(0, limit).map(({ sp, work }, idx) =>
             speciesTile(sp, idx, work ? `${WORK_META[work[0]]?.label} ${work[1]}` : undefined))}
-        </div>
-      );
-      case "element": return (
-        <div className="fstrip" ref={stripRef}>
-          {hits.element.map((el, idx) => (
-            <button
-              key={el} type="button" data-idx={idx}
-              className={`ftile fel${idx === activeIdx ? " sel" : ""}`}
-              style={{ "--elc": ELEMENT_META[el]?.color ?? "#8f7bff" } as CSSProperties}
-              onClick={() => setPick({ cat: "element", idx })}
-            >
-              <span className="circ"><GameIcon name={ELEMENT_ICON[el]} size={36} /></span>
-              <span className="nm">{ELEMENT_GAME_NAME[el]}</span>
-              <span className="sub">{" "}</span>
-            </button>
-          ))}
         </div>
       );
       case "items": return (

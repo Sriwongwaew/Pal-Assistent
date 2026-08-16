@@ -90,14 +90,82 @@ export interface WorldMap {
   ruins: MapRuin[];
 }
 
-export const WORLD_MAP = raw as WorldMap;
+/**
+ * VÄRLDSTRÄDET ÄR EN EGEN SPELKARTA, och det är därför den ligger i en egen
+ * tabell i stället för som ett lager bland de andra.
+ *
+ * Den delar koordinatsystem med huvudkartan – samma UE-transform, samma
+ * siffror i spelets koordinatfält – men har en egen rendering med en egen
+ * bildram (`MAP_PROJ` nedan). En trädpunkt på huvudkartans bild hamnar alltså
+ * inte "lite fel", den hamnar utanför bilden. Det var därför generatorn förut
+ * filtrerade bort dem, och det är också varför de fyra måltalen inte får
+ * blandas ihop: appen ska kunna säga "på Världsträdet" och mena det.
+ *
+ * Save-kopplingen är däremot GEMENSAM: savens relik-, snabbres- och
+ * bossflaggor är instans-GUID:n för hela världen, så en effigy i trädet
+ * prickas av precis som en på huvudkartan. `progressSummary` räknar därför
+ * över BÅDA kartorna – gör den inte det säger uppdragssidan "120/140" om ett
+ * mål som i själva verket är 187.
+ *
+ * Bossarna: `towers` är trädets fyra bossar. Bara slutbossen bär en flagga
+ * (Zenara & Astralym = `WorldTreeBoss`); mellanbossarnas flaggor finns i saven
+ * som `WorldTreeMiddleBoss1..3`, men ingen källa säger vilken som är vilken,
+ * så de bär `flag: null` och prickas aldrig av individuellt.
+ */
+export interface TreeBoss { x: number; y: number; name: string; flag: string | null }
+/** Fiskeplats. `rare` är källans egen skillnad (Rare Fishing Spot). */
+export interface MapFishing { x: number; y: number; rare: boolean }
+export interface MapJournal { x: number; y: number; name: string }
 
-/** Spelkoordinater → procent på kartbilden (0–100). Härledd ur bildramen:
- *  px = (459·x + 882 400) / 1 448 800, py = (473 288 − 459·y) / 1 448 800. */
-export function mapPct(x: number, y: number): { left: number; top: number } {
+export interface TreeMap {
+  towers: TreeBoss[];
+  travels: MapTravel[];
+  relics: MapRelic[];
+  alphas: MapAlpha[];
+  /** Paloxite – trädets egen malm, utan motsvarighet på huvudkartan. */
+  ores: MapOre[];
+  chests: MapPoint[];
+  eggs: MapPoint[];
+  fruits: MapPoint[];
+  fishing: MapFishing[];
+  springs: MapPoint[];
+  journals: MapJournal[];
+  junk: MapPoint[];
+}
+
+const maps = raw as { main: WorldMap; tree: TreeMap };
+export const WORLD_MAP = maps.main;
+export const TREE_MAP = maps.tree;
+
+export type GameMapId = "main" | "tree";
+
+/**
+ * Bildprojektionen per karta: procent på kartbilden ur spelkoordinater.
+ *
+ * Konstanterna är HÄRLEDDA ur respektive bildram i paldb:s `config`, inte
+ * kalibrerade på ögonmått: `off` = 158 000 − UE_Y_min, `topOff` = UE_X_max +
+ * 123 888 och `span` = ramens bredd i UE-enheter (båda kartorna är kvadratiska).
+ * Huvudkartans tre tal ger exakt samma uttryck som tidigare stod inskrivet för
+ * hand, och `tests/worldmap.test.ts` håller dem mot tornens kända koordinater.
+ */
+const MAP_PROJ: Record<GameMapId, { off: number; topOff: number; span: number }> = {
+  main: { off: 882400, topOff: 473288, span: 1448800 },
+  tree: { off: 976197, topOff: 813036.5, span: 341797 },
+};
+
+/** Bildfilen per karta. Trädets bild hämtas först när kartan valts – den är
+ *  ~3 MB och de flesta öppnar aldrig Världsträdet. */
+export const MAP_IMAGE: Record<GameMapId, string> = {
+  main: "/img/worldmap.webp",
+  tree: "/img/worldtree.webp",
+};
+
+/** Spelkoordinater → procent på kartbilden (0–100). */
+export function mapPct(x: number, y: number, map: GameMapId = "main"): { left: number; top: number } {
+  const { off, topOff, span } = MAP_PROJ[map];
   return {
-    left: ((459 * x + 882400) / 1448800) * 100,
-    top: ((473288 - 459 * y) / 1448800) * 100,
+    left: ((459 * x + off) / span) * 100,
+    top: ((topOff - 459 * y) / span) * 100,
   };
 }
 
@@ -118,7 +186,7 @@ const RAID_EGG_CODES = new Set([
 ]);
 
 export type CatchInfo =
-  | { kind: "alpha"; lv: number; x: number; y: number }
+  | { kind: "alpha"; lv: number; x: number; y: number; map: GameMapId }
   | { kind: "raid" }
   | null;
 
@@ -134,10 +202,16 @@ export type CatchInfo =
 export function catchInfo(code: string): CatchInfo {
   const key = code.toLowerCase();
   if (RAID_EGG_CODES.has(key)) return { kind: "raid" };
-  const spawns = WORLD_MAP.alphas.filter((a) => a.sp.toLowerCase() === key);
+  /* Båda kartorna. Sju alfabossar står i Världsträdet – bl.a. Aegidron,
+     Renjishi och Mycora – och de var osynliga här så länge bara huvudkartan
+     lästes: appen sa "FÅNGA" utan att kunna säga var, fast platsen fanns. */
+  const spawns: (MapAlpha & { map: GameMapId })[] = [
+    ...WORLD_MAP.alphas.map((a) => ({ ...a, map: "main" as const })),
+    ...TREE_MAP.alphas.map((a) => ({ ...a, map: "tree" as const })),
+  ].filter((a) => a.sp.toLowerCase() === key);
   if (spawns.length === 0) return null;
   const easiest = spawns.reduce((min, a) => (a.lv < min.lv ? a : min));
-  return { kind: "alpha", lv: easiest.lv, x: easiest.x, y: easiest.y };
+  return { kind: "alpha", lv: easiest.lv, x: easiest.x, y: easiest.y, map: easiest.map };
 }
 
 /** Hittat-mängder ur saven, normaliserade för uppslag. `null` = saven är

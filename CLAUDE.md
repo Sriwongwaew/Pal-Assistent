@@ -134,7 +134,8 @@ Features by route:
 - `/quests` **Uppdrag** – din resa ur saven, i Kens kombination ur designrundan aug 2026
   (**Fältkartans helhet + Instrumentbrädans moduler**): **karthjälten** (världskartan med
   guldstämplade torn på `mapPct`-positioner – Världsträdet är en egen spelkarta och får ALDRIG
-  en gissad prick) + **resan som faser** (Tornen → Panthalus → Världsträdet → Hard mode →
+  en gissad prick HÄR; sedan aug 2026 har det en egen karta under `/map`, med sina fyra bossar
+  på riktiga koordinater) + **resan som faser** (Tornen → Panthalus → Världsträdet → Hard mode →
   Raiderna → Paldecken; nästa fas upplyst, klick rullar till sin del), **Nästa steg** =
   `nextFight` + SEDAN-raden (OBS: Panthalus står FÖRE Världsträdet i `QUEST_BOSSES` – fångsten
   öppnar trädet, stabil sort på nivå avgör; testat), **kampanjen som kvitton** (porträtt + Lv +
@@ -146,14 +147,15 @@ Features by route:
   Tech-poäng styck) och → kartan-länkar. Paldecken bor i resan (spelarnas slutmål, upp från
   källaren), questloggen ligger sist som kompakt remsa. Bossdatan är handkurerad
   (`QUEST_BOSSES` i `quests.ts`) – se "Domain gotchas" om tornflaggorna.
-- `/map` **Kartan** – spelets RIKTIGA karta (`public/img/worldmap.webp`, 8192², Palworld 1.0)
-  med datamine-positioner ur `src/lib/data/worldmap.json` (genereras av
+- `/map` **Kartan** – spelets RIKTIGA kartor, **två stycken**: Palpagosöarna
+  (`public/img/worldmap.webp`) och **Världsträdet** (`public/img/worldtree.webp`), båda 8192²
+  och Palworld 1.0, med datamine-positioner ur `src/lib/data/worldmap.json` (genereras av
   `tools/build-worldmap.mjs`, källor + transform dokumenterade där och i `src/lib/worldmap.ts`).
+  **Världsträdet kom in aug 2026 och är en EGEN karta, inte ett lager** – se "Domain gotchas".
   Pan/zoom imperativt (ref + transform, markörer motskalas med `--iz`), lagerchips med savens
   hittat-räknare, "bara det jag inte hittat". Effigies/snabbresor prickas av på instans-GUID,
   alfabossar på spawner-id, torn på flaggnamn; läger/dungeons har ingen per-instans-flagga i
-  saven och visar bara räknare – pricka aldrig av dem på gissning. Världsträdet är en egen
-  spelkarta med egen transform och täcks inte (filtreras i generatorn, loggat bortfall).
+  saven och visar bara räknare – pricka aldrig av dem på gissning.
   Tre lager kom in aug 2026 för att Hittas schematics-källor skulle landa någonstans:
   **oljeriggarnas kistor** (47, 3 speldygns nedkylning), **skattkarteplatserna** (42, rariteten
   sitter på kartan man hittar och inte på hålet) och **namngivna regioner** (79 ur paldb:s
@@ -164,9 +166,9 @@ Features by route:
   aldrig ritas – den finns för att `schemWhere` ska kunna slå upp "Snow enemy camp".
   `Snow1` ↔ `REGION_Frost_*` är INTE en säker koppling, så regionnamnet till ett läger hämtas
   geometriskt (närmaste namngivna region inom 200 enheter) och betyder "området lägret ligger i".
-- `/find` **Hitta** – universalsök över allt appen vet. Elva kategorier i **fast ordning** med
+- `/find` **Hitta** – universalsök över allt appen vet. Tio kategorier i **fast ordning** med
   träffräknare som chips under sökfältet (Kens rättning aug 2026: sidan kändes slumpmässig):
-  **avelskombo · arter · element · varor · passiver · partnerskills · schematics · platser ·
+  **avelskombo · arter · varor · passiver · partnerskills · schematics · platser ·
   expeditioner · raider · fiske**. Tomt fält = katalogläge; arterna kräver en fråga (de är
   trehundra). Vyn är `FindView`, de nya heron i `src/components/ui/FindBits.tsx`, uppslagen i
   `src/lib/findIndex.ts`.
@@ -188,12 +190,19 @@ Features by route:
      namn i källan, och alla läger är en grupp eftersom källans namn är interna id:n
      ("Grass2", "DLC3") – en intern kod är inget platsnamn. Ett tyst bortfall ser ut som full
      täckning, och då tror man att sökningen är trasig.
-  5. **Ingen kategori får vara en återvändsgränd.** Elementheron visade typtabellen och länkade
-     till en generisk sida – "när man väljer elements gör det ingenting" (Kens rättning aug 2026).
-     Den svarar nu på de två frågor man har: vad man äger av elementet (antal + starkaste, plus en
-     genväg till hela artlistan) och vad man tar MOT det (bästa pal av `WEAK_TO[el]`), plus
-     expeditionernas elementkrav mot boxens lediga – det enda stället i spelet där man räknar pals
-     per element. Ankarlänkar till Rollerna går på **`#rh-fight`**, inte `#rh-combat`: fliken heter
+  5. **Ingen kategori får vara en återvändsgränd — och element blev ingen kategori alls.**
+     Elementheron var först en typtabell med en länk till en generisk sida ("när man väljer
+     elements gör det ingenting", Kens rättning aug 2026) och byggdes då om till att svara på vad
+     man äger och vad man tar mot. Den domen kom ändå tillbaka: **"det känns inte som vi får value
+     av detta"** (Ken, aug 2026), och kategorin är borttagen. Skälet är katalogläget, inte heron —
+     nio brickor som säger Fire/Water/Grass är en meny över något man kan utantill efter en vecka,
+     medan varje annan kategori bär ett tal per rad. Elementen är fortfarande **sökbara** (art-
+     sökningen matchar både datasetets `Leaf/Earth` och spelets `Grass/Ground`), och styrka/svaghet
+     plus bästa egna motpal står i **artens** hero, där frågan faktiskt ställs. Bygg den inte
+     tillbaka. Det som försvann med den och inte finns någon annanstans: antal ägda per element och
+     expeditionernas elementkrav mot boxens lediga (`squad.byElement`) — hör de hemma någonstans är
+     det expeditionsheron, inte en egen kategori.
+     Ankarlänkar till Rollerna går på **`#rh-fight`**, inte `#rh-combat`: fliken heter
      `fight` i koden och `combat` i gränssnittet, och en okänd hash faller TYST tillbaka på första
      fliken. `tests/deepLinks.test.ts` håller varje länkad hash mot `TAB_BY_HASH`.
   6. **Kombokategorin finns bara när frågan ÄR ett par** ("Anubis x Lamball" → `parseCombo`).
@@ -751,7 +760,24 @@ node tools/build-drops.mjs       # drops.json   – vem släpper vad (pyPalworld
 node tools/build-item-icons.mjs  # itemIcons.json + public/icons/items/ (palworld-save-pal)
 node tools/build-item-info.mjs   # itemInfo.json – vad varan ÄR: speltext + siffror (pyPalworldAPI)
 node tools/build-worldmap.mjs    # worldmap.json + partnerSkills.json + missions.json (paldb m.fl.)
+node tools/build-map-image.mjs tree   # public/img/worldtree.webp – syr ihop paldb:s kakel
 ```
+
+`build-map-image.mjs` är den enda som skriver en BILD och den enda som inte behöver köras om
+rutinmässigt: kartrenderingen ändras bara när spelet bygger om världen. `main` finns som argument
+för det fallet.
+
+**En femte generator står utanför den listan för att den skriver i BUNDLEN, inte i `src/lib/data/`:**
+
+```bash
+node tools/build-pair-table.mjs [--dry]   # data/pal-data.base.json → hela `pair`-tabellen
+```
+
+Den lagar hålet den statiska halvan ärver uppströms: legendarer som föräldrar (se "Domain gotchas").
+**Kör om den varje gång den statiska halvan regenereras** — annars kommer de 12 326 tomma paren
+tillbaka utan att något ser trasigt ut. Den fyller bara tomma rutor, kontrollerar sin egen formel
+mot källans 33 853 par innan den skriver, och uppdaterar `public/data/pal-data.json`s `pair` också
+så en redan inläst box slipper läsas om.
 
 De tre första läser **namnlistorna ur källfilerna med regex** (`RANCH_DROPS`, `ORE_ITEM`,
 `FRUIT_NAMES`, `LEGENDARY_SCHEMATICS`). Byter en tabell form matchar regexen ingenting, och det
@@ -1017,15 +1043,67 @@ Tre saker om licensfilerna som är valda, inte råkade så:
 
 ## Domain gotchas
 
-- **Legendaries only breed with their own species** — pairs like Frostallion × Lamball have no
-  child in the pair table. `passivePlan` picks a valid merge order and flags impossible steps;
-  don't "fix" this by assuming any pair can breed.
+- **En legendar kan paras med VAD SOM HELST — man kan bara inte FÅ en legendar ur ägget** om inte
+  båda föräldrarna är den arten. Här stod den omvända regeln ("legendaries only breed with their own
+  species") ända till aug 2026, och den var inte bara fel i texten: `pair`-tabellen saknade **12 326
+  par**, alltså varje parning med en legendar som förälder, och gränssnittet förklarade tomrummet med
+  en regel som inte finns. Kens fråga var "det här är väl fel?" och svaret var ja.
+  Felet kom uppströms. `pal_info.ignore_combi` i palworld-save-pals `breeding.json` betyder **"kan
+  inte bli resultatet av en parning"** — den säger ingenting om att vara förälder — men deras
+  `child_to_parents_formula` räknar aldrig upp en sådan art som förälder, och vår tabell ärvde
+  hålet. `tools/build-pair-table.mjs` fyller igen det med spelets egen rangformel; läs filhuvudet
+  innan du rör den, och `tests/pairTable.test.ts` håller båda riktningarna (legendaren har 299
+  partners, och ingen legendar kommer ur ett par som inte är två av dess egen art).
+  Fyra saker att inte ändra tillbaka:
+  1. **Tie-breaken är uppmätt, inte gissad.** Vid lika avstånd till målrangen vinner den HÖGRE
+     rangen — det är den enda varianten som reproducerar källans egna 33 853 formelpar utan ett
+     enda fel. Skriptet kör om den kontrollen vid varje bygge och stannar hellre än skriver.
+  2. **Formel-poolen är 183 arter, och elementvarianterna hör inte dit.** Rayhound Cryst, Elphidran
+     Aqua och de andra går bara att få ur unika kombos. De ligger tätt packade kring rang 1570–1650
+     mitt i spannet, så hade de hört till poolen skulle de ha vunnit hundratals av källans rader.
+     De vinner noll — det är beviset, inte en åsikt.
+  3. **Fem arter har `combi_rank: 9999`**, vilket är ett saknat värde och inte en rang: Dragostrophe,
+     Boltmane och de tre `Unidentified Pal`. De lämnas utan barn (1 505 par). Med det talet blir
+     målrangen ~5 000, alltså alltid poolens högsta art — ett räknefel förklätt till ett svar.
+     Att 304 − 5 = 299 är exakt antalet arter palbreeder.com:s egen 1.0-kalkylator räknar med är
+     kvittot på att gränsen ligger rätt.
+  4. **Unika kombos vinner över formeln.** Frostallion + Helzephyr ger Frostallion Noct, inte
+     Wumpo Botan. Skriptet fyller bara tomma rutor och rör aldrig en befintlig rad.
+  `passivePlan` flaggar fortfarande omöjliga steg, men "omöjlig" betyder numera bara de fem utan
+  rang — inte en legendar. Texterna som påstod det gamla (`pp.cantBreedLead`, `pp.impossiblePair`,
+  `manres.noChildBody`, `find.combo.note`) är omskrivna; skriv inte tillbaka dem.
 - **Savens tornflaggor är döpta efter PALEN, inte tornen** (`QUEST_BOSSES.flag` i `quests.ts`,
   verifierat mot en riktig save + spelets GYM-l10n): `GrassBoss` = Zoe & Grizzbolt (gräs-
   markerna), `ForestBoss` = Lily & Lyleen, `ElectricBoss` = Axel & Orserk (Orserk är elektrisk),
   `SorajimaBoss` = Auri & Shaolong (jap. "sorajima" = himmelö). "Rätta" aldrig mappningen till
   den logiska – då bockas fel torn av. 1.0 har 13 flaggor: åtta torn + tre
   `WorldTreeMiddleBoss` + `WorldTreeBoss` + `KingWhaleBoss` (Panthalus).
+- **Världsträdet är en EGEN spelkarta, inte ett lager på huvudkartan** (aug 2026). Kartorna delar
+  koordinatsystem – samma UE-transform, samma siffror i spelets koordinatfält – men har varsin
+  bildram, så en trädpunkt på huvudkartans bild hamnar utanför bilden och inte "lite fel". Det var
+  därför generatorn förut filtrerade bort dem, och därmed fanns trädet inte i appen alls.
+  Fem saker att inte ändra tillbaka:
+  1. **Ramarna HÄRLEDS** ur respektive paldb-lasts `config.landScapeRealPosition` (`frameOf` i
+     generatorn), inte ur avlästa siffror. `assertFrame` håller huvudkartans ram mot de
+     dokumenterade talen, så en flyttad ram stannar bygget i stället för att tyst slänga markörer.
+  2. **Uppströmskällorna är världsomspännande** – `relics.json`, `fast_travel_points.json` och
+     `bosses.json` bär BÅDA kartornas punkter, nycklade på instans-GUID. De delas med `splitByMap`,
+     som **kastar** på en punkt som hamnar i två ramar eller ingen. Att varenda punkt landar i
+     exakt en ram är det som gör delningen trovärdig; ett filter hade bara tigit ihjäl resten.
+  3. **Räknarna räknar VÄRLDEN.** `progressSummary` summerar båda kartorna (effigies 155, snabbresor
+     174, alfabossar 90) medan kartsidan delar upp dem. Räknades bara huvudkartan blev savens egna
+     fynd i trädet osynliga – på Kens save fyra snabbresor och en alfaboss som var klara och stod
+     som oklara.
+  4. **Bara trädets SLUTBOSS går att pricka av.** `WorldTreeBoss` = Zenara & Astralym står i klartext
+     i markören, men mellanbossarnas flaggor (`WorldTreeMiddleBoss1..3`) går inte att para ihop med
+     rätt boss ur någon källa – de bär `flag: null` och lagret har ingen räknare alls. "0/4" hade
+     påstått att alla fyra följs. Antalet klarade står på Uppdrag, ur saven.
+  5. **Bilden är kaklad från paldb** med `tools/build-map-image.mjs` (z4 = 16×16 × 512 px = 8192²,
+     referer krävs annars 403). Den hämtas EN gång och checkas in; appen laddar aldrig något från
+     paldb vid körning, och trädets bild hämtas först när kartan valts.
+  Fiskeplatserna är trädets (77 st) – huvudkartans 379 + 90 finns i samma källa men är **inte**
+  byggda ännu, och `find.gaps` säger fortfarande att fiskeplatser saknas. Det är nästa steg, inte
+  ett bortfall någon får glömma.
 - **Kartans värld är 1.0:s, och bara 1.0:s.** 1.0 byggde om världen: FPA-tornet flyttade, ett
   åttonde torn tillkom, effigies omfördelades (140 Lifmunk på huvudkartan – talet är
   korsvaliderat mellan paldb och relics.json) och predator-spawns togs bort (bygg aldrig det

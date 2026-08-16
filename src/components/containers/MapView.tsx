@@ -1,6 +1,12 @@
 "use client";
 
-/* Smart: Kartan – spelets RIKTIGA karta med datamine-koordinater.
+/* Smart: Kartan – spelets RIKTIGA kartor med datamine-koordinater.
+ *
+ * TVÅ KARTOR, inte ett lager till: Världsträdet är en egen spelkarta med en
+ * egen rendering och en egen bildram, så dess punkter kan inte ritas på
+ * huvudkartans bild (se src/lib/worldmap.ts). Växlingen byter därför BÅDE bild,
+ * lageruppsättning och projektion, och nollställer vyn – en behållen pan hade
+ * landat utanför den nya bilden. Trädets bild hämtas först när kartan väljs.
  *
  * Bilden är spelets egen kartrendering (8192², Palworld 1.0) och varje markör
  * bär spelets egna koordinater – se src/lib/worldmap.ts för proveniensen.
@@ -20,12 +26,13 @@ import Link from "next/link";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
-import { WORLD_MAP, foundSets, igCoord, mapPct } from "@/lib/worldmap";
+import { MAP_IMAGE, TREE_MAP, WORLD_MAP, foundSets, igCoord, mapPct, type GameMapId } from "@/lib/worldmap";
 import { LEGENDARY_SCHEMATICS } from "@/lib/findData";
 import { QUEST_BOSSES } from "@/lib/quests";
 import { Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
 
 const LAYERS_KEY = "pa-map-layers";
+const MAP_IDS: GameMapId[] = ["main", "tree"];
 
 interface Marker {
   x: number;
@@ -57,20 +64,44 @@ interface Layer {
  *  isär det, suddigt precis när man ville läsa (Kens fynd). */
 const NATIVE = 8192;
 
-function readLayers(fallback: string[]): string[] {
+/* Lagervalet sparas PER KARTA. Kartorna delar flera lager-id (travels,
+   effigies …) men trädet har egna (eggs, fishing), och med en gemensam lista
+   hade trädets egna sett avstängda ut första gången man öppnade det – de fanns
+   ju inte i den sparade mängden. Den gamla platta listan läses fortfarande in
+   som huvudkartans val, så ingen får sina lager nollställda av uppdateringen. */
+function readLayers(map: GameMapId, fallback: string[]): string[] {
   try {
     const raw = localStorage.getItem(LAYERS_KEY);
     if (!raw) return fallback;
     const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((x) => typeof x === "string")) return parsed;
+    if (Array.isArray(parsed)) {
+      return map === "main" && parsed.every((x) => typeof x === "string") ? parsed as string[] : fallback;
+    }
+    if (parsed && typeof parsed === "object") {
+      const got = (parsed as Record<string, unknown>)[map];
+      if (Array.isArray(got) && got.every((x) => typeof x === "string")) return got as string[];
+    }
   } catch { /* privat läge */ }
   return fallback;
+}
+
+function writeLayers(map: GameMapId, ids: string[]) {
+  try {
+    const raw = localStorage.getItem(LAYERS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    const base: Record<string, string[]> = Array.isArray(parsed)
+      ? { main: parsed as string[] }
+      : (parsed && typeof parsed === "object" ? { ...(parsed as Record<string, string[]>) } : {});
+    base[map] = ids;
+    localStorage.setItem(LAYERS_KEY, JSON.stringify(base));
+  } catch { /* privat läge */ }
 }
 
 export function MapView() {
   const { data, pals } = usePalData();
   const t = useT();
 
+  const [mapId, setMapId] = useState<GameMapId>("main");
   const found = useMemo(() => foundSets(data.progress), [data.progress]);
   const spByCode = useMemo(
     () => new Map(data.species.map((sp, i) => [sp.code.toLowerCase(), i] as const)),
@@ -82,7 +113,7 @@ export function MapView() {
     [],
   );
 
-  const layers = useMemo<Layer[]>(() => {
+  const mainLayers = useMemo<Layer[]>(() => {
     const effigies = WORLD_MAP.relics.filter((r) => r.t === "effigy");
     const others = WORLD_MAP.relics.filter((r) => r.t === "relic");
     const count = (rows: { found?: boolean }[]) =>
@@ -168,21 +199,89 @@ export function MapView() {
     ];
   }, [data, t, found, spByCode, schematicBySource]);
 
-  /* Lagervalet överlever sidbyten; valideras mot dagens lager-id:n. */
+  /* VÄRLDSTRÄDETS lager. Egen karta, delvis egna sorters platser – och samma
+     save-koppling som huvudkartan, för savens GUID:n gäller hela världen.
+     Bossarna är fyra, men bara slutbossen går att pricka av: mellanbossarnas
+     flaggor finns i saven som WorldTreeMiddleBoss1..3 utan att någon källa
+     säger vilken som är vilken, så de bär ingen status alls hellre än en
+     gissad. Antalet klarade står på Uppdrag, ur saven. */
+  const treeLayers = useMemo<Layer[]>(() => {
+    const effigies = TREE_MAP.relics.filter((r) => r.t === "effigy");
+    const others = TREE_MAP.relics.filter((r) => r.t === "relic");
+    const count = (rows: { found?: boolean }[]) =>
+      found ? rows.filter((r) => r.found).length : null;
+
+    const bosses: Marker[] = TREE_MAP.towers.map((m) => ({
+      x: m.x, y: m.y, name: m.name,
+      sub: m.flag ? undefined : t("map.treeMidBoss"),
+      found: m.flag && found ? found.towers.has(m.flag) : undefined,
+    }));
+    const travels: Marker[] = TREE_MAP.travels.map((m) => ({
+      x: m.x, y: m.y, name: m.name,
+      found: found ? found.travels.has(m.g) : undefined,
+    }));
+    const eff: Marker[] = effigies.map((m) => ({
+      x: m.x, y: m.y, name: "Lifmunk Effigy",
+      found: found ? found.relics.has(m.g) : undefined,
+    }));
+    const rel: Marker[] = others.map((m) => ({
+      x: m.x, y: m.y, name: t("map.relicName"),
+      found: found ? found.relics.has(m.g) : undefined,
+    }));
+    const alphas: Marker[] = TREE_MAP.alphas.map((m) => {
+      const si = spByCode.get(m.sp.toLowerCase());
+      return {
+        x: m.x, y: m.y, lv: m.lv, species: si,
+        name: si !== undefined ? data.species[si]!.name : m.sp,
+        found: found ? found.spawners.has(m.spawner) : undefined,
+      };
+    });
+    const pt = (name: string, sub?: string) => (m: { x: number; y: number }): Marker =>
+      ({ x: m.x, y: m.y, name, sub });
+
+    return [
+      /* Ingen räknare på bossarna: tre av fyra går inte att pricka av, och
+         "0/4" hade påstått att alla fyra följs. Slutbossens status står i
+         dess egen ruta, och mellanbossarnas antal på Uppdrag. */
+      { id: "towers", label: "map.l.treeBosses", icon: "tower", markers: bosses, found: null, defaultOn: true },
+      { id: "travels", label: "map.l.travels", icon: "travel", markers: travels, found: count(travels), defaultOn: true },
+      { id: "effigies", label: "map.l.effigies", icon: "effigy", markers: eff, found: count(eff), defaultOn: true },
+      { id: "alphas", label: "map.l.alphas", icon: "alpha", markers: alphas, found: count(alphas), defaultOn: true },
+      { id: "eggs", label: "map.l.eggs", icon: "", markers: TREE_MAP.eggs.map(pt("World Tree Egg")), found: null, defaultOn: true },
+      { id: "chests", label: "map.l.chests", icon: "", markers: TREE_MAP.chests.map(pt(t("map.chestName"))), found: null, defaultOn: true },
+      { id: "relics", label: "map.l.relics", icon: "effigy", markers: rel, found: count(rel), defaultOn: false },
+      { id: "ores", label: "map.l.paloxite", icon: "ore", markers: TREE_MAP.ores.map(pt("Paloxite")), found: null, defaultOn: false },
+      { id: "fishing", label: "map.l.fishing", icon: "", markers: TREE_MAP.fishing.map((m) => ({
+        x: m.x, y: m.y, name: m.rare ? t("map.fishingRare") : t("map.fishingName"),
+      })), found: null, defaultOn: false },
+      { id: "fruits", label: "map.l.fruits", icon: "", markers: TREE_MAP.fruits.map(pt(t("map.fruitName"))), found: null, defaultOn: false },
+      { id: "springs", label: "map.l.springs", icon: "", markers: TREE_MAP.springs.map(pt("Teafant Spring")), found: null, defaultOn: false },
+      { id: "journals", label: "map.l.journals", icon: "", markers: TREE_MAP.journals.map((m) => ({ x: m.x, y: m.y, name: m.name })), found: null, defaultOn: false },
+      { id: "junk", label: "map.l.junk", icon: "", markers: TREE_MAP.junk.map(pt(t("map.junkName"))), found: null, defaultOn: false },
+    ];
+  }, [data, t, found, spByCode]);
+
+  const layers = mapId === "main" ? mainLayers : treeLayers;
+
+  /* Lagervalet överlever sidbyten; valideras mot dagens lager-id:n. Effekten
+     hänger på mapId och läser lagren ur en ref: `layers` byter identitet vid
+     varje språk-/dataändring, och som beroende hade den nollställt valet. */
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
   const [active, setActive] = useState<ReadonlySet<string>>(
     () => new Set(layers.filter((l) => l.defaultOn).map((l) => l.id)),
   );
   useEffect(() => {
-    const ids = new Set(layers.map((l) => l.id));
-    setActive(new Set(readLayers(layers.filter((l) => l.defaultOn).map((l) => l.id))
+    const now = layersRef.current;
+    const ids = new Set(now.map((l) => l.id));
+    setActive(new Set(readLayers(mapId, now.filter((l) => l.defaultOn).map((l) => l.id))
       .filter((id) => ids.has(id))));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mapId]);
   const toggleLayer = (id: string) => {
     setActive((cur) => {
       const next = new Set(cur);
       if (next.has(id)) next.delete(id); else next.add(id);
-      try { localStorage.setItem(LAYERS_KEY, JSON.stringify([...next])); } catch { /* privat läge */ }
+      writeLayers(mapId, [...next]);
       return next;
     });
   };
@@ -247,32 +346,77 @@ export function MapView() {
     /* preventDefault kräver passive:false – annars scrollar sidan i stället. */
     frame.addEventListener("wheel", onWheel, { passive: false });
 
+    /* DRAGNINGEN. Fyra saker här är rättelser av beteenden som fick kartan att
+       kännas som något man släpar runt i stället för en yta man panorerar:
+
+       1. Webbläsarens EGEN drag-och-släpp stoppas på `dragstart`, inte på
+          pointerdown. Utan den drar man en spökbild av markören medan kartan
+          panorerar – just det som ser ut som att man "flyttar en bild".
+          Att i stället avbryta pointerdown ligger närmare till hands och är
+          fel: Chrome slutar då skicka klicket, och markörerna gick inte längre
+          att öppna (uppmätt med riktiga musinmatningar, inte antaget).
+          Markeringen tas om hand av `user-select: none` i CSS.
+       1b. Pekaren FÅNGAS först när dragningen passerat tröskeln, inte vid
+          nedtryckningen. `setPointerCapture` styr om även `click` till
+          fångstelementet, så med fångst från första pixeln fick markörknappen
+          aldrig sitt klick: rutorna gick inte att öppna alls, och det såg ut
+          som att kartan bara ville dras omkring. Fångsten behövs ändå så snart
+          man drar – annars tappas dragningen när pekaren lämnar ramen.
+       2. Bara primärknappen panorerar. Höger- och mittenklick startade förut
+          en dragning som satt kvar tills nästa klick.
+       3. `pointercancel` avslutar dragningen. Avbryts pekaren (systemgest,
+          fönsterbyte) kom inget `pointerup`, och kartan följde efter musen
+          UTAN nedtryckt knapp tills man klickade igen.
+       4. Rörelsen mäts från STARTPUNKTEN, inte per händelse. Tröskeln jämförde
+          förut varje enskild `pointermove`, så en långsam dragning aldrig
+          räknades som rörelse – och klicket öppnade markören man råkade släppa
+          över. `stopPropagation` på pointerup hindrar inte heller ett klick;
+          det gör en lyssnare i FÅNGSTFAS på click, som ligger nedan. */
     let drag: { x: number; y: number } | null = null;
+    let from = { x: 0, y: 0 };
     let moved = false;
+    const isControl = (e: PointerEvent) =>
+      e.target instanceof Element && e.target.closest(".wzoom, .wtip");
+    const noDrag = (e: Event) => e.preventDefault();
     const down = (e: PointerEvent) => {
+      if (e.button !== 0 || isControl(e)) return;
       drag = { x: e.clientX, y: e.clientY };
+      from = { x: e.clientX, y: e.clientY };
       moved = false;
-      frame.setPointerCapture(e.pointerId);
+      frame.classList.add("dragging");
     };
     const move = (e: PointerEvent) => {
       if (!drag) return;
       const dx = e.clientX - drag.x;
       const dy = e.clientY - drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      if (!moved && Math.abs(e.clientX - from.x) + Math.abs(e.clientY - from.y) > 4) {
+        moved = true;
+        frame.setPointerCapture(e.pointerId);
+      }
       drag = { x: e.clientX, y: e.clientY };
       view.current.px += dx;
       view.current.py += dy;
       clampView();
       apply();
     };
-    const up = (e: PointerEvent) => {
+    const end = () => {
       drag = null;
-      /* Ett klick som var en dragning ska inte öppna en markör. */
-      if (moved) e.stopPropagation();
+      frame.classList.remove("dragging");
+    };
+    /* Klicket som avslutade en dragning ska inte öppna markören under fingret.
+       Fångstfas + stopPropagation hinner före markörknappens egen hanterare. */
+    const clickGuard = (e: MouseEvent) => {
+      if (!moved) return;
+      moved = false;
+      e.stopPropagation();
+      e.preventDefault();
     };
     frame.addEventListener("pointerdown", down);
     frame.addEventListener("pointermove", move);
-    frame.addEventListener("pointerup", up);
+    frame.addEventListener("pointerup", end);
+    frame.addEventListener("pointercancel", end);
+    frame.addEventListener("click", clickGuard, true);
+    frame.addEventListener("dragstart", noDrag);
     /* Startläget sätts först nu – fitScale kräver utmätt layout. */
     view.current = { s: fitScale(), px: 0, py: 0 };
     apply();
@@ -284,10 +428,22 @@ export function MapView() {
       frame.removeEventListener("wheel", onWheel);
       frame.removeEventListener("pointerdown", down);
       frame.removeEventListener("pointermove", move);
-      frame.removeEventListener("pointerup", up);
+      frame.removeEventListener("pointerup", end);
+      frame.removeEventListener("pointercancel", end);
+      frame.removeEventListener("click", clickGuard, true);
+      frame.removeEventListener("dragstart", noDrag);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Kartbyte nollställer vyn: skalan är densamma men bilderna visar olika
+     världar, och en behållen panorering hade landat i trädets tomma hörn. */
+  useEffect(() => {
+    setPicked(null);
+    view.current = { s: fitScale(), px: 0, py: 0 };
+    apply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapId]);
 
   const zoomCenter = (factor: number) => {
     const frame = frameRef.current;
@@ -305,7 +461,24 @@ export function MapView() {
 
   return (
     <>
-      <Section title={t("map.title")} sub={t("map.sub")}>
+      <Section title={t(mapId === "main" ? "map.title" : "map.name.tree")} sub={t("map.sub")}>
+        {/* Kartväljaren. Två spelkartor, inte två lager – därför en egen rad
+            ovanför lagerchipen och inte ett chip bland dem. */}
+        <div className="wmaps" role="tablist" aria-label={t("map.pickMap")}>
+          {MAP_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={mapId === id}
+              className={`wmapbtn ${mapId === id ? "on" : ""}`}
+              onClick={() => setMapId(id)}
+            >
+              {t(id === "main" ? "map.name.main" : "map.name.tree")}
+            </button>
+          ))}
+        </div>
+
         {/* Lagerchips: toggle + hittat-räknare i ett. Räknaren finns bara när
             saven har svaret – läger/dungeons visar totalen utan påstående. */}
         <div className="wchips">
@@ -342,11 +515,16 @@ export function MapView() {
         <div className="wmapwrap">
           <div className="wmap" ref={frameRef}>
             <div className="wlayer" ref={worldRef}>
-              <img className="wimg" src="/img/worldmap.webp" alt={t("map.alt")} draggable={false} />
+              <img
+                className="wimg"
+                src={MAP_IMAGE[mapId]}
+                alt={t(mapId === "main" ? "map.alt" : "map.altTree")}
+                draggable={false}
+              />
               {layers.filter((l) => active.has(l.id)).map((l) =>
                 l.markers.map((m, i) => {
                   if (onlyMissing && m.found) return null;
-                  const { left, top } = mapPct(m.x, m.y);
+                  const { left, top } = mapPct(m.x, m.y, mapId);
                   const sel = picked?.m === m;
                   return (
                     <button

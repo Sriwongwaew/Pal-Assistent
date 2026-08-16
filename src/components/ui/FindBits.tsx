@@ -389,8 +389,8 @@ export function ComboHero({ parents, results, links }: {
             {results.length > 0 ? results : <span className="ftodo">{t("find.combo.none")}</span>}
           </Fact>
         </div>
-        {/* Legendarer parar bara med sin egen art – det är inte en bugg i
-            tabellen, se "Domain gotchas" i CLAUDE.md. */}
+        {/* En legendar KAN paras med vad som helst – man kan bara inte få en
+            legendar ur ägget. Se "Domain gotchas" i CLAUDE.md. */}
         <div className="hint">{t("find.combo.note")}</div>
       </div>
       {links}

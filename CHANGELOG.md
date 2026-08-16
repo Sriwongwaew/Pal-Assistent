@@ -13,6 +13,44 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **Legendary pals could not be used as breeding parents, and the app said that was the rule.**
+  It is not. A legendary breeds with anything — what you cannot do is get a legendary out of the
+  egg unless both parents are that species. The breeding table was missing 12 326 pairs, every one
+  of them a pairing with a legendary as a parent, and the planner explained the empty rows with a
+  rule the game does not have. Frostallion now has a child with 299 species instead of two, and
+  breeding plans that used to dead-end on "this pair cannot breed" have a route. Unique combos
+  still win, so Frostallion + Helzephyr is Frostallion Noct as before.
+
+- **The World Tree has a map.** It is its own map in the game, with its own rendering, so it could
+  never be a layer on the islands — and until now it simply was not in the app. Map now has two
+  maps to pick between, and the World Tree comes with everything the islands have: its four bosses,
+  17 fast travel points, 47 effigies, seven alpha pals found nowhere else, the 30 World Tree eggs,
+  38 chests, the Paloxite, the fruit trees, and all 77 fishing spots. Found status is ticked off
+  from your save there exactly as it is on the islands.
+
+- **Effigies, fast travel and alpha pals were counted against the islands alone.** The save counts
+  the whole world, so anything you had already found in the World Tree matched nothing and
+  vanished. On a real save that was four fast travel points and an alpha boss that were done and
+  showing as not done: the totals now read 155 effigies, 174 fast travel points and 90 alphas.
+
+- **Map markers can be clicked.** They never could — pressing one did nothing at all, because the
+  map grabbed the pointer for panning the instant you pressed, and the click went to the map
+  instead of the marker. The map now takes the pointer only once you actually start dragging, so a
+  click opens the marker and a drag pans. Dragging no longer picks the image up under the cursor
+  or paints a text selection across the map either, and the grabbing hand lets go when you do.
+
+- **Clicking a tile in Find looked like it did nothing.** The answer is drawn above the search
+  box, so picking a tile once you had scrolled down changed a panel that
+  was off the top of the screen. The answer now comes to you: the page scrolls just far enough to
+  show it, and only when it is not already visible.
+
+- **Find no longer has an Elements category.** Nine tiles reading Fire, Water, Grass told you
+  nothing you did not already know, and they sat between you and the categories that do answer
+  something. Elements are still searchable — type "fire" and you get the species — and what a
+  species is strong and weak against, plus your own best counter to it, is on the species itself.
+
 ## 3.1.0 – 2026-08-15
 
 

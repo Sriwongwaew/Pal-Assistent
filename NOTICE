@@ -51,7 +51,8 @@ palworld-kb - no licence stated; credited here, removed on request
 paldb.cc - site data, PAK-extracted from the game ((C) Pocketpair);
     credited here, removed on request
     Datamined marker positions (camps, dungeons, effigies, ore, skill-fruit
-    trees) and the game's compass icons.
+    trees), the game's compass icons, and the World Tree map render
+    (public/img/worldtree.webp), stitched from the site's map tiles.
     https://paldb.cc/
 
 zao/ooz, after powzix/ooz - NO LICENCE STATED

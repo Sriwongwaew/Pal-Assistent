@@ -5,7 +5,7 @@
  * fel utan att något ser trasigt ut, precis som en felräknad sannolikhet. */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { WORLD_MAP, catchInfo, foundSets, igCoord, mapPct } from "../src/lib/worldmap";
+import { TREE_MAP, WORLD_MAP, catchInfo, foundSets, igCoord, mapPct } from "../src/lib/worldmap";
 
 const GUID = /^[0-9A-F]{32}$/;
 
@@ -76,6 +76,72 @@ test("foundSets skiljer 'vet inte' från 'inget hittat'", () => {
 
 test("igCoord skriver som spelet", () => {
   assert.equal(igCoord(-134.4, -94.2), "(-134, -94)");
+});
+
+/* ---------- Världsträdet: EGEN karta, GEMENSAM save ---------- */
+
+test("trädets projektion är en egen ram, inte huvudkartans", () => {
+  /* Zenara & Astralym står på (−1993,1, 1349,7) – utanför huvudkartans ram
+     (x ≥ −1922,4), alltså precis den sortens punkt som förut föll bort.
+     Handräknat ur trädets ram: left = (459·(−1993,1) + 976 197)/341 797 =
+     17,95 %, top = (813 036,5 − 459·1349,7)/341 797 = 56,62 %. */
+  const tree = mapPct(-1993.1, 1349.7, "tree");
+  assert.ok(Math.abs(tree.left - 17.95) < 0.05, `left ${tree.left}`);
+  assert.ok(Math.abs(tree.top - 56.62) < 0.05, `top ${tree.top}`);
+  // Samma punkt på huvudkartan hamnar utanför bilden – därför två kartor.
+  assert.ok(mapPct(-1993.1, 1349.7).left < 0, "trädet ligger utanför huvudbilden");
+});
+
+test("alla trädets markörer ligger på trädets bild", () => {
+  const layers = [
+    ...TREE_MAP.towers, ...TREE_MAP.travels, ...TREE_MAP.relics, ...TREE_MAP.alphas,
+    ...TREE_MAP.ores, ...TREE_MAP.chests, ...TREE_MAP.eggs, ...TREE_MAP.fruits,
+    ...TREE_MAP.fishing, ...TREE_MAP.springs, ...TREE_MAP.journals, ...TREE_MAP.junk,
+  ];
+  assert.ok(layers.length > 300, `bara ${layers.length} markörer`);
+  for (const m of layers) {
+    const { left, top } = mapPct(m.x, m.y, "tree");
+    assert.ok(left >= 0 && left <= 100 && top >= 0 && top <= 100,
+      `utanför bilden: (${m.x}, ${m.y}) → ${left}, ${top}`);
+  }
+});
+
+test("trädets save-nycklar krockar inte med huvudkartans", () => {
+  /* Reliker och snabbresor är instans-GUID:n för HELA världen och delas mellan
+     kartorna av generatorn. Delade nycklar hade betytt att en och samma effigy
+     prickas av på båda kartorna – och dubbelräknas i lägesbandets total. */
+  const main = new Set([...WORLD_MAP.relics, ...WORLD_MAP.travels].map((m) => m.g));
+  const tree = [...TREE_MAP.relics, ...TREE_MAP.travels].map((m) => m.g);
+  assert.ok(tree.every((g) => GUID.test(g)), "GUID-formatet");
+  assert.equal(tree.filter((g) => main.has(g)).length, 0, "samma GUID på båda kartorna");
+  assert.equal(TREE_MAP.relics.length, 47, "reliker i trädet");
+  assert.equal(TREE_MAP.relics.filter((r) => r.t === "effigy").length, 15, "Lifmunk i trädet");
+  assert.equal(TREE_MAP.travels.length, 17, "snabbresor i trädet");
+});
+
+test("bara trädets SLUTBOSS bär en savflagga", () => {
+  /* Mellanbossarna ligger i saven som WorldTreeMiddleBoss1..3, men ingen källa
+     säger vilken av de tre som är vilket nummer. En gissad koppling hade bockat
+     av fel boss, alltså bär de ingen flagga alls. */
+  assert.equal(TREE_MAP.towers.length, 4);
+  const flagged = TREE_MAP.towers.filter((t) => t.flag);
+  assert.equal(flagged.length, 1);
+  assert.equal(flagged[0]!.flag, "WorldTreeBoss");
+  assert.match(flagged[0]!.name, /Zenara/);
+});
+
+test("catchInfo hittar alfabossar i trädet och säger vilken karta", () => {
+  /* Sex av trädets sju alfor finns INGEN annanstans. Så länge bara huvudkartan
+     lästes sa appen "FÅNGA" utan plats, fast platsen fanns i källan. */
+  const aegidron = catchInfo("DomeArmorDragon");
+  assert.equal(aegidron?.kind, "alpha");
+  if (aegidron?.kind === "alpha") {
+    assert.equal(aegidron.map, "tree");
+    assert.ok(aegidron.lv >= 70, `Lv ${aegidron.lv}`);
+  }
+  // Huvudkartans alfor svarar fortfarande "main".
+  const jet = catchInfo("JetDragon");
+  if (jet?.kind === "alpha") assert.equal(jet.map, "main");
 });
 
 test("catchInfo säger HUR en oavlingsbar art skaffas", () => {

@@ -302,7 +302,9 @@ export function QuestsView() {
             <img src="/img/worldmap.webp" alt="" draggable={false} />
             {/* Guldstämplarna är savens riktiga tornflaggor på kartans riktiga
                 positioner (mapPct). Världsträdet är en egen spelkarta och får
-                ALDRIG en gissad prick här – det bor i faserna till höger. */}
+                ALDRIG en gissad prick här – det bor i faserna till höger, och
+                sedan aug 2026 på sin EGNA karta (`/map`, kartväljaren), där
+                dess fyra bossar står på sina riktiga koordinater. */}
             {WORLD_MAP.towers.map((tw) => {
               const done = progress.towers.includes(tw.flag);
               /* mapPct ger redan procent (0–100). */
@@ -519,7 +521,7 @@ export function QuestsView() {
                       {ownedSpecies.has(i)
                         ? <Tag kind="keep">{t("best.own.owned")}</Tag>
                         : how?.kind === "raid" ? <Tag kind="cond">{t("best.own.catchRaid")}</Tag>
-                        : how?.kind === "alpha" ? <span className="meta">{t("best.own.catchAlpha", { lv: how.lv })} · {igCoord(how.x, how.y)}{found?.spawners && " "}</span>
+                        : how?.kind === "alpha" ? <span className="meta">{t("best.own.catchAlpha", { lv: how.lv })} · {igCoord(how.x, how.y)}{how.map === "tree" ? `, ${t("map.name.tree")}` : ""}{found?.spawners && " "}</span>
                         : isReachable(freeSolve.cost, i)
                           ? <Tag kind="lucky">{t("best.own.breedShort", { n: freeSolve.cost[i] ?? 0 })}</Tag>
                           : <Tag kind="cond">{t("best.own.catch")}</Tag>}

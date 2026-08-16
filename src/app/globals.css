@@ -3192,6 +3192,19 @@ a.qstat:hover { border-color: var(--acc); }
    Panorering/zoom sätts imperativt som transform på .wlayer (se MapView);
    markörerna motskalas med --iz så de håller samma skärmstorlek. Bilden är
    mörk oavsett tema – ramen är spelet, inte gränssnittet. */
+/* Kartväljaren. Två SPELKARTOR, inte två lager – därför segment i egen rad
+   ovanför lagerchipen och inte ett chip till bland dem. Den valda är fylld med
+   accenten och bottentokenens text, samma grepp som Kapselns aktiva flik: en
+   tonad platta syns knappt mot panelen. */
+.wmaps { display: inline-flex; gap: 4px; padding: 3px; margin-bottom: 10px;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; }
+.wmapbtn {
+  padding: 6px 15px; border-radius: 999px; border: 0; cursor: pointer;
+  background: none; color: var(--muted); font: 800 12px inherit;
+}
+.wmapbtn:hover { color: var(--ink); }
+.wmapbtn.on { background: var(--acc); color: var(--bg); }
+
 .wchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
 .wchip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -3213,7 +3226,13 @@ a.qstat:hover { border-color: var(--acc); }
   border-radius: var(--r3); border: 1px solid var(--line2);
   background: #06070c; /* spelets hav – samma i båda temana, avsiktligt */
 }
-.wmap:active { cursor: grabbing; }
+/* Greppet sitter på en klass som JS sätter, inte på `:active`: med
+   setPointerCapture tappar ramen sitt aktiv-tillstånd så fort pekaren lämnar
+   den, och markören hoppade tillbaka till öppen hand mitt i en dragning.
+   `user-select: none` hör till samma rättelse – utan den målar dragningen en
+   markering tvärs över kartan. */
+.wmap.dragging { cursor: grabbing; }
+.wmap, .wlayer { user-select: none; -webkit-user-select: none; }
 /* Lagret står i bildens NATURLIGA storlek (8192²) och zoomas med skalor ≤ 1:
    webbläsaren samplar då alltid den fulla källan och kartan är skarp på varje
    nivå. Inget will-change – det cachar rastret i fel upplösning, vilket var
@@ -3247,6 +3266,18 @@ a.qstat:hover { border-color: var(--acc); }
   background: #8bd97a; border: 2px solid rgba(0, 0, 0, .55);
 }
 .wchip .wdot { width: 9px; height: 9px; }
+/* Prickarna är lagren som saknar en riktig spelikon, och de var alla gröna –
+   fem lager på huvudkartan och sex i trädet såg ut att betyda samma sak. Färgen
+   är fast och inte ur temat, precis som `.wdot`s ursprungliga grönt: kartbilden
+   är mörk i BÅDA lägena, så en tematoken hade gett låg kontrast i det ena. */
+.wmk.oilrigs .wdot, .wmk.chests .wdot { background: #f5c451; }
+.wmk.treasures .wdot { background: #d98ae0; }
+.wmk.ruins .wdot { background: #7fd4ff; }
+.wmk.regions .wdot, .wmk.journals .wdot { background: #cfd6e4; }
+.wmk.eggs .wdot { background: #ffd9a0; }
+.wmk.fishing .wdot { background: #6fc7ff; }
+.wmk.springs .wdot { background: #8ce8dd; }
+.wmk.junk .wdot { background: #a89684; }
 
 .wzoom {
   position: absolute; right: 10px; top: 10px; display: grid; gap: 5px; z-index: 3;
@@ -3286,6 +3317,9 @@ a.qstat:hover { border-color: var(--acc); }
   position: relative; display: flex; gap: 18px; align-items: flex-start;
   border: 1px solid var(--line); border-radius: var(--r4);
   padding: 18px 20px 16px; margin-bottom: 14px; overflow: hidden;
+  /* Kapseln är sticky och ligger över sidan, så en yta som rullas fram måste
+     hålla sig undan under den – annars landar rubriken bakom skenan. */
+  scroll-margin-top: 84px;
   background:
     linear-gradient(155deg, color-mix(in srgb, var(--elc, var(--acc)) 18%, transparent), color-mix(in srgb, var(--elc, var(--acc)) 5%, transparent) 45%, transparent 70%),
     var(--panel);

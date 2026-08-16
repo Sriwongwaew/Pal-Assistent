@@ -177,7 +177,8 @@ chick inherits all the wanted passives in that step.
 > passive is enough to multiply the number of eggs — which is why parents are chosen on *purity*
 > first and IVs only second.
 
-Impossible pairs are flagged. Legendaries only breed with their own species, so a chain through one
+Impossible pairs are flagged. A legendary can be paired with anything, but you can only *get* a
+legendary out of an egg when both parents are that species — so a chain that has to end on one
 simply doesn't exist.
 
 ### The species chain — why more steps can be cheaper

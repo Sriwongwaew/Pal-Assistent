@@ -9,7 +9,8 @@
  *      skill fruit-träd och malmkluster. Ingen annan hittad källa är
  *      1.0-komplett: 1.0 byggde om världen (FPA-tornet flyttade, åttonde
  *      tornet tillkom, effigies omfördelades), så allt daterat före ~mitten
- *      av 2026 är delvis fel.
+ *      av 2026 är delvis fel. VÄRLDSTRÄDET är en egen last (`treemap_data_en`)
+ *      med en egen bildram – se `MAPS` nedan.
  *   2. PalworldSaveTools `fast_travel_points.json` – snabbresor, nycklade på
  *      SAMMA instans-GUID:n som savens `FastTravelPointUnlockFlag`, så appen
  *      kan pricka av exakt vilka som är upplåsta.
@@ -36,6 +37,7 @@ const OUT_DIR = path.join(import.meta.dirname, "..", "src", "lib", "data");
 const BASE_DATA = path.join(import.meta.dirname, "..", "data", "pal-data.base.json");
 
 const PALDB_MAP = "https://paldb.cc/js/map_data_en.js";
+const PALDB_TREE = "https://paldb.cc/js/treemap_data_en.js";
 const PST_RAW = "https://raw.githubusercontent.com/deafdudecomputers/PalworldSaveTools/main/resources/game_data";
 const PSP_RAW = "https://raw.githubusercontent.com/oMaN-Rod/palworld-save-pal/main/data/json";
 
@@ -45,18 +47,56 @@ const ig = (ueX, ueY) => ({
   y: Math.round(((ueX + 123888) / 459) * 10) / 10,
 });
 
-/* Huvudkartans bildram i spelkoordinater (härledd ur paldb:s
-   landScapeRealPosition). Världsträdet är en EGEN karta med egen transform –
-   dess punkter ligger utanför ramen och filtreras bort ur ALLA lager, med
-   loggade antal så bortfallet aldrig är tyst. */
-const FRAME = { x: [-1922.4, 1234.0], y: [-2125.3, 1031.1] };
-const dropped = {};
-function inFrame(layer) {
-  return (m) => {
-    const ok = m.x >= FRAME.x[0] && m.x <= FRAME.x[1] && m.y >= FRAME.y[0] && m.y <= FRAME.y[1];
-    if (!ok) dropped[layer] = (dropped[layer] ?? 0) + 1;
-    return ok;
+/* SPELET HAR TVÅ KARTOR, och de delar koordinatsystem utan att dela bildram.
+   Världsträdet är en egen spelkarta med en egen rendering, och dess punkter
+   ligger utanför huvudkartans ram – de filtrerades tidigare bort ur alla lager
+   och fanns alltså inte i appen alls.
+
+   Ramen HÄRLEDS ur respektive lasts `config.landScapeRealPosition`, inte ur
+   avlästa siffror: samma två rader ger huvudkartans dokumenterade ram
+   (x ∈ [−1922,4, 1234,0], y ∈ [−2125,3, 1031,1]) och trädets, så en patch som
+   flyttar en kartram flyttar filtret med i stället för att tyst börja slänga
+   markörer. `assertFrame` håller huvudkartan mot de dokumenterade siffrorna –
+   de står i src/lib/worldmap.ts och i testerna, och ska inte kunna glida isär.
+
+   Uppströmskällorna (snabbresor, reliker, bossar) är VÄRLDSOMSPÄNNANDE och
+   nycklade på instans-GUID: samma fil bär både kartornas punkter. Det är därför
+   varje sådan källa delas mellan kartorna med `splitByMap` i stället för att
+   filtreras mot en ram – ett bortfall där är en effigy som saknas i appen. */
+function frameOf(config) {
+  const { landScapeRealPositionMin: lo, landScapeRealPositionMax: hi } = config;
+  return {
+    x: [(lo.Y - 158000) / 459, (hi.Y - 158000) / 459],
+    y: [(lo.X + 123888) / 459, (hi.X + 123888) / 459],
   };
+}
+
+function assertFrame(frame, want, what) {
+  const got = [...frame.x, ...frame.y].map((v) => Math.round(v * 10) / 10);
+  if (got.join() !== want.join()) {
+    throw new Error(`${what}: bildramen har flyttat sig – ${got.join()} ≠ ${want.join()}. `
+      + "Stämmer den nya ramen ska mapPct-konstanterna i src/lib/worldmap.ts och "
+      + "tests/worldmap.test.ts uppdateras i samma veva.");
+  }
+}
+
+const inFrame = (frame) => (m) =>
+  m.x >= frame.x[0] && m.x <= frame.x[1] && m.y >= frame.y[0] && m.y <= frame.y[1];
+
+/* Delar en världsomspännande källa på kartorna. En punkt som hamnar i BÅDA
+   ramarna (de tangerar varandra i y) eller i ingen är inte ett bortfall att
+   logga utan ett tecken på att transformen glidit – då stannar bygget. */
+function splitByMap(rows, frames, what) {
+  const out = { main: [], tree: [] };
+  for (const row of rows) {
+    const hits = Object.keys(frames).filter((id) => inFrame(frames[id])(row));
+    if (hits.length !== 1) {
+      throw new Error(`${what}: punkten (${row.x}, ${row.y}) ligger i ${hits.length} kartramar `
+        + `(${hits.join(", ") || "ingen"}) – transformen eller ramarna stämmer inte.`);
+    }
+    out[hits[0]].push(row);
+  }
+  return out;
 }
 
 async function fetchText(url) {
@@ -73,6 +113,22 @@ function paldbMarkers(source) {
   if (start < 0 || end < 0) throw new Error("paldb-lasten har bytt form – uppdatera parsern.");
   const json = source.slice(start + "var fixedDungeon =".length, end).trim().replace(/;$/, "");
   return JSON.parse(json);
+}
+
+/* `var config` – kartans bildram i UE-enheter. Samma form i båda lasterna. */
+function paldbConfig(source) {
+  const key = "var config =";
+  const start = source.indexOf(key);
+  if (start < 0) throw new Error("config finns inte i paldb-lasten – uppdatera parsern.");
+  const tail = source.slice(start + key.length);
+  /* Objektet är nästlat (`landScapeRealPositionMin` m.fl.), så första `}` är
+     fel slut – räkna klammerdjup i stället. */
+  let depth = 0;
+  for (let i = tail.indexOf("{"); i < tail.length; i++) {
+    if (tail[i] === "{") depth++;
+    else if (tail[i] === "}" && --depth === 0) return JSON.parse(tail.slice(tail.indexOf("{"), i + 1));
+  }
+  throw new Error("config saknar sitt slut – uppdatera parsern.");
 }
 
 /* `var regionData` – spelets EGNA regionnamn, flera med nivåspann i namnet
@@ -130,15 +186,54 @@ const ORE_TYPES = new Map([
 ]);
 
 async function buildWorldmap() {
-  const [paldbSrc, pstTravelSrc, relicsSrc, bossesSrc] = await Promise.all([
+  const [paldbSrc, treeSrc, pstTravelSrc, relicsSrc, bossesSrc] = await Promise.all([
     fetchText(PALDB_MAP),
+    fetchText(PALDB_TREE),
     fetchText(`${PST_RAW}/fast_travel_points.json`),
     fetchText(`${PSP_RAW}/relics.json`),
     fetchText(`${PSP_RAW}/bosses.json`),
   ]);
 
+  const frames = { main: frameOf(paldbConfig(paldbSrc)), tree: frameOf(paldbConfig(treeSrc)) };
+  assertFrame(frames.main, [-1922.4, 1234, -2125.3, 1031.1], "huvudkartan");
+  assertFrame(frames.tree, [-2126.8, -1382.1, 1026.7, 1771.3], "Världsträdet");
+
+  /* De tre världsomspännande källorna delas på kartorna. Talen är verifierade
+     aug 2026: 157/17 snabbresor, 360/47 reliker (varav 15 effigies i trädet)
+     och 83/7 fältbossar – och INGEN punkt hamnar utanför båda ramarna, vilket
+     är det som gör delningen trovärdig i stället för att bara vara ett filter. */
+  const split = {
+    travels: splitByMap(Object.entries(JSON.parse(pstTravelSrc)).map(([guid, p]) => ({
+      g: guid.toUpperCase(),
+      ...ig(p.x, p.y),
+      name: p.localized_name || p.id,
+      kind: /^WatchTower/i.test(p.id ?? "") ? "watch"
+        : /Tower/i.test(p.class ?? "") ? "tower" : "eagle",
+    })), frames, "snabbresor"),
+    relics: splitByMap(Object.entries(JSON.parse(relicsSrc)).map(([guid, r]) => ({
+      g: guid.toUpperCase(),
+      ...ig(r.x, r.y),
+      t: r.relic_type === "capture_power" ? "effigy" : "relic",
+    })), frames, "reliker"),
+    alphas: splitByMap(Object.values(JSON.parse(bossesSrc))
+      .filter((b) => b.character_id && b.character_id !== "None")
+      .map((b) => ({
+        ...ig(b.x, b.y),
+        sp: b.character_id.replace(/^BOSS_/i, ""),
+        lv: b.level,
+        spawner: b.spawner_id,
+      })), frames, "fältbossar"),
+  };
+
   const markers = paldbMarkers(paldbSrc);
   const byType = (t) => markers.filter((m) => m.type === t && m.pos);
+  /* Lasten är kartans egen och ska ligga i kartans egen ram. Ett bortfall här
+     vore tyst datasvinn, alltså kastar vi hellre. */
+  const stray = markers.filter((m) => m.pos && !inFrame(frames.main)(ig(m.pos.X, m.pos.Y)));
+  if (stray.length) {
+    throw new Error(`${stray.length} markörer i huvudlasten ligger utanför huvudkartans ram `
+      + `(t.ex. "${stripHtml(stray[0].item)}") – har paldb slagit ihop kartorna?`);
+  }
 
   const towers = byType("Tower").map((m) => ({
     ...ig(m.pos.X, m.pos.Y),
@@ -147,37 +242,9 @@ async function buildWorldmap() {
   }));
   if (towers.length !== 8) throw new Error(`Väntade 8 torn, fick ${towers.length}.`);
 
-  /* Snabbresor ur PST-filen (GUID-nycklad). */
-  const pstTravels = JSON.parse(pstTravelSrc);
-  const travels = Object.entries(pstTravels)
-    .map(([guid, p]) => ({
-      g: guid.toUpperCase(),
-      ...ig(p.x, p.y),
-      name: p.localized_name || p.id,
-      kind: /^WatchTower/i.test(p.id ?? "") ? "watch"
-        : /Tower/i.test(p.class ?? "") ? "tower" : "eagle",
-    }))
-    .filter(inFrame("travels"));
-
-  const relicsRaw = JSON.parse(relicsSrc);
-  const relics = Object.entries(relicsRaw)
-    .map(([guid, r]) => ({
-      g: guid.toUpperCase(),
-      ...ig(r.x, r.y),
-      t: r.relic_type === "capture_power" ? "effigy" : "relic",
-    }))
-    .filter(inFrame("relics"));
-
-  const bosses = JSON.parse(bossesSrc);
-  const alphas = Object.values(bosses)
-    .filter((b) => b.character_id && b.character_id !== "None")
-    .map((b) => ({
-      ...ig(b.x, b.y),
-      sp: b.character_id.replace(/^BOSS_/i, ""),
-      lv: b.level,
-      spawner: b.spawner_id,
-    }))
-    .filter(inFrame("alphas"));
+  const travels = split.travels.main;
+  const relics = split.relics.main;
+  const alphas = split.alphas.main;
 
   /* Lägren bär REGIONEN och FRAKTIONEN, inte ett namn.
      `item` är markörens interna id ("Grass2", "DLC3_AreaBarrier") och dög aldrig
@@ -194,8 +261,7 @@ async function buildWorldmap() {
       ...ig(m.pos.X, m.pos.Y),
       region: stripHtml(m.RewardName) || null,
       faction: String(m.Type ?? "").replace(/^BP_NPCCampSpawner_/, "").split("_")[0] || null,
-    }))
-    .filter(inFrame("camps"));
+    }));
   if (camps.some((c) => !c.region)) {
     throw new Error("läger utan RewardName – har paldb-lasten bytt form?");
   }
@@ -205,11 +271,9 @@ async function buildWorldmap() {
      tidigare bara stod som text. Skattkartorna har ingen raritet i datan –
      rariteten sitter på kartan man hittar, inte på platsen. */
   const oilrigs = byType("Oilrig Chest")
-    .map((m) => ({ ...ig(m.pos.X, m.pos.Y) }))
-    .filter(inFrame("oilrigs"));
+    .map((m) => ({ ...ig(m.pos.X, m.pos.Y) }));
   const treasures = byType("Treasure Map")
-    .map((m) => ({ ...ig(m.pos.X, m.pos.Y) }))
-    .filter(inFrame("treasures"));
+    .map((m) => ({ ...ig(m.pos.X, m.pos.Y) }));
 
   /* ANCIENT RUINS – den starkaste schematic-källan som finns, och den låg
      oanvänd i lasten. Varje ruinmarkör bär i sitt `comment`-fält NAMNET på den
@@ -230,9 +294,8 @@ async function buildWorldmap() {
   const ruinsRaw = byType("Ancient Ruin");
   const ruins = ruinsRaw
     .map((m) => ({ ...ig(m.pos.X, m.pos.Y), gives: stripHtml(m.comment) }))
-    .filter((r) => r.gives)
-    .filter(inFrame("ruins"));
-  const ruinsBlank = ruinsRaw.length - ruins.length - (dropped.ruins ?? 0);
+    .filter((r) => r.gives);
+  const ruinsBlank = ruinsRaw.length - ruins.length;
   if (ruinsBlank > 0) console.log(`  ruiner utan comment (utelämnade): ${ruinsBlank}`);
 
   const dungeons = byType("Dungeon")
@@ -240,17 +303,14 @@ async function buildWorldmap() {
       ...ig(m.pos.X, m.pos.Y),
       name: stripHtml(m.item),
       lv: m.lv ?? null,
-    }))
-    .filter(inFrame("dungeons"));
+    }));
 
   const fruits = byType("Fruit Tree")
-    .map((m) => ig(m.pos.X, m.pos.Y))
-    .filter(inFrame("fruits"));
+    .map((m) => ig(m.pos.X, m.pos.Y));
 
   const ores = markers
     .filter((m) => ORE_TYPES.has(m.type) && m.pos)
-    .map((m) => ({ ...ig(m.pos.X, m.pos.Y), t: ORE_TYPES.get(m.type) }))
-    .filter(inFrame("ores"));
+    .map((m) => ({ ...ig(m.pos.X, m.pos.Y), t: ORE_TYPES.get(m.type) }));
 
   /* Regionerna: namn + nivåspann + position. Tomma namn ("-") och Arena-raden
      hör inte på en karta man letar platser på. */
@@ -260,20 +320,86 @@ async function buildWorldmap() {
       const { name, lo, hi } = splitRegionName(stripHtml(r.item));
       return { x: r.ipos.X, y: r.ipos.Y, name, lo, hi, id: r.id };
     })
-    .filter(inFrame("regions"));
+    .filter(inFrame(frames.main));
 
-  const worldmap = {
+  const main = {
     towers, travels, relics, alphas, camps, dungeons, fruits, ores,
     oilrigs, treasures, regions, ruins,
   };
+  const tree = buildTree(treeSrc, split);
+
+  const worldmap = { main, tree };
   await mkdir(OUT_DIR, { recursive: true });
   await writeFile(
     path.join(OUT_DIR, "worldmap.json"),
     JSON.stringify(worldmap),
   );
-  const counts = Object.fromEntries(Object.entries(worldmap).map(([k, v]) => [k, v.length]));
-  console.log("worldmap.json:", JSON.stringify(counts));
-  console.log("utanför ramen (Världsträdet m.m.):", JSON.stringify(dropped));
+  for (const [id, map] of Object.entries(worldmap)) {
+    const counts = Object.fromEntries(Object.entries(map).map(([k, v]) => [k, v.length]));
+    console.log(`worldmap.json ${id}:`, JSON.stringify(counts));
+  }
+}
+
+/* Världsträdets lager. Egen karta, egen bildram, delvis egna markörtyper –
+   och EN regel som skiljer den här funktionen från huvudkartans: ingenting
+   döps om. Kaklen, ägget och malmen heter i källan vad de heter i spelet.
+
+   Torn: lasten har fyra "Tower", och de är trädets bossar. Bara SLUTBOSSEN kan
+   knytas till en savflagga (`WorldTreeBoss` = Zenara & Astralym, namnet står i
+   klartext i markören). Mellanbossarna har flaggorna WorldTreeMiddleBoss1..3,
+   men INGEN källa säger vilken av dem som är vilket nummer – att gissa hade
+   bockat av fel boss, alltså får de `flag: null` och appen prickar inte av dem
+   individuellt. Antalet klarade står ändå på uppdragssidan, ur saven.
+
+   Utelämnade typer loggas. "Awakening" (21), "Incident" (9) och "NPC" (1) är
+   spelinterna spawners vi inte kan beskriva ärligt, och ett lager som heter
+   något vi gissat är sämre än inget lager. */
+function buildTree(treeSrc, split) {
+  const markers = paldbMarkers(treeSrc);
+  const byType = (t) => markers.filter((m) => m.type === t && m.pos);
+  const pos = (m) => ig(m.pos.X, m.pos.Y);
+
+  const towers = byType("Tower").map((m) => {
+    const name = stripHtml(m.item);
+    return { ...pos(m), name, flag: /zenara|astralym/i.test(name) ? "WorldTreeBoss" : null };
+  });
+  if (towers.length !== 4) throw new Error(`Väntade 4 bossar i Världsträdet, fick ${towers.length}.`);
+  if (towers.filter((t) => t.flag).length !== 1) {
+    throw new Error("Världsträdets slutboss hittades inte bland tornen – har paldb döpt om Zenara & Astralym?");
+  }
+
+  /* Fiskeplatserna är trädets största lager efter malmen, och de fyller en
+     lucka appen dokumenterat saknat ("fiskeplatser: ingen data alls"). `rare`
+     är källans egen skillnad, inte vår. */
+  const fishing = [
+    ...byType("Fishing Spot").map((m) => ({ ...pos(m), rare: false })),
+    ...byType("Rare Fishing Spot").map((m) => ({ ...pos(m), rare: true })),
+  ];
+
+  const tree = {
+    towers,
+    travels: split.travels.tree,
+    relics: split.relics.tree,
+    alphas: split.alphas.tree,
+    /* Paloxite är trädets malm och har ingen motsvarighet på huvudkartan –
+       den ligger som egen typ i källan och får därför ett eget lager. */
+    ores: byType("Paloxite").map((m) => ({ ...pos(m), t: "paloxite" })),
+    chests: byType("Chest").map(pos),
+    eggs: byType("World Tree Egg").map(pos),
+    fruits: byType("Fruit Tree").map(pos),
+    fishing,
+    springs: byType("Teafant Spring").map(pos),
+    journals: byType("Journals").map((m) => ({ ...pos(m), name: stripHtml(m.item) })),
+    junk: byType("Junk").map(pos),
+  };
+
+  const used = new Set(["Tower", "Fast Travel", "Watchtower", "Lifmunk Effigy", "Cattiva Effigy",
+    "Yakumo Effigy", "Alpha Pal", "Paloxite", "Chest", "World Tree Egg", "Fruit Tree",
+    "Fishing Spot", "Rare Fishing Spot", "Teafant Spring", "Journals", "Junk"]);
+  const skipped = {};
+  for (const m of markers) if (!used.has(m.type)) skipped[m.type] = (skipped[m.type] ?? 0) + 1;
+  if (Object.keys(skipped).length) console.log("  Världsträdet, utelämnade typer:", JSON.stringify(skipped));
+  return tree;
 }
 
 async function buildMissions() {

@@ -4,8 +4,18 @@
 
 import { QUEST_BOSSES, WORLDTREE_MID_FLAGS } from "./quests";
 import { mainQuestTally } from "./missions";
-import { WORLD_MAP } from "./worldmap";
+import { TREE_MAP, WORLD_MAP } from "./worldmap";
 import type { AppData, PlayerProgress } from "./types";
+
+/* SAVEN RÄKNAR VÄRLDEN, INTE EN KARTA. Relik-, snabbres- och bossflaggorna är
+   instans-GUID:n för hela spelvärlden, och Världsträdet är en egen karta med
+   47 reliker (15 av dem effigies), 17 snabbresor och 7 alfabossar. Räknades
+   bara huvudkartan blev totalerna för små medan savens egna fynd fanns kvar:
+   "effigies 120/140" om ett mål som är 155. Totalerna går därför över båda
+   kartorna – kartsidan delar upp dem, lägesbandet summerar dem. */
+const ALL_RELICS = [...WORLD_MAP.relics, ...TREE_MAP.relics];
+const ALL_TRAVELS = [...WORLD_MAP.travels, ...TREE_MAP.travels];
+const ALL_ALPHAS = [...WORLD_MAP.alphas, ...TREE_MAP.alphas];
 
 export interface ProgressSummary {
   towers: { done: number; total: number };
@@ -29,7 +39,7 @@ export function progressSummary(data: AppData): ProgressSummary | null {
   const relics = new Set(progress.relics);
   const travels = new Set(progress.travels);
   const spawners = new Set(progress.fieldBosses);
-  const effigies = WORLD_MAP.relics.filter((r) => r.t === "effigy");
+  const effigies = ALL_RELICS.filter((r) => r.t === "effigy");
 
   let deck: ProgressSummary["deck"] = null;
   if (progress.deck) {
@@ -52,13 +62,13 @@ export function progressSummary(data: AppData): ProgressSummary | null {
     effigies: { done: effigies.filter((r) => relics.has(r.g)).length, total: effigies.length },
     relicHeld: progress.relicHeld,
     travels: {
-      done: WORLD_MAP.travels.filter((p) => travels.has(p.g)).length,
-      total: WORLD_MAP.travels.length,
+      done: ALL_TRAVELS.filter((p) => travels.has(p.g)).length,
+      total: ALL_TRAVELS.length,
     },
     camps: { done: progress.counts.camps, total: WORLD_MAP.camps.length },
     alphas: {
-      done: WORLD_MAP.alphas.filter((a) => spawners.has(a.spawner)).length,
-      total: WORLD_MAP.alphas.length,
+      done: ALL_ALPHAS.filter((a) => spawners.has(a.spawner)).length,
+      total: ALL_ALPHAS.length,
     },
     raids: Object.values(progress.raids).reduce((a, b) => a + b, 0),
     mains: mainQuestTally(progress),
