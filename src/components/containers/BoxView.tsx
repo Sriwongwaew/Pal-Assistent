@@ -20,6 +20,7 @@ import { IV_LABELS } from "@/lib/ivPlan";
 import type { ScoredPal } from "@/lib/types";
 import { GameIcon } from "@/components/ui/GameIcon";
 import { PalHero, elementColor } from "@/components/ui/PalHero";
+import { palLocation } from "@/components/ui/PalIdent";
 import { PassiveFilterBody } from "@/components/ui/PassiveFilter";
 import { PassiveRow } from "@/components/ui/PassiveRow";
 
@@ -355,12 +356,26 @@ export function BoxView() {
         </div>
       )}
 
+      {/* Heron säger var palen STÅR, inte bara i vilken behållare (Kens fråga
+          aug 2026: "visar vi inte placeringen?"). Uträkningen fanns redan – den
+          satt bara i avelsplanens bärarkort, alltså på den sida där man behöver
+          den minst: där vet man redan vilken individ man menar, medan Boxen är
+          stället man kommer till för att HITTA den bland åttahundra. Samma
+          `palLocation`, så låda/rad/ruta aldrig kan säga olika saker på två
+          sidor, och `title` bär förbehållet att det är uträknat ur platsen i
+          saven. */}
       {selected ? (
         <PalHero
           pal={selected}
           species={data.species[selected.s]!}
           data={data}
-          sub={<>{selected.c} · {selected.reasons.map(t.msg).join(" · ") || t("pal.noKeepFlag")}</>}
+          sub={(
+            <>
+              <span title={t("ident.slotTitle")}>{t.msg(palLocation(selected))}</span>
+              {" · "}
+              {selected.reasons.map(t.msg).join(" · ") || t("pal.noKeepFlag")}
+            </>
+          )}
           onOpen={() => select(selected)}
         />
       ) : (

@@ -13,6 +13,11 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **The Box now tells you where the pal is standing.** It said "Palbox" and left you to find the
+  one you meant among eight hundred; it now says which box, row and square, the same way the
+  breeding plan has always pointed out a carrier. Pals outside the Palbox — the party, a base,
+  the global storage — give the container and the slot number.
+
 ## 3.2.0 – 2026-08-16
 
 
