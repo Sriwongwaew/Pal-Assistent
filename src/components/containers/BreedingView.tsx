@@ -28,6 +28,7 @@ import {
   parseBreedingPrefs, serializeBreedingPrefs, type BreedingPrefs,
 } from "@/lib/breedingPrefs";
 import { planBreedSetup, spanText, CAP_FREE, CAP_RATE, eggSeconds } from "@/lib/breedRate";
+import { cakeAdvice, planCake } from "@/lib/cake";
 import { implantAdvice, ownedImplants, ownsImplant } from "@/lib/implants";
 import type { AppData, BreedTree, ScoredPal, Species, WorkType } from "@/lib/types";
 import { AltRouteBlock } from "@/components/ui/AltRouteBlock";
@@ -685,6 +686,35 @@ export function BreedingView() {
   /* Avelstakten hänger inte på planen – den gäller varje ägg oavsett mål – men
      den är det som översätter "~545 ägg" till en kväll eller en vecka. */
   const setup = useMemo(() => planBreedSetup(data, pals), [data, pals]);
+  /* Vad planens ägg kostar i tårta, och VILKEN tårta planen pekar på. Samma
+     äggtal som bandet visar – kostnaden är alltså alltid i takt med planen.
+     Rådet läser målet man redan satt: önskade passiver → Special Cake, ren
+     IV-jakt → mutationstårtan, inget särskilt → den billiga vanliga. Vald tårta
+     är ett eget val som överskriver rådet, och nollställs när målet ändras. */
+  const advice = useMemo(
+    () => cakeAdvice({ wanted: wanted.length, ivGoal }),
+    [wanted.length, ivGoal],
+  );
+  /* Vad kläckaren står på SOM DET ÄR, alltså utan tårtans hjälp.
+     Special Cake gör det här talet större – hur mycket säger spelet inte, och
+     ingen datamine-källa vi använder har parametern (kollat: pyPalworldAPI:s
+     items/foodeffect/crafting, och paldb:s egen itemsida, som annars listar
+     även SneakAttackRate). Att visa utgångsläget är därför det enda ärliga
+     svaret på "hur stor chans?": talet är sant, och riktningen är spelets. */
+  const exactNow = useMemo(() => {
+    const last = plan?.speciesPhase?.[plan.speciesPhase.length - 1];
+    if (!plan || !last || plan.usable.length === 0) return null;
+    const p = exactOdds(plan.usable.length, last.pool);
+    return p > 0 ? p : null;
+  }, [plan]);
+  const [pickedCake, setPickedCake] = useState<string | null>(null);
+  useEffect(() => { setPickedCake(null); }, [advice]);
+  const cakeBill = useMemo(
+    () => (plan && plan.expectedEggs > 0
+      ? planCake(data, pals, plan.expectedEggs, pickedCake ?? advice.pick.cake)
+      : null),
+    [data, pals, plan, pickedCake, advice],
+  );
   /* Ägg → tid, i den takt boxen faktiskt har och i den den skulle kunna ha.
      Jämförelsetaket är CAP_FREE, inte spelets absoluta: `eggs` är räknat med
      RENA föräldrar, och det absoluta taket förutsätter Philanthropist på båda,
@@ -998,6 +1028,10 @@ export function BreedingView() {
         {picker === "setup" && (
           <BreedSetupPanel
             setup={setup}
+            cake={cakeBill}
+            cakeAdvice={advice}
+            cakeBaseOdds={exactNow}
+            onPickCake={setPickedCake}
             wanted={wanted.length}
             speciesOf={sp}
             passiveName={pName}

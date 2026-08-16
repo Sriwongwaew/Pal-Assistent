@@ -13,6 +13,54 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **Four new ways to sort the Box, including two keys at once.** "Stars ↓, level ↑" puts the
+  condensed pals you have not levelled yet at the top — the two keys point in opposite directions,
+  which the old single-direction sorting could not express. There is also "Weakest IV stat", which
+  ranks by the stat holding a pal back rather than by the average, so 90/90/90 comes before
+  100/100/40 when you are hunting a perfect one; "Most passives"; and "Where it stands", which
+  lists them in the order they actually sit in your boxes.
+
+- **The Box search, filter and sort look like controls now.** The search field has its magnifier
+  and a button to empty it, the filter carries a funnel and a count, and sorting is one control
+  where the direction shares a frame with the list instead of floating beside it as a lone arrow.
+  The IV thresholds lost the operating system's dropdown arrows and match the rest.
+
+- **An active filter used to stretch into a bar across the page.** It was rendered inside the
+  grid meant for passive banners, so each chip was blown up to half a row. They are chips again.
+
+
+- **The planner now says which cake to bake.** Four of the game's five cakes do something beyond
+  the egg, and the plan already knows what you are after: chasing passives points at Special Cake,
+  which the game says makes pals "more likely inherit multiple passive skills from their parents";
+  a pure IV hunt points at Extravagant Vegetable Cake for the mutations and easier talents; and
+  when you just need eggs — duplicates to condense, say — Vegetable Cake "lays eggs twice at once",
+  which is half the cakes for the same plan. Pick any of the five and the shopping list follows.
+  The app never invents a percentage: the game says "more likely" without a number, and no
+  datamined source has the parameter either. What it does tell you is where you stand without it —
+  "as it stands your hatcher is 28 % per egg" — so the cake is a lift on a number you can see.
+
+- **The breeding plan now tells you what the eggs cost in cake.** A plan is a number of eggs, and
+  every egg is one cake in the breeding farm — so a 14-egg plan is 14 cakes, which is 112 Eggs, 98
+  Milk, 70 Flour (that is 210 Wheat), 28 Honey and 112 Red Berries. The bill sits at the bottom of
+  Breeding setup, next to the rate it belongs to, and each ingredient says who lays it and whether
+  you have one standing at a base: three Mozzarina in the Palbox produce nothing. The recipe is
+  read from the game's own crafting data, not typed in by hand, so the five cakes and their
+  ingredients stay right when the game changes them.
+
+- **Hover any pal and the app tells you what it is.** Over a species — a step in a breeding plan,
+  a tile in the picker, a row in the roles — you get its work levels, its scalings, its partner
+  skill in the game's own words, and whether you own one or how to get one. That last part matters
+  in the planner, where every step names a species you may never have seen. Over one of your own
+  pals in the Box you get the other answer instead: IVs, all four passives as the game draws them,
+  stars, which box, row and square it is standing in, and why the app is keeping it.
+
+- **Find now tells you which of your Lamballs to keep.** Pick any species you own and the answer
+  is right there in its card: the specimen to keep and where it stands, how many to feed, what the
+  stars are worth in real HP, attack and defence, and what you would regret — the ones carrying a
+  gold passive, the ones holding a 100 the breeding planner needs. It is the same model the
+  condense queue in Roles runs on, so the two can never disagree; the queue ranks species against
+  each other, this answers a question about one.
+
 ## 3.2.1 – 2026-08-16
 
 - **The Box now tells you where the pal is standing.** It said "Palbox" and left you to find the

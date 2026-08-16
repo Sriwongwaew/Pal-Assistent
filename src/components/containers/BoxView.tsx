@@ -15,6 +15,7 @@ import type { MessageKey } from "@/i18n";
 import {
   matchesPassives, meetsIvMins, palHaystack, palMatches, searchTerms, type PassiveMode,
 } from "@/lib/palSearch";
+import { BOX_SORTS, boxComparator, type BoxSort } from "@/lib/boxSort";
 import { perfectIvCount } from "@/lib/scoring";
 import { IV_LABELS } from "@/lib/ivPlan";
 import type { ScoredPal } from "@/lib/types";
@@ -25,7 +26,6 @@ import { PassiveFilterBody } from "@/components/ui/PassiveFilter";
 import { PassiveRow } from "@/components/ui/PassiveRow";
 
 type Filter = "spara" | "kond" | "rainbow" | "guld" | "perf" | "alpha" | "plan";
-type Sort = "score" | "iv" | "combat" | "lvl" | "stars" | "art";
 
 const FILTERS: [Filter, MessageKey][] = [
   ["spara", "box.filter.keep"], ["kond", "box.filter.condense"],
@@ -51,10 +51,14 @@ const PREDICATES: Record<Filter, (p: ScoredPal) => boolean> = {
   plan: () => true,
 };
 
-const SORTS: [Sort, MessageKey][] = [
-  ["score", "box.sort.score"], ["iv", "box.sort.iv"], ["combat", "box.sort.combat"],
-  ["lvl", "box.sort.level"], ["stars", "box.sort.stars"], ["art", "box.sort.species"],
-];
+/* Etiketten per sortering. Ordningen ligger i `BOX_SORTS` (lib) så jämförarna
+   och menyn inte kan glida isär. */
+const SORT_LABEL: Record<BoxSort, MessageKey> = {
+  score: "box.sort.score", iv: "box.sort.iv", combat: "box.sort.combat",
+  lvl: "box.sort.level", stars: "box.sort.stars", art: "box.sort.species",
+  starsLow: "box.sort.starsLow", ivFloor: "box.sort.ivFloor",
+  pv: "box.sort.pv", slot: "box.sort.slot",
+};
 
 /* Stegen är de man faktiskt frågar efter: "över 90" är avelströskeln, 100 är
    byggstenen till perfectPlan. Finare steg hade bara gjort listan lång. */
@@ -62,6 +66,28 @@ const IV_STEPS = [0, 70, 80, 90, 100] as const;
 type IvMins = [number, number, number];
 
 const PAGE = 120;
+
+/* Gränssnittsikoner (inte spelets) ritas som SVG: `GameIcon`/`MaskIcon` är för
+   Pocketpairs egna filer, och en lupp hör inte dit. `currentColor` gör att de
+   ärver kontrollens ton i alla sju paletterna utan en enda hårdkodad färg. */
+const SearchIcon = () => (
+  <svg className="ic" viewBox="0 0 16 16" aria-hidden fill="none"
+    stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+    <circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" />
+  </svg>
+);
+const FilterIcon = () => (
+  <svg className="ic" viewBox="0 0 16 16" aria-hidden fill="none"
+    stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 3.5h12L9.5 8.6v4.2l-3 1.7V8.6z" />
+  </svg>
+);
+const SortIcon = () => (
+  <svg className="ic" viewBox="0 0 16 16" aria-hidden fill="none"
+    stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 3v10M4 13l-2-2.2M4 13l2-2.2M12 13V3M12 3l-2 2.2M12 3l2 2.2" />
+  </svg>
+);
 
 export function BoxView() {
   const { data, pals, ownedSpecies } = usePalData();
@@ -72,7 +98,7 @@ export function BoxView() {
   const [chosenPv, setChosenPv] = useState<readonly string[]>([]);
   const [pvMode, setPvMode] = useState<PassiveMode>("all");
   const [ivMins, setIvMins] = useState<IvMins>([0, 0, 0]);
-  const [sort, setSort] = useState<Sort>("score");
+  const [sort, setSort] = useState<BoxSort>("score");
   const [asc, setAsc] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [selId, setSelId] = useState<string | null>(null);
@@ -140,21 +166,7 @@ export function BoxView() {
     if (chosenPv.length) out = out.filter((p) => matchesPassives(p.pv, chosenPv, pvMode));
     if (ivMins.some((m) => m > 0)) out = out.filter((p) => meetsIvMins(p.iv, ivMins));
 
-    const comparators: Record<Sort, (a: ScoredPal, b: ScoredPal) => number> = {
-      score: (a, b) => b.score - a.score,
-      iv: (a, b) => b.ivSum - a.ivSum,
-      combat: (a, b) => b.combat - a.combat,
-      lvl: (a, b) => b.lv - a.lv,
-      /* Kondenseringsstjärnorna. Lika många stjärnor bryts på poäng och inte på
-         inläsningsordningen: fyra 0★-pals av samma art ska ligga i samma ordning
-         som annars, annars ser listan slumpad ut inom varje stjärngrupp. */
-      stars: (a, b) => b.stars - a.stars || b.score - a.score,
-      // Artnamnen är spelets egna (engelska), men sorteringen ska ändå följa
-      // läsarens språk – annars hamnar Ä och Ö fel för den som läser svenska.
-      art: (a, b) =>
-        data.species[a.s]!.name.localeCompare(data.species[b.s]!.name, t.locale) || b.score - a.score,
-    };
-    const chosen = comparators[sort];
+    const chosen = boxComparator(sort, data, t.locale);
     /* Riktningen vänds på jämförelsen och inte genom att vända listan efteråt:
        en `reverse()` kastar också om alla lika-fall, så två pals med samma
        poäng skulle byta plats varje gång man klickar. */
@@ -191,21 +203,44 @@ export function BoxView() {
 
   return (
     <>
-      <div className="controls">
-        <input
-          type="text"
-          placeholder={t("box.search")}
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }}
-        />
+      {/* Verktygsraden (omgjord aug 2026, Kens dom "ser väldigt meh ut"): tre
+          KONTROLLER i stället för fem lösa piller. Sökfältet bär sin lupp och
+          sin nollställare inuti fältet, filtret sin tratt och sin räknare som
+          bricka, och sorteringen är ETT reglage där riktningen delar ram med
+          väljaren – den låg förut som en ensam ↓-cirkel utan synlig koppling
+          till vad den vände. Ingen platta bakom raden: Ken tog bort dem i
+          Rollerna, och samma regel gäller här. */}
+      <div className="controls boxctl">
+        <div className={`ctlfield${query ? " has" : ""}`}>
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder={t("box.search")}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }}
+          />
+          {query && (
+            <button
+              type="button"
+              className="clr"
+              onClick={() => { setQuery(""); setLimit(PAGE); }}
+              aria-label={t("box.search.clear")}
+            >
+              ✕
+            </button>
+          )}
+        </div>
         <div className="fltwrap" ref={fltRef}>
           <button
             type="button"
-            className={`fchip fltbtn ${fltCount > 0 ? "on" : ""}`}
+            className={`ctlbtn fltbtn ${fltCount > 0 ? "on" : ""}`}
             aria-expanded={fltOpen}
             onClick={() => setFltOpen((v) => !v)}
           >
-            ⚲ {fltCount > 0 ? t("box.flt.buttonN", { n: fltCount }) : t("box.flt.button")} ▾
+            <FilterIcon />
+            {t("box.flt.button")}
+            {fltCount > 0 && <b className="cbadge num">{fltCount}</b>}
+            <span className="cv" aria-hidden>▾</span>
           </button>
           {fltOpen && (
             <div className="fltpanel">
@@ -243,25 +278,29 @@ export function BoxView() {
                   man kan peka på. Etiketterna är spelets statnamn – översätts
                   inte. */}
               <div className="fltiv">
+                {/* Egen chevron som i sorteringen: systemets pil var det enda i
+                    panelen som inte följde temat. */}
                 {IV_LABELS.map((label, i) => (
-                  <select
-                    key={label}
-                    className={(ivMins[i] ?? 0) > 0 ? "ivmin on" : "ivmin"}
-                    value={ivMins[i] ?? 0}
-                    aria-label={t("box.iv.aria", { stat: label })}
-                    onChange={(e) => {
-                      const next = [...ivMins] as IvMins;
-                      next[i] = Number(e.target.value);
-                      setIvMins(next);
-                      setLimit(PAGE);
-                    }}
-                  >
-                    {IV_STEPS.map((n) => (
-                      <option key={n} value={n}>
-                        {n === 0 ? t("box.iv.off", { stat: label }) : `${label} ≥ ${n}`}
-                      </option>
-                    ))}
-                  </select>
+                  <span key={label} className={(ivMins[i] ?? 0) > 0 ? "ivsel on" : "ivsel"}>
+                    <select
+                      className="ivmin"
+                      value={ivMins[i] ?? 0}
+                      aria-label={t("box.iv.aria", { stat: label })}
+                      onChange={(e) => {
+                        const next = [...ivMins] as IvMins;
+                        next[i] = Number(e.target.value);
+                        setIvMins(next);
+                        setLimit(PAGE);
+                      }}
+                    >
+                      {IV_STEPS.map((n) => (
+                        <option key={n} value={n}>
+                          {n === 0 ? t("box.iv.off", { stat: label }) : `${label} ≥ ${n}`}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="cv" aria-hidden>▾</span>
+                  </span>
                 ))}
               </div>
               <span className="flgrp">{t("box.flt.passives")}</span>
@@ -280,22 +319,38 @@ export function BoxView() {
             </div>
           )}
         </div>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-          {SORTS.map(([id, key]) => (
-            <option key={id} value={id}>{t(key)}</option>
-          ))}
-        </select>
-        {/* Riktningen är egen knapp och inte två poster per sortering: annars
-            blir listan tio rader lång och man får leta efter den man redan har. */}
-        <button
-          className="fchip dir"
-          onClick={() => setAsc((v) => !v)}
-          aria-label={t(asc ? "box.sort.asc" : "box.sort.desc")}
-          title={t(asc ? "box.sort.asc" : "box.sort.desc")}
-        >
-          {asc ? "↑" : "↓"}
-        </button>
-        <span className="meta">{t.plural("box.hits", rows.length)}</span>
+        {/* Väljare + riktning i EN ram. Riktningen är fortfarande en knapp och
+            inte två poster per sortering – annars blir listan tjugo rader lång
+            och man får leta efter den man redan har – men nu syns det vad den
+            hör ihop med. */}
+        <div className="ctlsort">
+          <SortIcon />
+          {/* Chevronen hör till VÄLJAREN och inte till ramen: väljaren är
+              innehållsbred ("Score" är kort, "Stars ↓, level ↑" långt), så en
+              chevron fäst i ramens kant hamnade svävande mitt i reglaget. */}
+          <span className="sel">
+            <select
+              value={sort}
+              aria-label={t("box.sort.label")}
+              onChange={(e) => setSort(e.target.value as BoxSort)}
+            >
+              {BOX_SORTS.map((id) => (
+                <option key={id} value={id}>{t(SORT_LABEL[id])}</option>
+              ))}
+            </select>
+            <span className="cv" aria-hidden>▾</span>
+          </span>
+          <button
+            type="button"
+            className="dir"
+            onClick={() => setAsc((v) => !v)}
+            aria-label={t(asc ? "box.sort.asc" : "box.sort.desc")}
+            title={t(asc ? "box.sort.asc" : "box.sort.desc")}
+          >
+            {asc ? "↑" : "↓"}
+          </button>
+        </div>
+        <span className="ctlhits">{t.plural("box.hits", rows.length)}</span>
       </div>
 
       {/* De AKTIVA valen som rad under kontrollerna: snabbfilter och IV-trösklar
@@ -402,7 +457,10 @@ export function BoxView() {
                   className={`pcell ${isSel ? "sel" : ""}${role ? " inplan" : ""}`}
                   style={{ "--elc": elementColor(sp) } as CSSProperties}
                   onClick={() => pick(p)}
-                  title={t("pal.cellTitle", { name: sp.name, lv: p.lv, iv: p.iv.join("/") })}
+                  /* Hover-rutan ersätter `title`: den säger allt den gjorde och
+                     dessutom passiver, stjärnor, plats i lådan och varför palen
+                     sparas. Webbläsarens egen ruta hade legat ovanpå. */
+                  data-pal={p.id}
                 >
                   <span className="circ">
                     {sp.icon

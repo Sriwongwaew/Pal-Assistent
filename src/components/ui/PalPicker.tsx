@@ -138,7 +138,9 @@ export function PalPicker({
             key={i}
             ref={value === i ? selRef : undefined}
             className={`pcell ${value === i ? "sel" : ""}`}
-            title={sp.name}
+            /* Ingen `title`: webbläsarens egen ruta krockar med hover-rutan, och
+               den sa bara namnet som redan står under porträttet. */
+            data-species={sp.code}
             onClick={() => onChange(i)}
           >
             <span className="circ" style={{ background: elementBg(sp) }}>

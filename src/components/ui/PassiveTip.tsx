@@ -1,6 +1,6 @@
 "use client";
 
-/* Hover över en passiv-banner ELLER en vara → vad den faktiskt gör.
+/* Hover över en passiv-banner, en vara, EN ART eller EN INDIVID → vad den är.
  *
  * En enda värd i layouten i stället för en tooltip per komponent. Banners ritas
  * på ett dussin ställen (boxen, planeraren, väljarna, målbilden, bärarkorten,
@@ -16,6 +16,20 @@
  * positioneringen nedan – portal, tvåstegsmätning, touch-undantaget,
  * scroll i capture-läge – är för subtil att ha i två exemplar. Anchorn bär
  * därför en `kind` och bara innehållet skiljer sig.
+ *
+ * **Arter och individer kom in aug 2026** (Kens fråga: "hovra över pals i t.ex.
+ * breeding för att se information om dom"). Två sorter, för det är två frågor:
+ *
+ * - `data-species="<kod>"` → **arten**: arbetsnivåer, scalings, partnerskill och
+ *   hur man får tag på den. Det är den frågan avelsplanen väcker, eftersom varje
+ *   steg nämner arter man inte äger ännu. `SpeciesIcon` sätter attributet SJÄLV,
+ *   så varje ställe i appen som ritar ett artporträtt fick rutan på köpet.
+ * - `data-pal="<id>"` → **individen**: IV, passiver, stjärnor och var i lådan den
+ *   står. Det är frågan Boxens brickor väcker.
+ *
+ * Arten slås upp på **kod, inte index**. Index i `data.species` flyttar sig när
+ * den statiska halvan regenereras – samma fälla `breedingPrefs.ts` är byggd runt
+ * – och ett attribut i DOM:en är precis lika långlivat som ett sparat val.
  *
  * Tre saker som avgör hur den ser ut:
  *
@@ -34,10 +48,20 @@ import { createPortal } from "react-dom";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import { formatNumber, msg, type Msg } from "@/i18n";
+import { isReachable } from "@/lib/breeding";
+import { WORK_META, WORK_TYPES } from "@/lib/constants";
 import { isKnownModule } from "@/lib/implants";
 import { itemInfo, type ItemKind } from "@/lib/itemInfo";
+import { partnerSkill, isObtainable } from "@/lib/partnerSkills";
 import { passiveText, tierLabel } from "@/lib/passiveText";
 import { isEquipmentOnly } from "@/lib/purpose";
+import type { ScoredPal, Species } from "@/lib/types";
+import { catchInfo } from "@/lib/worldmap";
+import { MaskIcon } from "./GameIcon";
+import { DeckNo, ElementIcons, GenderSymbol, SpeciesIcon } from "./PalBits";
+import { palLocation } from "./PalIdent";
+import { passiveVisual } from "./PassiveRow";
+import { WorkIcon } from "./WorkIcon";
 
 /** Kort fördröjning så rutan inte blinkar förbi när man sveper över ett rutnät. */
 const OPEN_DELAY = 90;
@@ -78,9 +102,9 @@ function itemKindLabel(kind: ItemKind): Msg {
 }
 
 interface Anchor {
-  /** Vilken sorts ruta: en passiv eller en vara. */
-  kind: "passive" | "item";
-  /** Passiv-id, eller varans engelska namn. */
+  /** Vilken sorts ruta. */
+  kind: "passive" | "item" | "species" | "pal";
+  /** Passiv-id, varans engelska namn, artens kod eller palens instans-id. */
   id: string;
   /** Extra rad från platsen bannern står på (`data-passive-note`). */
   note: string | null;
@@ -88,7 +112,133 @@ interface Anchor {
 }
 
 /** Elementen värden reagerar på. Ett attribut per sort, samma lyssnare. */
-const ANCHOR_SELECTOR = "[data-passive],[data-item]";
+const ANCHOR_SELECTOR = "[data-passive],[data-item],[data-species],[data-pal]";
+
+/**
+ * Artens ruta: vad DEN HÄR arten är, inte vad ditt exemplar är.
+ *
+ * Innehållet är valt efter vad avelsplanen inte svarar på. Stegen säger
+ * "para Digtoise med Beakon" om två arter man kanske aldrig sett, och då är
+ * frågorna: har jag den, vad kan den jobba med, vad gör dess partnerskill, och
+ * hur får jag tag på en? Paldeck-texten står med flit INTE här – den är ett
+ * stycke prosa och hör hemma i Hittas hero, där det finns plats.
+ */
+function SpeciesTip({ sp, index }: { sp: Species; index: number }) {
+  const t = useT();
+  const { pals, bestOf, freeSolve } = usePalData();
+  const owned = pals.filter((p) => p.s === index);
+  const best = bestOf.get(index);
+  const ps = partnerSkill(sp.code);
+  /* Arbetsnivåerna sorterade, högst först. `ws` bär bara nivåer > 0, så en art
+     utan rad har ingen arbetslämplighet alls – det är information, inte en lucka. */
+  const work = WORK_TYPES
+    .map((w) => [w, sp.ws[w] ?? 0] as const)
+    .filter(([, lv]) => lv > 0)
+    .sort((a, b) => b[1] - a[1]);
+  /* "Hur får jag tag på den?" i samma ordning som resten av appen svarar:
+     äger du den är det svaret, annars avel om den går att avla, annars fångst –
+     och `catchInfo` säger HUR (alfaboss med nivå, eller raid-ägg). */
+  const steps = freeSolve.cost[index] ?? Infinity;
+  const how = owned.length === 0 ? catchInfo(sp.code) : null;
+
+  return (
+    <>
+      <div className="pthd sthd">
+        <SpeciesIcon sp={sp} size={34} radius={11} />
+        <b>{sp.name}</b>
+        <ElementIcons sp={sp} size={15} />
+        <DeckNo sp={sp} />
+      </div>
+      <div className="stget">
+        {owned.length > 0
+          ? <>
+            <b>{t.plural("stip.owned", owned.length)}</b>
+            {best && <span className="num">{t("stip.best", { iv: best.iv.join("/") })}</span>}
+          </>
+          : !isObtainable(sp.code) ? <b>{t("stip.unobtainable")}</b>
+            : how?.kind === "raid" ? <b>{t("best.own.catchRaid")}</b>
+              : how?.kind === "alpha" ? <b>{t("best.own.catchAlpha", { lv: how.lv })}</b>
+                : isReachable(freeSolve.cost, index) ? <b>{t("best.own.breedShort", { n: steps })}</b>
+                  : <b>{t("best.own.catch")}</b>}
+      </div>
+      {/* Scalings är artens tak, inte ditt exemplars stats – etiketten säger det. */}
+      <div className="stsc num">
+        <span>HP <b>{sp.sc[0]}</b></span>
+        <span>ATK <b>{sp.sc[1]}</b></span>
+        <span>DEF <b>{sp.sc[2]}</b></span>
+        {sp.spr > 0 && <span>{t("stip.sprint")} <b>{sp.spr}</b></span>}
+      </div>
+      {work.length > 0 && (
+        <div className="stwork">
+          {work.map(([w, lv]) => (
+            <span key={w} title={WORK_META[w]?.label ?? w}>
+              <WorkIcon type={w} size={15} />
+              <b className="num">{lv}</b>
+            </span>
+          ))}
+        </div>
+      )}
+      {/* Partnerskillen är spelets egen text och översätts aldrig – den är ofta
+          hela skälet att en art är bra, och den finns ingen annanstans i planen. */}
+      {ps && (
+        <div className="stskill">
+          <b>{ps.skill}</b>
+          <span>{ps.desc}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Individens ruta: vilken av mina är det här?
+ *
+ * Brickan i Boxen visar namn, level och IV; det den inte visar är passiverna i
+ * sin helhet, stjärnorna, VAR i lådan palen står – och om appen tänkt spara den
+ * och varför. Just det sista är värt en ruta: `reasons` finns i modellen och
+ * ritades bara i Rollernas spara-band.
+ */
+function PalTip({ pal, sp }: { pal: ScoredPal; sp: Species }) {
+  const t = useT();
+  const { data } = usePalData();
+  return (
+    <>
+      <div className="pthd sthd">
+        <SpeciesIcon sp={sp} size={34} radius={11} />
+        <b>{pal.nick || sp.name}</b>
+        <GenderSymbol g={pal.g} />
+        {pal.stars > 0 && <span className="ptstars">{"★".repeat(pal.stars)}</span>}
+      </div>
+      <div className="stget">
+        <b>{t("pal.lv", { n: pal.lv })}</b>
+        <span className="num">IV {pal.iv.join("/")}</span>
+        {pal.boss && <span className="ptflag">ALPHA</span>}
+        {pal.lucky && <span className="ptflag">LUCKY</span>}
+      </div>
+      <div className="ptpv">
+        {pal.pv.length ? pal.pv.map((id) => {
+          const { cls, color, rank } = passiveVisual(data.passives[id]?.r ?? 0);
+          return (
+            <div key={id} className={`prow sm ${cls}`}>
+              <span className="nm">{data.passives[id]?.n ?? id}</span>
+              <span className="arr">
+                <MaskIcon name={`rank_${rank}`} color={color} width={20} height={18} />
+              </span>
+            </div>
+          );
+        }) : <div className="prow sm empty"><span className="nm">{t("pal.noPassives")}</span><span className="arr" /></div>}
+      </div>
+      <div className="ptloc">{t.msg(palLocation(pal))}</div>
+      {/* Varför appen sparar den. Utan skälet ser en spara-markering ut som en
+          gissning, och då litar man inte på matningslistan heller. */}
+      <div className="ptmeta">
+        {pal.keep
+          ? t("ptip.keeps", { why: pal.reasons.map((r) => t.msg(r)).join(" · ") })
+          : t("ptip.fodder")}
+      </div>
+    </>
+  );
+}
 
 export function PassiveTipHost() {
   const { data, pals } = usePalData();
@@ -107,6 +257,14 @@ export function PassiveTipHost() {
     return m;
   }, [pals]);
 
+  /* Uppslag på KOD respektive instans-id, aldrig på index: attributen sitter i
+     DOM:en och ska överleva att den statiska halvan regenereras. */
+  const speciesByCode = useMemo(
+    () => new Map(data.species.map((sp, i) => [sp.code.toLowerCase(), { sp, i }] as const)),
+    [data],
+  );
+  const palById = useMemo(() => new Map(pals.map((p) => [p.id, p] as const)), [pals]);
+
   const hide = useCallback(() => {
     if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; }
     current.current = null;
@@ -116,13 +274,16 @@ export function PassiveTipHost() {
 
   useEffect(() => {
     const show = (el: HTMLElement) => {
-      /* Passiven vinner när ett element bär båda – en passiv-banner inne i ett
-         varukort är fortfarande en passiv. I praktiken händer det inte, men
-         ordningen ska vara bestämd och inte bero på attributens ordning. */
+      /* Ordningen är bestämd och beror inte på attributens ordning i taggen: en
+         passiv-banner inne i ett varukort är fortfarande en passiv, och en
+         INDIVID vinner över sin art – bär samma element båda är det "vilken av
+         mina är det här?" som ställts, inte "vad är en Anubis?". */
       const passive = el.dataset.passive;
       const item = el.dataset.item;
-      const kind = passive ? "passive" : item ? "item" : null;
-      const id = passive ?? item;
+      const pal = el.dataset.pal;
+      const species = el.dataset.species;
+      const kind = passive ? "passive" : item ? "item" : pal ? "pal" : species ? "species" : null;
+      const id = passive ?? item ?? pal ?? species;
       if (!kind || !id) return;
       current.current = el;
       setAnchor({ kind, id, note: el.dataset.passiveNote ?? null, rect: el.getBoundingClientRect() });
@@ -191,6 +352,31 @@ export function PassiveTipHost() {
   }, [anchor, pos]);
 
   if (!anchor || typeof document === "undefined") return null;
+
+  /* Arten och individen delar skal med de andra två – bara innehållet skiljer.
+     `swide` ger rutan mer bredd: en partnerskill-text är två meningar. */
+  if (anchor.kind === "species" || anchor.kind === "pal") {
+    const hit = anchor.kind === "pal" ? palById.get(anchor.id) : null;
+    const species = anchor.kind === "pal"
+      ? (hit ? { sp: data.species[hit.s], i: hit.s } : null)
+      : speciesByCode.get(anchor.id.toLowerCase());
+    // Okänd kod eller en pal som försvunnit ur boxen: ingen ruta alls. En tom
+    // ruta ser ut som en trasig sida; ingen ruta ser ut som ingen ruta.
+    if (!species?.sp || (anchor.kind === "pal" && !hit)) return null;
+    return createPortal(
+      <div
+        ref={tipRef}
+        className={`ptip swide ${pos ? "on" : ""}`}
+        style={{ left: pos?.left ?? 0, top: pos?.top ?? 0 }}
+        role="tooltip"
+      >
+        {hit
+          ? <PalTip pal={hit} sp={species.sp} />
+          : <SpeciesTip sp={species.sp} index={species.i} />}
+      </div>,
+      document.body,
+    );
+  }
 
   if (anchor.kind === "item") {
     const info = itemInfo(anchor.id);

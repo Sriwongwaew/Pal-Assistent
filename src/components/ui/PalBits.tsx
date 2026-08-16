@@ -14,11 +14,27 @@ export function elementBg(sp: Species): string {
   return `radial-gradient(circle at 35% 30%, ${c}40, ${c}14 70%)`;
 }
 
-export function SpeciesIcon({ sp, size = 30, radius = 8 }: { sp: Species; size?: number; radius?: number }) {
+/**
+ * Artporträttet – och samtidigt appens hover-ruta för arten.
+ *
+ * `data-species` sätts HÄR i stället för på varje anropsplats: porträttet ritas
+ * på ett trettiotal ställen (planstegen, väljarna, Rollerna, Hitta, Uppdrag),
+ * och att trä ett attribut genom alla hade betytt samma prop-kedja som
+ * `PassiveTipHost` finns för att slippa. Nyckeln är artens KOD, aldrig dess
+ * index: index flyttar sig när den statiska halvan regenereras.
+ *
+ * `tip={false}` stänger av den där en INDIVID är svaret i stället – boxens
+ * brickor bär `data-pal`, och utan avstängning hade porträttet inuti brickan
+ * vunnit över den (`closest` tar det innersta elementet).
+ */
+export function SpeciesIcon({ sp, size = 30, radius = 8, tip = true }: {
+  sp: Species; size?: number; radius?: number; tip?: boolean;
+}) {
   const style: CSSProperties = { width: size, height: size, borderRadius: radius };
+  const attr = tip ? { "data-species": sp.code } : {};
   return sp.icon
-    ? <img src={sp.icon} alt={sp.name} style={style} />
-    : <span className="fb" style={{ ...style, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{sp.name[0]}</span>;
+    ? <img src={sp.icon} alt={sp.name} style={style} {...attr} />
+    : <span className="fb" style={{ ...style, display: "inline-flex", alignItems: "center", justifyContent: "center" }} {...attr}>{sp.name[0]}</span>;
 }
 
 export function GenderSymbol({ g }: { g: Gender }) {

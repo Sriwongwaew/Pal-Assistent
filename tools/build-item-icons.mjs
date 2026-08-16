@@ -73,9 +73,12 @@ const fruitNames = [...fruitBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
    deras varor – ringar, talismaner, batonger, visselpipor – fanns i inget av
    de andra urvalen. Namnen kapas vid " Schematic N": det är föremålet som har
    en ikon och en beskrivning, inte pappret. */
+/* `worldmap.json` bär TVÅ kartor sedan aug 2026 (`{ main, tree }`) – ruinerna
+   ligger på huvudkartan. Läser man den gamla platta formen blir listan tom, och
+   spärran nedan är det enda som skiljer det från ett tyst bortfall. */
 const worldmap = JSON.parse(readFileSync(`${ROOT}/src/lib/data/worldmap.json`, "utf8"));
 const ruinNames = [...new Set(
-  (worldmap.ruins ?? [])
+  (worldmap.main?.ruins ?? worldmap.ruins ?? [])
     .map((r) => String(r.gives ?? "").replace(/ Schematic( \d+)?$/, ""))
     .filter((n) => n && !/Handbook/.test(n)),
 )];
@@ -84,10 +87,20 @@ if (ruinNames.length === 0) throw new Error("worldmap.json:s ruins gav noll namn
 const findSrc = readFileSync(`${ROOT}/src/lib/findData.ts`, "utf8");
 const schemNames = [...new Set([...findSrc.matchAll(/name:\s*"([^"]+?) Schematic(?: \d+)?"/g)].map((m) => m[1]))];
 
-const wanted = [...new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemNames, ...ruinNames])];
+/* Receptens ingredienser (aug 2026): tårtplanen ritar en rad per ingrediens, och
+   Flour och Wheat fanns i ingen av de andra listorna – de är varken drop, ranchvara,
+   malm, frukt eller schematic. Källan är genererad JSON, inte en regex mot en
+   källfil, så den kan inte glida isär tyst. */
+const recipes = JSON.parse(readFileSync(`${ROOT}/src/lib/data/recipes.json`, "utf8"));
+const matNames = [...new Set(
+  Object.entries(recipes).flatMap(([name, r]) => [name, ...Object.keys(r.mats ?? {})]),
+)];
+if (matNames.length === 0) throw new Error("recipes.json gav noll namn – har generatorn slutat skriva den?");
+
+const wanted = [...new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemNames, ...ruinNames, ...matNames])];
 console.log(`behöver: ${wanted.length} namn (${dropNames.length} drops, ${ranchNames.length} ranch, `
   + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemNames.length} schematics, `
-  + `${ruinNames.length} ur ruiner)`);
+  + `${ruinNames.length} ur ruiner, ${matNames.length} ingredienser)`);
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 

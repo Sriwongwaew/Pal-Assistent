@@ -27,7 +27,11 @@ Features by route:
 
 - `/` **Översikt** – hero-band med "Boxens stjärna", nyckeltal, höjdpunktskort, flest per art.
 - `/box` **Boxen** – vald pal i ett hero-band överst, hela boxen som habitat-brickor under
-  (namn + level + IV på varje bricka). Search/filter/sort på toppen. Spelets **Base Info**-replika
+  (namn + level + IV på varje bricka). Search/filter/sort på toppen: **verktygsraden är tre
+  kontroller** (fält, filter, sorteringsreglage) och ingen platta bakom – samma regel som i
+  Rollerna. Sorteringarna bor i `src/lib/boxSort.ts`, och två av dem är **sammansatta**:
+  "Stjärnor ↓, level ↑" (Kens exempel aug 2026) och "svagaste IV-stat" väger två nycklar mot
+  varandra. Riktningsknappen speglar BÅDA nycklarna, aldrig bara den första. Spelets **Base Info**-replika
   (LEVEL, NEXT, stjärnor, HP/hunger/SAN, Attack/Defense/Work Speed med buff-pilar, arbetsremsa,
   Paldeck, Passive Skills 2×2) finns kvar och öppnas med **Base Info**-knappen i heron – eller
   automatiskt när man klickar en bricka på smal skärm.
@@ -244,6 +248,19 @@ Features by route:
   som inte får tas bort: siffrorna är **basvariantens** (varje vapen har en rad i källan medan
   Schematic 4 bygger `_Default5`, och de högre nivåerna finns inte dataminade någonstans), och
   Flamethrower har bara **ritningens** text eftersom dess vapenrad inte finns i källan.
+  **Artheron bär också kondenseringsrådet för arten** (`SpeciesCondense`, Kens önskan aug 2026:
+  "välj en pal-art så kan vi rekommendera vilken i den arten som är bra att kondensera"). Rollernas
+  kö rankar arter mot varandra och visar bara toppen – den kan inte svara på "jag har tolv Lamball,
+  vilken behåller jag?". Samma modell (`planCondense`) svarar på båda, så sidorna kan aldrig säga
+  emot varandra; Hitta hämtar dessutom bokningarna ur planerarens sparade val precis som RecoView,
+  annars kan den föreslå att man matar bort en pal avelsplanen väntar på. Tre saker att inte ändra
+  tillbaka: keeperen är **hoverbar** (`data-pal`) eftersom "behåll den här" är oanvändbart om man
+  inte kan se vilken av tolv identiska det är; domen står som chip där bara `now` får accentfärgen
+  (`hold` och `max` är svar, inte uppmaningar); och **utan plan står SKÄLET** – `planCondense`
+  hoppar över en art vars alla exemplar är sparade eller bokade, och en tom ruta hade sett ut som
+  att appen inte vet. Fällan att inte bygga tillbaka: `reco.row.leftover` börjar med " · " för att
+  hänga på vinstraden, och vid 4★ finns ingen "nästa stjärna" – hopklistrat blev det
+  "· 3 duplicates left overNothing to feed yet — 0 more for 5★", ett steg spelet inte har.
   Kvar som luckor, med flit: handlarnas sortiment utöver IV-frukternas belagda priser, och
   fiskarter/fiskeplatser (ingen data alls).
 
@@ -367,8 +384,12 @@ build, always, and if a whole page reports empty, suspect the server before the 
   överlever sidbyten; se "Domain gotchas"), `savePrefs.ts` (var saven ligger + live-läget,
   samma valideringsdisciplin). `loadout.ts` (`idealLoadout` — rollens fyra
   passiver mot vad palen redan bär, används av Rollerna),
+  `boxSort.ts` (boxens jämförare; de sammansatta sorteringarna och regeln för
+  riktningsknappen – se filens huvud),
   `breedRate.ts` (`planBreedSetup`/`eggSpeed` — avelstakten och vad boxen har av den;
   se "Domain gotchas"),
+  `cake.ts` (`planCake` — vad planens ägg kostar i TÅRTA, och vem i boxen som lägger
+  ingredienserna; receptet är genererad data, se "Domain gotchas"),
   `itemInfo.ts` (vad en vara ÄR — spelets beskrivning + attack/försvar/magasin/hållbarhet/vikt.
   GENERERAD av `tools/build-item-info.mjs`; `base`/`blueprint` är förbehåll gränssnittet MÅSTE
   visa, se filens huvud),
@@ -387,8 +408,10 @@ build, always, and if a whole page reports empty, suspect the server before the 
   `PalBits` (Tag, IvRow, SpeciesIcon, ElementIcons, GenderSymbol, Section),
   `PalPicker`/`PassivePicker`/`PurposePicker` (breeding's selectors — se "Design rules" 6),
   `GoalCard` (breedingens målbild — art + önskade passiver som banners),
-  `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver OCH varor, monterad **en gång** i
-  layouten; `data-passive` respektive `data-item`),
+  `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver, varor, **arter och individer**,
+  monterad **en gång** i layouten; `data-passive` / `data-item` / `data-species` (artens KOD) /
+  `data-pal` (instans-id). Artrutan sätts av `SpeciesIcon` själv, så varje porträtt i appen har
+  den – `tip={false}` stänger av den där en individ är svaret i stället, som på boxens brickor),
   `BreedSetup` (avelsbasen — hopfälld uppställning + takt-mätare),
   `SaveFolder` (panelen bakom "Mapp" — mapp, hittade världar, live-läget),
   `FindBits` (Hittas heron för vara/plats/partnerskill/expedition/raid/kombo, plus `Fact` som
@@ -565,6 +588,12 @@ skärm, en tom gör det aldrig.
    och positioneringen — portal till body, tvåstegsmätning, touch-undantaget, scroll i
    capture-läge — är för subtil att ha i två exemplar. Varan har ingen tier, så kategorin tonas
    som en dämpad etikett och lånar aldrig bannerns färgskala.
+   **Samma värd bär numera fyra sorter** (aug 2026): passiven, varan, **arten** (`data-species`,
+   uppslag på KOD – index flyttar sig när den statiska halvan regenereras) och **individen**
+   (`data-pal`). Individen vinner över sin art när båda attributen finns på samma element: bär
+   brickan en pal är frågan "vilken av mina är det här?", inte "vad är en Anubis?". Ett element som
+   får hover-rutan ska aldrig också ha en `title` – webbläsarens egen ruta lägger sig ovanpå, och
+   det var därför `pal.cellTitle` togs bort när boxens brickor fick sin.
 4. **Typsnitt:** "M PLUS Rounded 1c" (400/500/800) för gränssnittet — rundat, samma familjekänsla
    som spelets logotyp — och "Zen Kaku Gothic New" (500/700/900) för **alla siffror**, annars blir
    data gullig. Båda via @fontsource. Byt inte utan visuell jämförelse sida vid sida.
@@ -576,6 +605,12 @@ skärm, en tom gör det aldrig.
    condense grid, now `.condgrid`) silently blew every such badge up to 338 px. `.tag` now
    pins `display: inline-block; flex: none`, but new layout classes still need names that no
    `kind`/variant string can match.
+   **Samma sak händer när ETT element bär flera layoutklasser.** Boxens aktiva filter ligger i
+   `class="prows chosen pvactive"`: `.pvactive` sätter flex, men `.prows` – passivbannrarnas
+   tvåspaltsrutnät – står LÄNGRE NED i filen med samma specificitet och vann. Varje aktivt filter
+   blev därmed en accentfärgad platta över halva sidan i stället för ett chip (aug 2026). Regeln
+   är att den som ska vinna skriver ut båda klasserna (`.prows.pvactive`), aldrig att lita på
+   ordningen i filen.
    **Samma fälla med bilder:** en descendant-selektor som `.part img { width: 100px }` träffar
    också alfa-/lucky-/könsikonerna som ligger i samma behållare och blåser upp dem till 100 px.
    Använd `>` för porträttet (`.part > img`, `.pcell .circ > img`) när ikoner delar förälder.
@@ -762,6 +797,10 @@ node tools/build-item-info.mjs   # itemInfo.json – vad varan ÄR: speltext + s
 node tools/build-worldmap.mjs    # worldmap.json + partnerSkills.json + missions.json (paldb m.fl.)
 node tools/build-map-image.mjs tree   # public/img/worldtree.webp – syr ihop paldb:s kakel
 ```
+
+`build-item-info.mjs` skriver **två** filer: `itemInfo.json` och `recipes.json` (tårtorna + det de
+kräver, ur `crafting`-tabellen i samma dump). `build-item-icons.mjs` läser `recipes.json` för att
+ikonerna till ingredienserna ska följa med – Flour och Wheat fanns i ingen annan namnlista.
 
 `build-map-image.mjs` är den enda som skriver en BILD och den enda som inte behöver köras om
 rutinmässigt: kartrenderingen ändras bara när spelet bygger om världen. `main` finns som argument
@@ -1098,6 +1137,12 @@ Tre saker om licensfilerna som är valda, inte råkade så:
      i markören, men mellanbossarnas flaggor (`WorldTreeMiddleBoss1..3`) går inte att para ihop med
      rätt boss ur någon källa – de bär `flag: null` och lagret har ingen räknare alls. "0/4" hade
      påstått att alla fyra följs. Antalet klarade står på Uppdrag, ur saven.
+  5b. **`worldmap.json` bytte FORM till `{ main, tree }`, och två generatorer läser den.**
+     `build-item-info.mjs` och `build-item-icons.mjs` hämtar ruinernas schematics-namn därifrån och
+     såg en tom lista efter omläggningen – bygget stannade på deras egen spärr, vilket är precis
+     vad spärren finns för. Båda läser numera `worldmap.main?.ruins ?? worldmap.ruins`. Ändrar du
+     formen igen: sök upp läsarna först, och lita på att en tyst tom lista annars hade gett noll
+     ikoner utan att något såg fel ut.
   5. **Bilden är kaklad från paldb** med `tools/build-map-image.mjs` (z4 = 16×16 × 512 px = 8192²,
      referer krävs annars 403). Den hämtas EN gång och checkas in; appen laddar aldrig något från
      paldb vid körning, och trädets bild hämtas först när kartan valts.
@@ -1591,6 +1636,51 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   index eller namn — samma fälla som `breedingPrefs.ts` är byggd runt. Partnerskills finns
   inte i datasetet, så procenten är handkurerade som `FISHING_PALS`; ändras de i spelet är det
   tabellen högst upp i filen som ska uppdateras, inget annat.
+- **Tårtan är avelns andra kostnad, och receptet är DATA** (`cake.ts`, aug 2026). Planeraren har
+  alltid räknat ägg och `breedRate.ts` översatt dem till tid; att varje ägg också kostar en tårta i
+  avelsfarmen fanns ingenstans. Fem saker att inte ändra tillbaka:
+  1. **Receptet skrivs inte för hand.** Det ligger i `crafting`-tabellen i pyPalworldAPI-dumpen som
+     `build-item-info.mjs` redan hämtar, och genereras till `data/recipes.json`. Standardtårtan är
+     `{ Egg 8, Milk 7, Flour 5, Honey 2, Red Berries 8 }`, och kontrollen mot det talet står i
+     generatorn – en handskriven lista ser precis lika trovärdig ut som en riktig.
+  2. **Hela tabellen måste läsas.** `crafting` ligger i TRE INSERT-satser (mysqldump delar på
+     storlek), och att klippa vid första `;` tog bort allt från rad ~330 och uppåt – däribland
+     **Flour**, alltså halva tårtans kostnad, utan att något såg trasigt ut: tårtreceptet fanns,
+     dess underrecept saknades bara. Därför är Flour = 3 Wheat en egen receptkontroll.
+  3. **Underreceptet vecklas ut EN nivå och redovisas separat** ("70 Flour = 210 Wheat"). Slås
+     Wheat ihop med resten försvinner att man behöver en kvarn och inte en till åker.
+  4. **`out` respekteras.** Ett recept ger inte alltid 1; räknas ingredienser utan att dela med
+     utbytet blir allt fel den dagen spelet ger flera.
+  5. **En tårta per ägg är COMMUNITYNS siffra.** Spelets egen text säger bara att tårta krävs.
+     Talet märks ≈, precis som avelsoddsen och expeditionernas FP-formel. Spelet har fem tårtor;
+     appen räknar på den vanliga och säger att de andra finns.
+  Producenterna kommer ur `RANCH_DROPS` (redan belagd mot partnerskill-texten): tre av fem
+  ingredienser läggs av en ranch-pal, och raden visar både vad du äger och hur många som står i en
+  BAS – tre Mozzarina i Palboxen producerar ingenting.
+- **VILKEN tårta är ett råd ur spelets egen text, aldrig ur en gissad procent** (`CAKE_EFFECTS`,
+  `cakeAdvice`). Fyra av de fem tårtorna gör något utöver ägget, och det står ordagrant i
+  `items`-tabellen: Special Cake *"More likely inherit multiple passive skills from their
+  parents"*, Vegetable Cake *"Lay eggs twice at once"*, Extravagant Vegetable Cake *"Mutations are
+  more likely … talents will grow more easily"*, Mushroom Cake samma sak fast *"slightly"*. Rådet
+  följer planens eget mål – önskade passiver > IV-tröskel > ren volym – eftersom passiver är det
+  enda man inte kan skaffa på annat sätt (IV går att köpa med frukt, arten går att avla fram).
+  Tre regler:
+  1. **Klassningen är en LÄSNING av meningen, inte en teori.** Varje rad bär `proof` (orden
+     påståendet vilar på) och `tests/cake.test.ts` håller dem mot `itemInfo.json`. Skriver
+     Pocketpair om en beskrivning faller testet i stället för att rådet tyst pekar fel – samma
+     disciplin som `tests/ranchDrops.test.ts` har mot partnerskill-texten.
+  2. **Ingen procent hittas på.** Spelet säger "more likely" och aldrig hur mycket. Enda talet är
+     Vegetable Cakes "twice at once", och även det är ≈: vi vet inte om farmen drar en tårta per
+     läggning eller per ägg, bara att äggen kommer två åt gången.
+     **Letat, och det finns inte** (aug 2026, Kens fråga "finns det ingen statistik?"): pyPalworldAPI:s
+     `items`, `foodeffect`, `crafting` och `breeding` bär ingen avelsparameter, och paldb:s egen
+     itemsida för Special Cake listar även `SneakAttackRate`, `SortId` och `Corruption` utan att
+     nämna någon. Effekten ligger alltså i en tabell ingen av källorna exponerar. I stället visas
+     **utgångsläget** – planens egen `exactOdds` per ägg – med tårtan som ett lyft ovanpå ett tal
+     man kan se. Skriv aldrig in en procent här förrän en uppmätt källa finns att peka på.
+  3. **Rådet är ett råd.** Alla fem går att välja och räkningen följer med; den rekommenderade
+     behåller sin markering även när man tittar på en annan, annars vet man inte längre vilken
+     appen föreslog.
 - **En passiv du opererar in kostar noll ägg — och wikins lista över vad som går är fel**
   (`implants.ts`). Pal Surgery Table sätter in en passiv på en **färdig** pal, alltså efter
   avlingen, så den hamnar aldrig i arvspoolen. Eftersom `inheritOdds` är konvex i poolens storlek

@@ -24,7 +24,10 @@ import {
   CAP_FREE, CAP_RATE, alphaChance, bralohaBonus, dynamoffCut, eggSeconds,
   eggTimeText, grintaleExtra, philanthropistVerdict, speedText,
 } from "@/lib/breedRate";
+import type { CakeAdvice, CakePlan } from "@/lib/cake";
+import { itemIconSlug } from "@/lib/itemIcons";
 import type { Species } from "@/lib/types";
+import { ItemIcon } from "./GameIcon";
 import { elementColor } from "./PalHero";
 import { PassiveRow } from "./PassiveRow";
 import { DeckNo, ElementIcons, SpeciesIcon, Stars, Tag } from "./PalBits";
@@ -111,8 +114,120 @@ function PoolNote({ v }: { v: PoolVerdict }) {
       </>;
 }
 
+/**
+ * Tårtan: vad planens ägg kostar i material, och vem som lägger det.
+ *
+ * Panelen har alltid svarat på hur FORT äggen kommer. Det här är den andra
+ * halvan av samma tal – ett ägg kostar en tårta, så en plan på 239 ägg är 239
+ * tårtor. Den ligger sist och med egen rubrik: allt ovanför handlar om takt,
+ * det här om inköpslista, och att blanda dem hade gjort båda otydliga.
+ *
+ * Tre saker som är valda:
+ *
+ * 1. **Flour hänger under sin egen rad som "= N Wheat"**, aldrig som en egen
+ *    ingrediens. Man behöver en kvarn, inte en till åker, och slås Wheat ihop
+ *    med resten försvinner den skillnaden.
+ * 2. **Ranch-arten står med det du äger OCH hur många som står i en bas.**
+ *    Tre Mozzarina i Palboxen producerar ingenting; skillnaden är hela rådet.
+ * 3. **"En tårta per ägg" är communityns siffra** – spelets text säger bara att
+ *    tårta krävs. Därför ≈, och därför står förbehållet i foten.
+ */
+function CakeBill({ plan, advice, baseOdds, speciesOf, onPick }: {
+  plan: CakePlan;
+  advice: CakeAdvice;
+  /** Chansen per ägg SOM DET ÄR, utan tårtans hjälp. null = ingen kläckare än. */
+  baseOdds: number | null;
+  speciesOf: (i: number) => Species;
+  onPick: (cake: string) => void;
+}) {
+  const t = useT();
+  const rich = useRichT();
+  return (
+    <div className="bscake">
+      {/* RÅDET först: vilken tårta planen pekar på, och varför – i spelets egna
+          ord, som ligger i hover-rutan på varje namn. Ingen procent: spelet
+          säger "more likely" och aldrig hur mycket. */}
+      <p className="bscakeadv">
+        {rich(`cake.why.${advice.because}` as const, {
+          cake: <b className="pick" data-item={advice.pick.cake}>{advice.pick.cake}</b>,
+        })}
+        {/* "Hur stor chans då?" – det ärliga svaret är utgångsläget, alltså vad
+            kläckaren står på UTAN tårtan. Spelet säger bara att tårtan gör talet
+            större, aldrig hur mycket, och ingen datamine-källa vi använder bär
+            parametern. Ett påhittat procenttal här hade sett precis lika
+            trovärdigt ut som planens riktiga odds – och de står bredvid
+            varandra på samma sida. */}
+        {advice.because === "passives" && baseOdds !== null && (
+          <> {rich("cake.oddsNow", {
+            odds: <b>{`${Math.round(baseOdds * 1000) / 10} %`}</b>,
+          })}</>
+        )}
+      </p>
+      <div className="bscakepick">
+        {[advice.pick, ...advice.rest].map((e) => (
+          <button
+            key={e.cake}
+            type="button"
+            className={`bscakebtn${e.cake === plan.cake ? " on" : ""}${e.cake === advice.pick.cake ? " rec" : ""}`}
+            onClick={() => onPick(e.cake)}
+            data-item={e.cake}
+          >
+            <ItemIcon slug={itemIconSlug(e.cake)} size={20} />
+            {e.cake}
+            {e.eggs > 1 && <span className="x2">×{e.eggs}</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="bscakehd">
+        <ItemIcon slug={itemIconSlug(plan.cake)} size={30} />
+        <b className="num">≈{plan.cakes}</b>
+        <span className="nm" data-item={plan.cake}>{plan.cake}</span>
+        <span className="meta">
+          {plan.perLay > 1
+            ? t("cake.forEggsX", { n: Math.ceil(plan.eggs), x: plan.perLay })
+            : t("cake.forEggs", { n: Math.ceil(plan.eggs) })}
+        </span>
+      </div>
+      <div className="bscakemats">
+        {plan.mats.map((m) => {
+          const best = m.ranch[0];
+          const sp = best ? speciesOf(best.s) : null;
+          return (
+            <div key={m.item} className="bscm">
+              <ItemIcon slug={itemIconSlug(m.item)} size={20} />
+              <span className="nm" data-item={m.item}>{m.item}</span>
+              <b className="num">{m.qty}</b>
+              {m.from && (
+                <span className="sub num" data-item={m.from.item}>
+                  = {m.from.qty} {m.from.item}
+                </span>
+              )}
+              {sp && best && (
+                <span className={`src${best.owned > 0 ? " has" : ""}`}>
+                  <SpeciesIcon sp={sp} size={18} radius={6} />
+                  {sp.name}
+                  <span className="meta">
+                    {best.owned === 0
+                      ? t("cake.ownNone")
+                      : best.atBase > 0
+                        ? t("cake.ownAtBase", { n: best.owned, base: best.atBase })
+                        : t("cake.ownStored", { n: best.owned })}
+                  </span>
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="hint">{t("cake.note")}</div>
+    </div>
+  );
+}
+
 export function BreedSetupPanel({
-  setup, wanted, speciesOf, passiveName, passiveTier, onPickTarget,
+  setup, wanted, speciesOf, passiveName, passiveTier, onPickTarget, cake,
+  cakeAdvice, cakeBaseOdds = null, onPickCake,
 }: {
   setup: BreedSetup;
   /** Antal önskade passiver planen siktar på – avgör Philanthropists värde. */
@@ -121,6 +236,14 @@ export function BreedSetupPanel({
   passiveName: (id: string) => string;
   passiveTier: (id: string) => number;
   onPickTarget?: (s: number) => void;
+  /** Materialkostnaden för planens ägg. null = ingen plan att räkna på. */
+  cake?: CakePlan | null;
+  /** Vilken tårta planen pekar på, och alternativen. */
+  cakeAdvice?: CakeAdvice | null;
+  /** Planens chans per ägg utan tårtans hjälp – rådets enda ärliga tal. */
+  cakeBaseOdds?: number | null;
+  /** Byter tårta i räkningen. Valet är spelarens – rådet är ett råd. */
+  onPickCake?: (cake: string) => void;
 }) {
   const t = useT();
   const rich = useRichT();
@@ -268,6 +391,21 @@ export function BreedSetupPanel({
           {nocturnal.carriers > 0 && rich("setup.carriers", { n: <b>{nocturnal.carriers}</b> })}
         </div>
       </div>
+
+      {/* Tårtan sist och med egen rubrik: allt ovanför handlar om TAKT, det här
+          om vad äggen kostar i material. Två frågor, två avdelningar. */}
+      {cake && cakeAdvice && (
+        <>
+          <div className="bsgrp">{t("cake.group")}</div>
+          <CakeBill
+            plan={cake}
+            advice={cakeAdvice}
+            baseOdds={cakeBaseOdds}
+            speciesOf={speciesOf}
+            onPick={(c) => onPickCake?.(c)}
+          />
+        </>
+      )}
 
       {/* Den enda rena texten i sektionen, och den som sparar mest tid: allt
           nedan ser ut som det borde hjälpa och gör det inte. */}

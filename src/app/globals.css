@@ -611,6 +611,84 @@ h3.phase { font-size: 13px; margin: 16px 0 6px; font-weight: 800; color: var(--a
 
 /* ---------- kontroller ---------- */
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+
+/* ---------- Boxens verktygsrad (omgjord aug 2026: "ser väldigt meh ut") ----------
+   Tre kontroller, inte fem lösa piller. Regeln som styr formen är densamma som i
+   Rollerna: INGEN platta bakom raden – kontrollerna ska bära sig själva. Det som
+   gör skillnaden är i stället att var och en är EN sak: fältet bär sin lupp och
+   sin nollställare inuti sig, filtret sin räknare, och sorteringen delar ram med
+   sin riktning. Höjden är samma 38 px på alla tre, för olika höga piller bredvid
+   varandra var halva "meh":et. */
+.boxctl { gap: 10px; }
+.boxctl .ic { width: 15px; height: 15px; flex: none; color: var(--muted); }
+
+/* Sökfältet. Ikonen och krysset ligger OVANPÅ fältet i stället för bredvid –
+   annars blir sök tre element i rad och raden ser ut som en formulärrad. */
+.ctlfield { position: relative; display: flex; align-items: center; flex: 1 1 240px; max-width: 380px; }
+.ctlfield .ic { position: absolute; left: 14px; pointer-events: none; }
+.ctlfield input[type=text] { width: 100%; min-width: 0; padding: 10px 34px 10px 38px; }
+.ctlfield.has .ic { color: var(--acc); }
+.ctlfield .clr {
+  position: absolute; right: 7px; display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+  background: var(--panel2); border: 0; color: var(--muted); font: 700 11px inherit;
+}
+.ctlfield .clr:hover { color: var(--ink); background: var(--line); }
+
+/* Knapp i raden: samma anatomi som fältet och reglaget, så de tre går att läsa
+   som en rad kontroller och inte som tre olyckor. */
+.ctlbtn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: 999px;
+  padding: 10px 15px; font: 800 12.5px inherit; color: var(--ink2);
+}
+.ctlbtn:hover { border-color: var(--acc); color: var(--ink); }
+.ctlbtn .cv { font-size: 9px; color: var(--muted); margin-left: -2px; }
+/* Aktivt filter är accentram + räknare, inte fylld platta: fylld läses som
+   "vald flik" och raden har ingen flikbetydelse. */
+.ctlbtn.on { border-color: var(--acc); color: var(--ink); }
+.ctlbtn.on .ic { color: var(--acc); }
+.cbadge {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--acc); color: var(--bg);
+  font-size: 11px; font-weight: 900;
+}
+
+/* Sorteringen som ETT reglage: väljare + riktning i samma ram. Riktningsknappen
+   låg förut som en ensam ↓-cirkel utan synlig koppling till vad den vände. */
+.ctlsort {
+  position: relative; display: inline-flex; align-items: center;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: 999px;
+  padding-left: 14px; overflow: hidden;
+}
+.ctlsort:focus-within { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+/* Egen chevron: `appearance: none` tar bort systemets, som var det enda i raden
+   som inte följde temat. */
+.ctlsort select {
+  appearance: none; -webkit-appearance: none;
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  padding: 10px 26px 10px 9px; font: 700 12.5px inherit; color: var(--ink);
+}
+.ctlsort select:focus { outline: none; box-shadow: none; border: 0; }
+.ctlsort .sel { position: relative; display: inline-flex; align-items: center; }
+.ctlsort .cv {
+  position: absolute; right: 9px; pointer-events: none;
+  font-size: 9px; color: var(--muted);
+}
+.ctlsort .dir {
+  border: 0; border-left: 1px solid var(--line); background: var(--panel2);
+  color: var(--ink2); cursor: pointer; padding: 10px 15px; font: 800 13px inherit;
+  align-self: stretch;
+}
+.ctlsort .dir:hover { color: var(--acc); }
+
+/* Träffräknaren till höger: samma ton som `.meta` men i siffertypsnittet och
+   med `auto`-marginal, så raden har ett fäste i båda ändar. */
+.ctlhits {
+  margin-left: auto; flex: none; color: var(--muted);
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
 input[type=text], select {
   background: var(--panel); color: var(--ink); border: 1px solid var(--line2);
   padding: 9px 14px; font: 500 13px inherit; border-radius: 999px;
@@ -721,6 +799,23 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 }
 .fltchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .fltiv { display: flex; flex-wrap: wrap; gap: 6px; }
+/* IV-trösklarna: samma kontrollspråk som verktygsraden – egen ram, egen
+   chevron, accentram när tröskeln är påslagen. Systemets pil var det enda i
+   panelen som inte följde temat, och tre av dem bredvid varandra syntes. */
+.ivsel {
+  position: relative; display: inline-flex; align-items: center;
+  background: var(--panel); border: 1px solid var(--line2); border-radius: 999px;
+}
+.ivsel.on { border-color: var(--acc); }
+.ivsel:focus-within { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+.ivsel select.ivmin {
+  appearance: none; -webkit-appearance: none;
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  padding: 8px 26px 8px 14px; font: 700 12.5px inherit; color: var(--ink2);
+}
+.ivsel.on select.ivmin { color: var(--ink); }
+.ivsel select.ivmin:focus { outline: none; box-shadow: none; }
+.ivsel .cv { position: absolute; right: 10px; pointer-events: none; font-size: 9px; color: var(--muted); }
 
 .pfl { position: relative; }
 .pflmenu {
@@ -740,14 +835,21 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 .pfllist::-webkit-scrollbar { width: 10px; }
 .pfllist::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 5px; }
 
-/* Aktiva passivfiltret som banners ovanför heron. Egen klass och inte bara
-   `.chosen`: den klassen hör till planeraren och kan få egna mått där. */
-.pvactive { display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin-bottom: 12px; }
-.pvactive .meta { margin-left: 4px; }
+/* Aktiva filtret ovanför heron: chips och passiv-banners på samma rad. Egen
+   klass och inte bara `.chosen`: den klassen hör till planeraren och kan få
+   egna mått där.
 
-/* IV-tröskel med värde ≠ 0 markeras som aktiva chips – annars ser tre grå
-   select likadana ut oavsett om de filtrerar eller inte. */
-select.ivmin.on { border-color: var(--acc); color: var(--ink); box-shadow: 0 0 0 3px var(--acc-soft); }
+   **Selektorn måste bära `.prows` också**, och det är inte kosmetik: raden har
+   klasserna `prows chosen pvactive`, och `.prows` är passivbannrarnas
+   TVÅSPALTSRUTNÄT som står längre ned i filen. Lika specificitet + senare rad
+   = rutnätet vann, och varje aktivt filter blev en accentfärgad platta över
+   halva sidan i stället för ett chip (Kens "filtren ser meh ut", aug 2026).
+   Precis den klasskrock som `.tag`/`.cond` en gång gav – se "Design rules" 5. */
+.prows.pvactive { display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin-bottom: 12px; }
+/* Bannrarna behåller sin egen bredd i flexraden – utan detta krymper de ihop
+   till sin text och tappar formen de har överallt annars. */
+.prows.pvactive .prow { flex: 0 1 260px; }
+.pvactive .meta { margin-left: 4px; }
 
 /* ============================================================
    HERO-BAND – Översikt och Boxen
@@ -1122,6 +1224,42 @@ select.ivmin.on { border-color: var(--acc); color: var(--ink); box-shadow: 0 0 0
 .ptip .itstats b { color: var(--ink); margin-left: 3px; }
 /* Tomt förbehåll ska inte lämna en tom rad efter siffrorna. */
 .ptip.itip .ptmeta:empty { display: none; }
+
+/* Art- och individrutan (aug 2026, Kens fråga om att hovra över pals).
+   Bredare än de andra två av samma skäl som varurutan: partnerskillens text är
+   två meningar, och passivbanners har en egen minsta bredd. Innehållet ligger
+   som en radda små sektioner med hårfina avdelare – rutan ska gå att LÄSA i ett
+   svep medan pekaren står stilla, inte studeras. */
+.ptip.swide { max-width: min(410px, calc(100vw - 16px)); }
+.ptip .sthd { align-items: center; gap: 8px; margin-bottom: 7px; }
+.ptip .sthd b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ptip .sthd .deckno { margin-left: auto; }
+.ptip .ptstars { margin-left: auto; color: var(--gold); font-size: 12px; letter-spacing: 1px; }
+/* Raden som svarar "har jag den / hur får jag tag på den". Fetstilen är svaret,
+   resten är precisering – därför bara två vikter och ingen egen färg. */
+.ptip .stget { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--ink2); }
+.ptip .stget b { font-size: 12.5px; color: var(--ink); }
+.ptip .ptflag {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; padding: 1px 6px;
+  border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted);
+}
+.ptip .stsc, .ptip .stwork {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center;
+  margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--muted);
+}
+.ptip .stsc b { color: var(--ink); margin-left: 4px; }
+.ptip .stwork span { display: inline-flex; align-items: center; gap: 4px; }
+.ptip .stwork b { color: var(--ink); font-size: 12px; }
+/* Spelets egen partnerskill-text: namnet som rubrik, beskrivningen som brödtext.
+   Den står kvar på engelska, som artnamn och passivnamn. */
+.ptip .stskill { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); }
+.ptip .stskill b { display: block; font-size: 12px; color: var(--acc); }
+.ptip .stskill span { font-size: 11.5px; line-height: 1.4; color: var(--ink2); }
+/* Individens passiver som riktiga banners, två per rad precis som överallt
+   annars – de ska gå att matcha mot spelets fyra rutor utan att tänka. */
+.ptip .ptpv { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; }
+.ptip .ptloc { margin-top: 7px; font-size: 11.5px; color: var(--ink2); }
 /* Passivnamn i löptext. Prickad understrykning för att det ska synas att raden
    går att hovra – en banner ser klickbar ut av sig själv, ett namn i en mening
    gör det inte. */
@@ -1684,6 +1822,66 @@ h3.phase::before, h3.phase::after {
   border-radius: var(--r2); padding: 9px 13px; margin-bottom: 7px;
 }
 .bsetup .bsrow.pv { border-left-color: var(--line); }
+
+/* Tårtan: planens materialkostnad. Samma radanatomi som resten av panelen, men
+   utan elementton – ingredienser har ingen art. Rubrikraden bär antalet som det
+   enda stora talet, för det är den siffran man kom för. */
+.bsetup .bscake {
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: var(--r2); padding: 10px 13px 9px;
+}
+/* Rådet står FÖRST och som en mening, inte som ett chip: "du jagar passiver,
+   alltså Special Cake — spelet säger att ungarna oftare ärver flera passiver".
+   Ingen procent, för spelet ger ingen; namnet bär hover-rutan med spelets egen
+   text, alltså beviset en klickning bort. */
+.bsetup .bscakeadv { margin: 0 0 8px; font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
+.bsetup .bscakeadv .pick { color: var(--acc); cursor: help; }
+.bsetup .bscakepick { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.bsetup .bscakebtn {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 4px 10px 4px 6px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+  font: 700 11.5px inherit;
+}
+.bsetup .bscakebtn:hover { color: var(--ink); }
+/* Rekommenderad = accentram, VALD = fylld. Två olika saker: rådet står kvar
+   markerat även när man tittar på en annan tårta, annars vet man inte längre
+   vilken appen föreslog. */
+.bsetup .bscakebtn.rec { border-color: var(--acc); color: var(--ink); }
+.bsetup .bscakebtn.on { background: var(--acc); border-color: var(--acc); color: var(--bg); }
+.bsetup .bscakebtn .x2 {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-weight: 900;
+}
+.bsetup .bscakehd { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+.bsetup .bscakehd .num {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-size: 19px; color: var(--acc);
+}
+.bsetup .bscakehd .nm { font-weight: 800; }
+.bsetup .bscakemats { display: grid; gap: 5px; }
+/* Ingrediensraden: ikon · namn · antal — och sedan det som gör raden till ett
+   RÅD i stället för en siffra, alltså underreceptet och vem som lägger varan. */
+.bsetup .bscm {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 5px 9px; border-radius: var(--r1);
+  background: var(--panel); border: 1px solid var(--line);
+}
+.bsetup .bscm .nm { font-size: 12.5px; font-weight: 700; }
+.bsetup .bscm > .num {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-weight: 900; font-size: 14px; font-variant-numeric: tabular-nums;
+}
+/* "= 210 Wheat" hänger på sin ingrediens och får aldrig se ut som en egen rad:
+   det är samma inköp, ett steg tidigare. */
+.bsetup .bscm .sub { font-size: 11.5px; color: var(--muted); }
+/* Producenten längst ut, dämpad när du inte äger någon – raden ska gå att
+   skumma efter "vad saknar jag?". */
+.bsetup .bscm .src {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--muted);
+}
+.bsetup .bscm .src.has { color: var(--ink2); }
+.bsetup .bscm .src .meta { font-size: 11px; }
 .bsetup .bshit {
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap; width: 100%;
   background: none; border: none; padding: 0; margin: 0;
@@ -3341,6 +3539,48 @@ a.qstat:hover { border-color: var(--acc); }
 .fhero .fsub { margin-top: 2px; font-size: 12.5px; color: var(--ink2); }
 .fhero .hint { margin-top: 10px; }
 .fhero .flinks { flex: none; display: flex; flex-direction: column; gap: 6px; }
+
+/* Kondenseringsrådet i artheron (aug 2026): "vilken av mina tolv behåller jag?"
+   Egen yta med egen ram inne i heron – till skillnad från faktaraderna är det
+   ett RÅD och inte ett uppslag, och den skillnaden ska synas utan att man läser.
+   Ingen egen färgskala: domen bär tonen, resten är heros. */
+.fcond {
+  margin-top: 12px; padding: 10px 12px 9px;
+  border: 1px solid var(--line); border-radius: var(--r2);
+  background: color-mix(in srgb, var(--panel2) 70%, transparent);
+}
+.fcondhd { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.fcondhd .k {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+/* Domen: bara "nu" är en uppmaning och får accentfärgen. "Klar" och "N till"
+   är svar och ska inte skrika – de tonas som vanliga etiketter. */
+.fcv {
+  margin-left: auto; font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--panel2); border: 1px solid var(--line); color: var(--muted);
+}
+.fcv.v-now { background: color-mix(in srgb, var(--green) 18%, transparent);
+  border-color: color-mix(in srgb, var(--green) 45%, transparent); color: var(--green); }
+.fcv.v-max { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+.fcline { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 6px; }
+.fcline .rsk {
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); min-width: 52px;
+}
+/* Keepern är hoverbar (`data-pal`) – den prickade understrykningen är samma
+   signal som passivnamn i löptext får: här finns mer att veta. */
+.fckeep {
+  display: inline-flex; align-items: center; gap: 7px; cursor: help;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line2);
+}
+.fckeep b { font-size: 12.5px; }
+.fckeep .num { font-size: 11.5px; color: var(--ink2); }
+.fckeep .meta { font-size: 11px; }
+.fcfact { margin: 2px 0 0; font-size: 11.5px; color: var(--ink2); }
+.fcnone { margin: 0; font-size: 12px; color: var(--ink2); }
 .fhero .flinks .fchip { text-decoration: none; text-align: center; }
 .ffacts { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 12px; }
 .ffact .k { font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }

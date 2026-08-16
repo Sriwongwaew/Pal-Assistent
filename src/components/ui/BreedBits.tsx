@@ -10,8 +10,11 @@ import { DeckNo, ElementIcons, SpeciesIcon } from "./PalBits";
    man ofta inte äger, och då är nästa steg att slå upp dem i spelets Paldeck.
    Utan dem får man leta på namnet i en lista på tvåhundra. */
 export function SpeciesMini({ sp, badge, badgeClass }: { sp: Species; badge?: string; badgeClass?: "o" | "q" }) {
+  /* Attributet ligger på HELA chipet, inte bara porträttet: i ett plansteg är
+     det artnamnet man pekar på när man undrar vad arten är. Porträttet inuti
+     bär samma art, så det spelar ingen roll var pekaren hamnar. */
   return (
-    <span className="mini">
+    <span className="mini" data-species={sp.code}>
       <SpeciesIcon sp={sp} size={26} radius={7} />
       {sp.name}
       <ElementIcons sp={sp} size={15} />

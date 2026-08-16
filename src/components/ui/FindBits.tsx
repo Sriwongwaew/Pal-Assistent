@@ -22,7 +22,9 @@ import { igCoord } from "@/lib/worldmap";
 import { ELEMENT_GAME_NAME, ELEMENT_ICON, ELEMENT_META } from "@/lib/constants";
 import type { ExpeditionSite } from "@/lib/expedition";
 import type { RaidInfo } from "@/lib/questsData";
+import type { CondenseGain, CondensePlan } from "@/lib/condense";
 import { GameIcon, ItemIcon } from "./GameIcon";
+import { GainStats, StarLeds, WarnNotes } from "./RecoBits";
 import { Tag } from "./PalBits";
 
 /**
@@ -394,6 +396,98 @@ export function ComboHero({ parents, results, links }: {
         <div className="hint">{t("find.combo.note")}</div>
       </div>
       {links}
+    </div>
+  );
+}
+
+/* ============================================================
+   Kondensering per art – "vilken av mina ska matas?"
+   ============================================================ */
+
+/**
+ * Kondenseringsrådet för EN art, i artheron.
+ *
+ * Rollernas kö rankar arter mot varandra: den svarar "vad ska jag göra
+ * härnäst?" och visar bara det som ligger högst upp. Frågan här är den omvända
+ * och lika vanlig – *"jag har tolv Lamball, vilken behåller jag?"* (Kens önskan
+ * aug 2026) – och den går inte att ställa till en rankning. Samma modell
+ * (`planCondense`) svarar på båda, så sidorna kan aldrig säga emot varandra.
+ *
+ * Tre saker som är valda:
+ *
+ * 1. **Keeperen är hoverbar** (`data-pal`): "behåll den här" utan att kunna se
+ *    vilken av tolv identiska det är vore ett råd man inte kan följa. Rutan ger
+ *    IV, passiver och platsen i lådan.
+ * 2. **Domen står som chip, inte som färg.** `now` är det enda som är en
+ *    uppmaning; `hold` och `max` är svar på frågan lika mycket – "du är klar"
+ *    och "du behöver N till" är precis vad man kom för att få veta.
+ * 3. **Utan plan står SKÄLET.** `planCondense` hoppar över en art vars alla
+ *    exemplar är sparade eller bokade av avelsplanen, och en tom ruta hade sett
+ *    ut som att appen inte vet. Den vet – svaret är "ingenting att mata".
+ */
+export function SpeciesCondense({ plan, gain, keeper, owned, kept, booked }: {
+  plan: CondensePlan | null;
+  gain: CondenseGain | null;
+  /** Färdig nod för exemplaret man behåller – containern äger porträttet. */
+  keeper: ReactNode;
+  owned: number;
+  kept: number;
+  booked: number;
+}) {
+  const t = useT();
+  return (
+    <div className="fcond">
+      <div className="fcondhd">
+        <span className="k">{t("reco.queue.title")}</span>
+        {plan && <StarLeds from={plan.fromStars} to={plan.reach} />}
+        {plan && (
+          <span className={`fcv v-${plan.verdict}`}>
+            {plan.verdict === "now" ? t("find.cond.now")
+              : plan.verdict === "max" ? t("find.cond.max")
+                : t("find.cond.need", { n: plan.missing, star: plan.reach + 1 })}
+          </span>
+        )}
+      </div>
+
+      {plan ? (
+        <>
+          <div className="fcline">
+            <span className="rsk">{t("reco.row.youKeep")}</span>
+            {keeper}
+          </div>
+          {plan.feed > 0 && (
+            <div className="fcline">
+              <span className="rsk">{t("find.cond.feed")}</span>
+              <b className="num">{t("find.cond.feedN", { n: plan.feed, of: owned })}</b>
+              {gain && <GainStats gain={gain} />}
+            </div>
+          )}
+          {/* Tre olika meningar, aldrig hopklistrade fragment: `reco.row.leftover`
+              börjar med " · " för att hänga på vinstraden, och stod den ensam
+              blev det "· 3 duplicates left overNothing to feed yet". Och vid 4★
+              finns inget "nästa stjärna" – texten sa "0 more for 5★", ett steg
+              spelet inte har. */}
+          <p className="fcfact">
+            {plan.feed > 0 && gain
+              ? <>
+                {t("reco.row.fact", { pct: gain.pct, slots: plan.feed })}
+                {plan.leftover > 0 && t("reco.row.leftover", { n: plan.leftover })}
+              </>
+              : plan.verdict === "max"
+                ? t("find.cond.maxLine", { n: plan.fodder.length })
+                : t("find.cond.nothingYet", { n: plan.missing, star: plan.reach + 1 })}
+          </p>
+          <WarnNotes plan={plan} inline />
+        </>
+      ) : (
+        <p className="fcnone">
+          {booked > 0
+            ? t("find.cond.allBooked", { n: booked, owned })
+            : kept >= owned
+              ? t("find.cond.allKept", { n: owned })
+              : t("find.cond.noneOwned")}
+        </p>
+      )}
     </div>
   );
 }

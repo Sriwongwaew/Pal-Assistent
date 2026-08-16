@@ -67,9 +67,12 @@ const fruitNames = [...fruitBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
    deras varor – ringar, talismaner, batonger, visselpipor – fanns i inget av
    de andra urvalen. Namnen kapas vid " Schematic N": det är föremålet som har
    en ikon och en beskrivning, inte pappret. */
+/* `worldmap.json` bär TVÅ kartor sedan aug 2026 (`{ main, tree }`) – ruinerna
+   ligger på huvudkartan. Läser man den gamla platta formen blir listan tom, och
+   spärran nedan är det enda som skiljer det från ett tyst bortfall. */
 const worldmap = JSON.parse(readFileSync(`${ROOT}/src/lib/data/worldmap.json`, "utf8"));
 const ruinNames = [...new Set(
-  (worldmap.ruins ?? [])
+  (worldmap.main?.ruins ?? worldmap.ruins ?? [])
     .map((r) => String(r.gives ?? "").replace(/ Schematic( \d+)?$/, ""))
     .filter((n) => n && !/Handbook/.test(n)),
 )];
@@ -82,10 +85,22 @@ const schemFull = [...new Set([...findSrc.matchAll(/name:\s*"([^"]+? Schematic(?
 const schemBase = [...new Set(schemFull.map((n) => n.replace(/ Schematic( \d+)?$/, "")))];
 if (schemBase.length === 0) throw new Error("LEGENDARY_SCHEMATICS gav noll namn – har tabellens form ändrats?");
 
-const wanted = new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemBase, ...ruinNames]);
+/* Tårtorna och deras ingredienser: gränssnittet visar spelets EGNA meningar om
+   vad varje tårta gör ("More likely inherit multiple passive skills…"), och det
+   är den texten hela rekommendationen vilar på. Utan raderna här hade rådet
+   varit vår formulering av något vi inte kunde citera. Receptfilen skrivs längst
+   ned i samma körning, så första gången saknas den – då tar vi tårtnamnen ur
+   crafting-tabellen i stället i nästa varv. */
+let recipeNames = [];
+try {
+  const prev = JSON.parse(readFileSync(`${ROOT}/src/lib/data/recipes.json`, "utf8"));
+  recipeNames = [...new Set(Object.entries(prev).flatMap(([n, r]) => [n, ...Object.keys(r.mats ?? {})]))];
+} catch { /* första körningen: filen finns inte än */ }
+
+const wanted = new Set([...dropNames, ...ranchNames, ...oreNames, ...fruitNames, ...schemBase, ...ruinNames, ...recipeNames]);
 console.log(`behöver: ${wanted.size} namn (${dropNames.length} drops, ${ranchNames.length} ranch, `
   + `${oreNames.length} malm, ${fruitNames.length} frukter, ${schemBase.length} schematics, `
-  + `${ruinNames.length} ur ruiner)`);
+  + `${ruinNames.length} ur ruiner, ${recipeNames.length} ur recept)`);
 
 /* ---- Hämta och tolka items-tabellen ---- */
 
@@ -182,3 +197,82 @@ console.log(`skrev ${Object.keys(out).length} rader till ${path.relative(ROOT, O
 if (fallbacks.length) console.log(`ritningstext som reserv (${fallbacks.length}): ${fallbacks.join(", ")}`);
 const stillMissing = missing.filter((m) => !out[m]);
 if (stillMissing.length) console.log(`UTAN BESKRIVNING (${stillMissing.length}): ${stillMissing.join(", ")}`);
+
+/* ============================================================
+   RECEPTEN – src/lib/data/recipes.json
+   ============================================================
+
+   Tårtan är avelns andra kostnad: planeraren räknar ägg, och varje ägg kostar
+   en tårta i avelsfarmen. Receptet behöver INTE skrivas för hand – det ligger i
+   `crafting`-tabellen i samma dump som beskrivningarna, alltså i en källa vi
+   redan hämtar och redan kolumnkontrollerar.
+
+   Tre regler, samma disciplin som resten av filen:
+
+   1. **Bara det som behövs exporteras.** Tabellen har ~500 recept; vi tar
+      tårtorna och det de transitivt kräver (Cake → Flour → Wheat). En generell
+      receptbok vore mest oanvänd data i en fil som bundlas till klienten.
+   2. **Kolumnkontroll mot ett känt recept.** Glider kolumnordningen hamnar
+      materialen i fel fält, och en påhittad ingredienslista ser precis lika
+      trovärdig ut som en riktig – samma resonemang som Assault Rifle ovan.
+   3. **`out` är antalet varan ger per hantverk**, inte alltid 1. Räknar man
+      ingredienser utan att dela med det får man fel så fort spelet ger flera. */
+
+const CRAFT_START = sql.indexOf("INSERT INTO `crafting`");
+if (CRAFT_START < 0) throw new Error("crafting-tabellen finns inte i dumpen längre.");
+/* Tabellen ligger i TRE INSERT-satser (mysqldump delar på storlek), så blocket
+   får inte klippas vid första `;` – då försvinner allt från rad ~330 och uppåt.
+   Det tog med sig Flour, alltså halva tårtans kostnad, utan att något såg
+   trasigt ut: tårtreceptet fanns, dess underrecept bara saknades. Slutet är
+   nästa tabells CREATE TABLE, och Flour står i receptkontrollen nedan just
+   för att den ligger i den andra satsen. */
+const craftEnd = sql.indexOf("CREATE TABLE", CRAFT_START);
+const craftBlk = sql.slice(CRAFT_START, craftEnd < 0 ? undefined : craftEnd);
+
+/* (ID, SourceKey, Name, Output, WorkAmount, Material, CraftExpRate) */
+const CRAFT_ROW = new RegExp(
+  String.raw`\((\d+), ${STR}, ${STR}, (\d+), (\d+), (NULL|${STR}), ([\d.]+)\)`,
+  "g",
+);
+const craft = new Map();
+for (const m of craftBlk.matchAll(CRAFT_ROW)) {
+  const name = unesc(m[3]);
+  const matsRaw = m[6] === "NULL" ? null : unesc(m[7]);
+  if (!matsRaw || craft.has(name)) continue;
+  craft.set(name, { out: Number(m[4]), mats: JSON.parse(matsRaw) });
+}
+console.log(`tolkade ${craft.size} recept`);
+
+const CAKE_PROBE = { Egg: 8, Milk: 7, Flour: 5, Honey: 2, "Red Berries": 8 };
+const cake = craft.get("Cake");
+if (!cake || cake.out !== 1 || JSON.stringify(cake.mats) !== JSON.stringify(CAKE_PROBE)) {
+  throw new Error(`receptkontrollen föll: Cake gav ${JSON.stringify(cake)} `
+    + `(väntade out 1 och ${JSON.stringify(CAKE_PROBE)})`);
+}
+/* Flour ligger i dumpens ANDRA INSERT-sats och är därför kontrollen på att HELA
+   tabellen lästes, inte bara dess början. */
+const flour = craft.get("Flour");
+if (!flour || flour.out !== 1 || flour.mats.Wheat !== 3) {
+  throw new Error(`receptkontrollen föll: Flour gav ${JSON.stringify(flour)} (väntade out 1, Wheat 3). `
+    + "Läses bara första INSERT-satsen ur crafting?");
+}
+
+/* Rötterna är tårtorna – allt spelet kallar "…Cake". Sedan tas det de kräver,
+   så länge kravet självt är något man tillverkar (Flour), och inte längre. */
+const cakeNames = [...craft.keys()].filter((n) => /(^|\s)Cake$/.test(n));
+if (cakeNames.length === 0) throw new Error("hittade inga tårtor i crafting-tabellen.");
+const recipes = {};
+const queue = [...cakeNames];
+while (queue.length) {
+  const name = queue.shift();
+  if (recipes[name]) continue;
+  const row = craft.get(name);
+  if (!row) continue;
+  recipes[name] = { out: row.out, mats: row.mats };
+  for (const mat of Object.keys(row.mats)) if (craft.has(mat) && !recipes[mat]) queue.push(mat);
+}
+
+const RECIPES_OUT = path.join(ROOT, "src/lib/data/recipes.json");
+writeFileSync(RECIPES_OUT, `${JSON.stringify(recipes, null, 0)}\n`);
+console.log(`skrev ${Object.keys(recipes).length} recept till ${path.relative(ROOT, RECIPES_OUT)}: `
+  + Object.keys(recipes).join(", "));

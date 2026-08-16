@@ -53,7 +53,10 @@ import { useRouter } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
+import { planBookings, type Booking } from "@/lib/bookings";
 import { childrenOf, isReachable } from "@/lib/breeding";
+import { BREEDING_PREFS_KEY, parseBreedingPrefs } from "@/lib/breedingPrefs";
+import { buildUseIndex, condenseGain, planCondense } from "@/lib/condense";
 import { idleSquad } from "@/lib/expedition";
 import { ownedImplants } from "@/lib/implants";
 import {
@@ -81,10 +84,11 @@ import { hasItemInfo } from "@/lib/itemInfo";
 import { GameIcon, ItemIcon } from "@/components/ui/GameIcon";
 import { WorkIcon } from "@/components/ui/WorkIcon";
 import { ElementIcons, Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
+import { palLocation } from "@/components/ui/PalIdent";
 import { PassiveRow } from "@/components/ui/PassiveRow";
 import { elementColor } from "@/components/ui/PalHero";
 import {
-  ComboHero, ExpedHero, Fact, ItemHero, PlaceHero, RaidHero, SkillHero,
+  ComboHero, ExpedHero, Fact, ItemHero, PlaceHero, RaidHero, SkillHero, SpeciesCondense,
 } from "@/components/ui/FindBits";
 
 /** Kategorierna i sidans fasta ordning – första med träffar blir vald.
@@ -119,7 +123,7 @@ const CATS: [FindCat, MessageKey][] = [
 const PAGE = 24;
 
 export function FindView() {
-  const { data, pals, ownedSpecies, freeSolve } = usePalData();
+  const { data, pals, ownedSpecies, bestOf, freeSolve } = usePalData();
   const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -163,6 +167,33 @@ export function FindView() {
     return m;
   }, []);
   const found = useMemo(() => foundSets(data.progress), [data.progress]);
+
+  /* Kondenseringsrådet per art (aug 2026). SAMMA modell som Rollernas kö kör –
+     `planCondense` räknar en plan per ägd art och kön visar bara toppen av den.
+     Bokningarna läses ur planerarens sparade val precis som i RecoView, och i en
+     effekt eftersom localStorage inte finns på servern: utan dem kan Hitta
+     föreslå att man matar bort en pal den egna avelsplanen står och väntar på. */
+  const useIndex = useMemo(() => buildUseIndex(data, pals), [data, pals]);
+  const [booked, setBooked] = useState<ReadonlyMap<string, Booking>>(new Map());
+  useEffect(() => {
+    const prefs = parseBreedingPrefs(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
+    setBooked(planBookings(data, pals, ownedSpecies, prefs));
+  }, [data, pals, ownedSpecies]);
+  const condensePlans = useMemo(
+    () => new Map(planCondense(data, pals, bestOf, { booked, useIndex }).map((p) => [p.s, p] as const)),
+    [data, pals, bestOf, booked, useIndex],
+  );
+  /** Artens kondenseringsläge: planen om den finns, annars skälet att den inte gör det. */
+  const condenseFor = (i: number) => {
+    const plan = condensePlans.get(i) ?? null;
+    const all = pals.filter((p) => p.s === i);
+    return {
+      plan,
+      gain: plan ? condenseGain(data, plan) : null,
+      kept: all.filter((p) => p.keep).length,
+      booked: all.filter((p) => !p.keep && booked.has(p.id)).length,
+    };
+  };
   const implants = ownedImplants(data) ?? {};
   /* Katalogerna byggs en gång: de läser bara tabeller i repot. */
   const allItems = useMemo(() => itemIndex().filter(hasSource), []);
@@ -479,6 +510,7 @@ export function FindView() {
       .sort((a, b) => b.combat - a.combat)[0];
     const counterSp = counter ? data.species[counter.s] : undefined;
     const ownCount = pals.reduce((n, p) => n + (p.s === i ? 1 : 0), 0);
+    const condense = condenseFor(i);
     /* "Vilka blir X?" – frågan man ställer sig framför en art man inte äger.
        Sveper hela partabellen, ägda par först (se parentPairsOf). */
     const parents = parentPairsOf(data, i, ownedSpecies, 6);
@@ -613,6 +645,27 @@ export function FindView() {
               </Fact>
             )}
           </div>
+          {/* Kondenseringsrådet för just den här arten. Bara när man äger den –
+              frågan "vilken av mina ska matas" finns inte annars. */}
+          {ownCount > 0 && (
+            <SpeciesCondense
+              plan={condense.plan}
+              gain={condense.gain}
+              owned={ownCount}
+              kept={condense.kept}
+              booked={condense.booked}
+              keeper={condense.plan && (
+                <span className="fckeep" data-pal={condense.plan.keeper.id}>
+                  <SpeciesIcon sp={sp} size={22} radius={7} tip={false} />
+                  <b>{condense.plan.keeper.nick || sp.name}</b>
+                  <span className="num">
+                    {t("pal.lv", { n: condense.plan.keeper.lv })} · {condense.plan.keeper.iv.join("/")}
+                  </span>
+                  <span className="meta">{t.msg(palLocation(condense.plan.keeper))}</span>
+                </span>
+              )}
+            />
+          )}
         </div>
         <div className="flinks">
           <Link className="fchip" href={`/breeding?target=${i}`}>{t("find.linkBreed")}</Link>
