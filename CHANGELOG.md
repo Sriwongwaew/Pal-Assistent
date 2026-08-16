@@ -13,6 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+## 3.3.0 – 2026-08-17
+
 - **Four new ways to sort the Box, including two keys at once.** "Stars ↓, level ↑" puts the
   condensed pals you have not levelled yet at the top — the two keys point in opposite directions,
   which the old single-direction sorting could not express. There is also "Weakest IV stat", which
