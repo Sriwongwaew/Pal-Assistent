@@ -13,7 +13,9 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-- **Sorting the Box now takes two keys, each with its own direction.** Yesterday's version offered
+## 3.3.1 – 2026-08-17
+
+- **Sorting the Box now takes two keys, each with its own direction.** The version before this one offered
   ready-made combinations, and that missed the point: "many stars but a low level" cannot be
   expressed by a switch that flips everything at once — you got that order or its mirror, never
   the half you wanted. Pick the key and the direction, then a second key and its direction, and
