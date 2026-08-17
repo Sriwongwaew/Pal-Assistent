@@ -654,33 +654,32 @@ h3.phase { font-size: 13px; margin: 16px 0 6px; font-weight: 800; color: var(--a
   font-size: 11px; font-weight: 900;
 }
 
-/* Sorteringen som ETT reglage: väljare + riktning i samma ram. Riktningsknappen
-   låg förut som en ensam ↓-cirkel utan synlig koppling till vad den vände. */
-.ctlsort {
-  position: relative; display: inline-flex; align-items: center;
-  background: var(--panel); border: 1px solid var(--line2); border-radius: 999px;
-  padding-left: 14px; overflow: hidden;
+/* Sorteringsknappen visar HELA sorteringen: nyckel + riktning, och andranyckeln
+   efter en punkt. "Stjärnor ↓ · Level ↑" är en ordning man kan läsa, till
+   skillnad från en `<select>` som bara rymmer ett namn. */
+.sortbtn .rule { display: inline-flex; align-items: center; gap: 5px; }
+.sortbtn .sep { font-style: normal; color: var(--muted); margin: 0 3px; }
+.sortbtn .arw {
+  font-style: normal; color: var(--acc);
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif; font-weight: 900;
 }
-.ctlsort:focus-within { border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
-/* Egen chevron: `appearance: none` tar bort systemets, som var det enda i raden
-   som inte följde temat. */
-.ctlsort select {
-  appearance: none; -webkit-appearance: none;
-  background: none; border: 0; border-radius: 0; box-shadow: none;
-  padding: 10px 26px 10px 9px; font: 700 12.5px inherit; color: var(--ink);
+.sortbtn.open { border-color: var(--acc); color: var(--ink); }
+
+/* Menyn: samma panel som filtret, tva grupper med var sin riktningsknapp.
+   EGEN meny och inte `<select>`: systemets dropdown ritas av operativsystemet
+   och tog varken temats botten eller dess text - i morkt lage blev raderna
+   gratt pa gratt (Kens skarmdump aug 2026). Och innehallet ryms inte i en
+   lista: nyckel och riktning ska ga att satta var for sig, tva ganger. */
+.sortpanel { min-width: 340px; }
+.sortgrp + .sortgrp { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.sortgrp .flthd { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+/* Riktningen ar ett chip och inte en pil-knapp: den bar ORD ("hogst forst"),
+   for en ensam pil svarar inte pa fragan "hogst av vad?". */
+.dirchip {
+  margin-left: auto; background: var(--panel); border: 1px solid var(--line2);
+  color: var(--ink2); font-weight: 700;
 }
-.ctlsort select:focus { outline: none; box-shadow: none; border: 0; }
-.ctlsort .sel { position: relative; display: inline-flex; align-items: center; }
-.ctlsort .cv {
-  position: absolute; right: 9px; pointer-events: none;
-  font-size: 9px; color: var(--muted);
-}
-.ctlsort .dir {
-  border: 0; border-left: 1px solid var(--line); background: var(--panel2);
-  color: var(--ink2); cursor: pointer; padding: 10px 15px; font: 800 13px inherit;
-  align-self: stretch;
-}
-.ctlsort .dir:hover { color: var(--acc); }
+.dirchip:hover { border-color: var(--acc); color: var(--ink); }
 
 /* Träffräknaren till höger: samma ton som `.meta` men i siffertypsnittet och
    med `auto`-marginal, så raden har ett fäste i båda ändar. */
@@ -815,6 +814,11 @@ button.ghost:disabled { opacity: .45; cursor: default; }
 }
 .ivsel.on select.ivmin { color: var(--ink); }
 .ivsel select.ivmin:focus { outline: none; box-shadow: none; }
+/* Systemets popup-lista arver INTE panelens farger, och en `background: none`
+   pa valjaren gor raderna omojliga att lasa i morkt lage. Alternativen maste
+   darfor fa botten och text uttryckligen - det galler varje kvarvarande
+   `<select>` i appen, inte bara den har. */
+select option { background: var(--panel); color: var(--ink); }
 .ivsel .cv { position: absolute; right: 10px; pointer-events: none; font-size: 9px; color: var(--muted); }
 
 .pfl { position: relative; }

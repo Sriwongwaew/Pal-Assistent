@@ -28,10 +28,16 @@ Features by route:
 - `/` **Översikt** – hero-band med "Boxens stjärna", nyckeltal, höjdpunktskort, flest per art.
 - `/box` **Boxen** – vald pal i ett hero-band överst, hela boxen som habitat-brickor under
   (namn + level + IV på varje bricka). Search/filter/sort på toppen: **verktygsraden är tre
-  kontroller** (fält, filter, sorteringsreglage) och ingen platta bakom – samma regel som i
-  Rollerna. Sorteringarna bor i `src/lib/boxSort.ts`, och två av dem är **sammansatta**:
-  "Stjärnor ↓, level ↑" (Kens exempel aug 2026) och "svagaste IV-stat" väger två nycklar mot
-  varandra. Riktningsknappen speglar BÅDA nycklarna, aldrig bara den första. Spelets **Base Info**-replika
+  kontroller** (fält, filter, sorteringsmeny) och ingen platta bakom – samma regel som i Rollerna.
+  **Sorteringen är TVÅ nycklar med var sin riktning** (`src/lib/boxSort.ts`), inte namngivna
+  förval: "stjärnor fallande, sedan level stigande" går inte att uttrycka med en global
+  riktningsknapp, för den vänder båda samtidigt. Det var Kens rättning aug 2026 – *"jag ville
+  kunna sortera på många stjärnor men låg level; nu kan jag välja många stjärnor eller inga,
+  alltså tvärtom"* – och förvalen som fanns däremellan gjorde bara om samma fel med fler namn.
+  Menyn är EGEN och inte en `<select>`: systemets dropdown ritas av operativsystemet och tog
+  varken temats botten eller dess text, så raderna blev grått på grått i mörkt läge. Finns en
+  `<select>` kvar någonstans måste dess `option` få botten och text uttryckligen (se
+  `select option` i globals.css). Spelets **Base Info**-replika
   (LEVEL, NEXT, stjärnor, HP/hunger/SAN, Attack/Defense/Work Speed med buff-pilar, arbetsremsa,
   Paldeck, Passive Skills 2×2) finns kvar och öppnas med **Base Info**-knappen i heron – eller
   automatiskt när man klickar en bricka på smal skärm.

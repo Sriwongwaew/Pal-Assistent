@@ -15,7 +15,7 @@ import type { MessageKey } from "@/i18n";
 import {
   matchesPassives, meetsIvMins, palHaystack, palMatches, searchTerms, type PassiveMode,
 } from "@/lib/palSearch";
-import { BOX_SORTS, boxComparator, type BoxSort } from "@/lib/boxSort";
+import { SORT_KEYS, boxComparator, otherKeys, type SortKey, type SortRule } from "@/lib/boxSort";
 import { perfectIvCount } from "@/lib/scoring";
 import { IV_LABELS } from "@/lib/ivPlan";
 import type { ScoredPal } from "@/lib/types";
@@ -51,13 +51,12 @@ const PREDICATES: Record<Filter, (p: ScoredPal) => boolean> = {
   plan: () => true,
 };
 
-/* Etiketten per sortering. Ordningen ligger i `BOX_SORTS` (lib) så jämförarna
-   och menyn inte kan glida isär. */
-const SORT_LABEL: Record<BoxSort, MessageKey> = {
-  score: "box.sort.score", iv: "box.sort.iv", combat: "box.sort.combat",
-  lvl: "box.sort.level", stars: "box.sort.stars", art: "box.sort.species",
-  starsLow: "box.sort.starsLow", ivFloor: "box.sort.ivFloor",
-  pv: "box.sort.pv", slot: "box.sort.slot",
+/* Etiketten per NYCKEL. Ordningen ligger i `SORT_KEYS` (lib) så menyn och
+   jämförarna inte kan glida isär. */
+const SORT_LABEL: Record<SortKey, MessageKey> = {
+  score: "box.sort.score", iv: "box.sort.iv", ivFloor: "box.sort.ivFloor",
+  combat: "box.sort.combat", lvl: "box.sort.level", stars: "box.sort.stars",
+  pv: "box.sort.pv", art: "box.sort.species", slot: "box.sort.slot",
 };
 
 /* Stegen är de man faktiskt frågar efter: "över 90" är avelströskeln, 100 är
@@ -98,8 +97,10 @@ export function BoxView() {
   const [chosenPv, setChosenPv] = useState<readonly string[]>([]);
   const [pvMode, setPvMode] = useState<PassiveMode>("all");
   const [ivMins, setIvMins] = useState<IvMins>([0, 0, 0]);
-  const [sort, setSort] = useState<BoxSort>("score");
-  const [asc, setAsc] = useState(false);
+  /* Sorteringen är EN eller TVÅ regler med var sin riktning. Att riktningen
+     sitter per nyckel är hela poängen – se boxSort.ts. */
+  const [rules, setRules] = useState<SortRule[]>([{ key: "score", asc: false }]);
+  const [sortOpen, setSortOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [selId, setSelId] = useState<string | null>(null);
 
@@ -134,19 +135,27 @@ export function BoxView() {
      allt; raden bär sök, sortering och de AKTIVA valen som chips. */
   const [fltOpen, setFltOpen] = useState(false);
   const fltRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+  /* Samma stängning för båda menyerna: klick utanför och Escape. */
   useEffect(() => {
-    if (!fltOpen) return;
+    if (!fltOpen && !sortOpen) return;
     const close = (e: MouseEvent) => {
-      if (fltRef.current && !fltRef.current.contains(e.target as Node)) setFltOpen(false);
+      const at = e.target as Node;
+      if (fltRef.current && !fltRef.current.contains(at)) setFltOpen(false);
+      if (sortRef.current && !sortRef.current.contains(at)) setSortOpen(false);
     };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setFltOpen(false); };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setFltOpen(false);
+      setSortOpen(false);
+    };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", esc);
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", esc);
     };
-  }, [fltOpen]);
+  }, [fltOpen, sortOpen]);
 
   /** Antal bärare per passiv – filtermenyn visar siffran på varje banner. */
   const passiveCounts = useMemo(() => {
@@ -166,11 +175,10 @@ export function BoxView() {
     if (chosenPv.length) out = out.filter((p) => matchesPassives(p.pv, chosenPv, pvMode));
     if (ivMins.some((m) => m > 0)) out = out.filter((p) => meetsIvMins(p.iv, ivMins));
 
-    const chosen = boxComparator(sort, data, t.locale);
-    /* Riktningen vänds på jämförelsen och inte genom att vända listan efteråt:
-       en `reverse()` kastar också om alla lika-fall, så två pals med samma
-       poäng skulle byta plats varje gång man klickar. */
-    const dir = (a: ScoredPal, b: ScoredPal) => (asc ? -chosen(a, b) : chosen(a, b));
+    /* Riktningen ligger i reglerna, aldrig som en `reverse()` efteråt: den
+       kastar också om alla lika-fall, så två pals med samma poäng skulle byta
+       plats varje gång man klickar. */
+    const dir = boxComparator(rules, data, t.locale);
 
     /* Med perfekt-IV-filtret på är antalet 100:or det man faktiskt sorterar
        efter – tre före två före en – och den valda sorteringen avgör inom varje
@@ -179,7 +187,7 @@ export function BoxView() {
       return [...out].sort((a, b) => perfectIvCount(b) - perfectIvCount(a) || dir(a, b));
     }
     return [...out].sort(dir);
-  }, [pals, data, query, active, chosenPv, pvMode, ivMins, sort, asc, planRolesById, t.locale]);
+  }, [pals, data, query, active, chosenPv, pvMode, ivMins, rules, planRolesById, t.locale]);
 
   const selected = useMemo(
     () => rows.find((p) => p.id === selId) ?? rows[0] ?? null,
@@ -319,36 +327,89 @@ export function BoxView() {
             </div>
           )}
         </div>
-        {/* Väljare + riktning i EN ram. Riktningen är fortfarande en knapp och
-            inte två poster per sortering – annars blir listan tjugo rader lång
-            och man får leta efter den man redan har – men nu syns det vad den
-            hör ihop med. */}
-        <div className="ctlsort">
-          <SortIcon />
-          {/* Chevronen hör till VÄLJAREN och inte till ramen: väljaren är
-              innehållsbred ("Score" är kort, "Stars ↓, level ↑" långt), så en
-              chevron fäst i ramens kant hamnade svävande mitt i reglaget. */}
-          <span className="sel">
-            <select
-              value={sort}
-              aria-label={t("box.sort.label")}
-              onChange={(e) => setSort(e.target.value as BoxSort)}
-            >
-              {BOX_SORTS.map((id) => (
-                <option key={id} value={id}>{t(SORT_LABEL[id])}</option>
-              ))}
-            </select>
-            <span className="cv" aria-hidden>▾</span>
-          </span>
+        {/* SORTERINGEN som egen meny, inte en `<select>`.
+
+            Två skäl, båda Kens. Systemets dropdown gick inte att läsa – den
+            ritas av operativsystemet och tog varken temats botten eller dess
+            text. Och innehållet går inte att uttrycka som en lista: man ska
+            kunna sätta NYCKEL och RIKTNING var för sig, två gånger, för det är
+            så "många stjärnor men låg level" ser ut. Ett förval kan bara
+            erbjuda sin egen ordning och dess spegling. */}
+        <div className="fltwrap" ref={sortRef}>
           <button
             type="button"
-            className="dir"
-            onClick={() => setAsc((v) => !v)}
-            aria-label={t(asc ? "box.sort.asc" : "box.sort.desc")}
-            title={t(asc ? "box.sort.asc" : "box.sort.desc")}
+            className={`ctlbtn sortbtn ${sortOpen ? "open" : ""}`}
+            aria-expanded={sortOpen}
+            onClick={() => setSortOpen((v) => !v)}
           >
-            {asc ? "↑" : "↓"}
+            <SortIcon />
+            {rules.map((r, i) => (
+              <span key={r.key} className="rule">
+                {i > 0 && <i className="sep" aria-hidden>·</i>}
+                {t(SORT_LABEL[r.key])}
+                <i className="arw" aria-hidden>{r.asc ? "↑" : "↓"}</i>
+              </span>
+            ))}
+            <span className="cv" aria-hidden>▾</span>
           </button>
+          {sortOpen && (
+            <div className="fltpanel sortpanel">
+              {[0, 1].map((slot) => {
+                const rule = rules[slot];
+                /* Andranyckeln kan aldrig vara densamma som den första – den
+                   skulle inte bryta ett enda lika-fall. */
+                const keys = slot === 0 ? SORT_KEYS : otherKeys(rules[0]!.key);
+                return (
+                  <div key={slot} className="sortgrp">
+                    <div className="flthd">
+                      <span className="flgrp">{t(slot === 0 ? "box.sort.by" : "box.sort.then")}</span>
+                      {rule && (
+                        <button
+                          type="button"
+                          className="fchip dirchip"
+                          onClick={() => setRules((cur) => cur.map((r, i) =>
+                            (i === slot ? { ...r, asc: !r.asc } : r)))}
+                        >
+                          {rule.asc ? "↑" : "↓"} {t(rule.asc ? "box.sort.ascShort" : "box.sort.descShort")}
+                        </button>
+                      )}
+                    </div>
+                    <div className="fltchips">
+                      {slot === 1 && (
+                        <button
+                          type="button"
+                          className={`fchip ${rules.length < 2 ? "on" : ""}`}
+                          onClick={() => setRules((cur) => cur.slice(0, 1))}
+                        >
+                          {t("box.sort.none")}
+                        </button>
+                      )}
+                      {keys.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`fchip ${rule?.key === key ? "on" : ""}`}
+                          onClick={() => setRules((cur) => {
+                            const next = [...cur];
+                            /* Riktningen följer med nyckeln man redan valt, så
+                               ett byte av nyckel inte tyst nollar den. */
+                            next[slot] = { key, asc: next[slot]?.asc ?? false };
+                            /* Byter förstanyckeln till andranyckelns värde blir
+                               den andra meningslös – ta bort den i stället för
+                               att låta den ligga och inte bryta något. */
+                            if (slot === 0 && next[1]?.key === key) next.length = 1;
+                            return next.slice(0, 2);
+                          })}
+                        >
+                          {t(SORT_LABEL[key])}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <span className="ctlhits">{t.plural("box.hits", rows.length)}</span>
       </div>

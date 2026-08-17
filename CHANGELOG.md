@@ -13,6 +13,16 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+- **Sorting the Box now takes two keys, each with its own direction.** Yesterday's version offered
+  ready-made combinations, and that missed the point: "many stars but a low level" cannot be
+  expressed by a switch that flips everything at once — you got that order or its mirror, never
+  the half you wanted. Pick the key and the direction, then a second key and its direction, and
+  the button spells the whole thing out: "Condense stars ↓ · Level ↑".
+
+- **The sort menu was unreadable.** It was the operating system's own dropdown, which does not
+  take the app's background or its text, so in dark mode the options were grey on grey. It is the
+  app's own menu now. Any dropdown left elsewhere got its colours pinned too.
+
 ## 3.3.0 – 2026-08-17
 
 - **Four new ways to sort the Box, including two keys at once.** "Stars ↓, level ↑" puts the
