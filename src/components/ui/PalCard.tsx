@@ -8,6 +8,7 @@ import type { PassiveDef, ScoredPal, Species } from "@/lib/types";
 import { useT } from "@/i18n/LocaleContext";
 import { PassiveList } from "./PassiveRow";
 import { GenderSymbol, IvRow, Tag } from "./PalBits";
+import { palLocation } from "./PalIdent";
 
 export interface PalCardProps {
   pal: ScoredPal;
@@ -55,7 +56,9 @@ export function PalCard({ pal, species, passives, extraTag, onClick }: PalCardPr
           {pal.lucky && <Tag kind="lucky">LUCKY</Tag>}
           {pal.keep ? <Tag kind="keep">{t("pal.keep")}</Tag> : <Tag kind="cond">{t("pal.condense")}</Tag>}
           {extraTag}
-          <span className="loc">{pal.c}</span>
+          {/* Platsen, inte bara behållaren: kortet pekar ut EN pal bland
+              hundratals, och "Palbox" räcker inte för att hitta den. */}
+          <span className="loc">{t.msg(palLocation(pal))}</span>
         </div>
         <PassiveList
           items={pal.pv.map((id) => ({

@@ -15,6 +15,12 @@ Comments are stripped before the text is published.
 
 ## 3.3.1 – 2026-08-17
 
+- **The breeding plan says where each pal is standing.** The carrier cards named the pal, its
+  Paldeck number, its IVs and its passives — everything except which of your boxes it is in. The
+  partner cards said "Palbox", which narrows it down to eight hundred. Every card in the planner
+  now gives the box, row and square, the same way the Box has since 3.2.1: the carriers, the
+  partners, the IV donors, the parents in each step, and the "you already own one" line.
+
 - **Sorting the Box now takes two keys, each with its own direction.** The version before this one offered
   ready-made combinations, and that missed the point: "many stars but a low level" cannot be
   expressed by a switch that flips everything at once — you got that order or its mirror, never

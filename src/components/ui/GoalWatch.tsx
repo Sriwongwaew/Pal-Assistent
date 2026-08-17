@@ -23,6 +23,7 @@ import {
 } from "@/lib/goalWatch";
 import { FRUIT_NAMES } from "@/lib/ivFruits";
 import { IV_LABELS } from "@/lib/ivPlan";
+import { palLocation } from "./PalIdent";
 import { DeckNo, ElementIcons, SpeciesIcon } from "./PalBits";
 import { PassiveChips } from "./PassiveRow";
 import { elementColor } from "./PalHero";
@@ -98,7 +99,7 @@ export function GoalWatch() {
               {sp(pal.s).name} {pal.g === "M" ? "♂" : "♀"}
               <span className="meta">
                 <DeckNo sp={sp(pal.s)} /> · <ElementIcons sp={sp(pal.s)} size={14} /> ·
-                IV <b className="num">{pal.iv.join("/")}</b> · {pal.c}
+                IV <b className="num">{pal.iv.join("/")}</b> · {t.msg(palLocation(pal))}
               </span>
             </div>
             {pal.pv.length > 0 && (

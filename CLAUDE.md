@@ -414,6 +414,10 @@ build, always, and if a whole page reports empty, suspect the server before the 
   `PalBits` (Tag, IvRow, SpeciesIcon, ElementIcons, GenderSymbol, Section),
   `PalPicker`/`PassivePicker`/`PurposePicker` (breeding's selectors — se "Design rules" 6),
   `GoalCard` (breedingens målbild — art + önskade passiver som banners),
+  `PalIdent` (bärarkortet + `palLocation` — VAR palen står: låda, rad och ruta. Varje ställe som
+  pekar ut en individ ska använda den, aldrig `pal.c`: behållarnamnet ensamt är "en av åttahundra"
+  (Kens fynd aug 2026 – planerarens bärarkort saknade platsen helt och partnerkorten sa bara
+  "Palbox"). Undantaget är Base Info-repliken, som visar spelets egen Current Task-rad.),
   `PassiveTip` (`PassiveTipHost` — hover-rutan för passiver, varor, **arter och individer**,
   monterad **en gång** i layouten; `data-passive` / `data-item` / `data-species` (artens KOD) /
   `data-pal` (instans-id). Artrutan sätts av `SpeciesIcon` själv, så varje porträtt i appen har

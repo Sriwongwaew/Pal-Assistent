@@ -45,7 +45,7 @@ import { PurposePicker } from "@/components/ui/PurposePicker";
 import { PassiveChips, PassiveNames, PassiveRow } from "@/components/ui/PassiveRow";
 import { DeckNo, ElementIcons, Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
 import { elementColor } from "@/components/ui/PalHero";
-import { PalIdent } from "@/components/ui/PalIdent";
+import { PalIdent, palLocation } from "@/components/ui/PalIdent";
 import { Shortcuts } from "@/components/ui/Shortcuts";
 
 const palShort = (p: ScoredPal, name: string) =>
@@ -1176,7 +1176,7 @@ export function BreedingView() {
             <div className="meta">
               {t("iv.donorRole")} · <DeckNo sp={sp(im.donor.s)} /> · IV{" "}
               {im.donor.iv.join("/")}
-              {im.donorJunk === 0 && <> · {t("brc.clean")}</>} · {im.donor.c}
+              {im.donorJunk === 0 && <> · {t("brc.clean")}</>} · {t.msg(palLocation(im.donor))}
             </div>
           </div>
         </div>
@@ -1205,7 +1205,7 @@ export function BreedingView() {
             <div className="nm">{sp(pal.s).name} {pal.g === "M" ? "♂" : "♀"}</div>
             <div className="meta">
               {t("brc.partnerRole")} · <DeckNo sp={sp(pal.s)} /> · IV {pal.iv.join("/")}
-              {pal.pv.length === 0 && <> · {t("brc.clean")}</>} · {pal.c}
+              {pal.pv.length === 0 && <> · {t("brc.clean")}</>} · {t.msg(palLocation(pal))}
             </div>
           </div>
         </div>
@@ -1248,7 +1248,7 @@ export function BreedingView() {
                 <DeckNo sp={species} /> · IV{" "}
                 {p.pal ? p.pal.iv.join("/") : importIv(p.imported!)}
                 {p.pal
-                  ? <>{junkOf(p.pal) === 0 && <> · {t("brc.clean")}</>} · {p.pal.c}</>
+                  ? <>{junkOf(p.pal) === 0 && <> · {t("brc.clean")}</>} · {t.msg(palLocation(p.pal))}</>
                   : <> · {t("brc.clean")}</>}
               </div>
             </div>
@@ -1273,7 +1273,7 @@ export function BreedingView() {
                 iv: p.imported.donor.iv.join("/"),
                 n: p.imported.steps.length,
                 eggs: Math.ceil(p.imported.eggs),
-                where: p.imported.donor.c,
+                where: t.msg(palLocation(p.imported.donor)),
               })}</>
             )}
           </div>
@@ -1708,6 +1708,10 @@ export function BreedingView() {
             <div className="meta">
               {t("pp.carrier")} · <DeckNo sp={sp(pal.s)} /> · IV {pal.iv.join("/")}
               {pal.pv.length === gives.length && <> · {t("brc.clean")}</>}
+              {/* Bärarkortet saknade platsen HELT (Kens fynd aug 2026) – kortet
+                  finns för att man ska hitta just den här palen i spelet, och
+                  utan rutan i lådan är det en beskrivning man får leta med. */}
+              {" · "}{t.msg(palLocation(pal))}
             </div>
           </div>
         </div>
@@ -1736,7 +1740,7 @@ export function BreedingView() {
             <div className="meta">
               {t("brc.partnerRole")} · <DeckNo sp={sp(pal.s)} /> · IV {pal.iv.join("/")}
               {pal.pv.length === 0 && <> · {t("brc.clean")}</>}
-              {" · "}{pal.c}
+              {" · "}{t.msg(palLocation(pal))}
             </div>
           </div>
         </div>
@@ -1785,7 +1789,7 @@ export function BreedingView() {
           {sp(pal.s).name} {pal.g === "M" ? "♂" : "♀"}
           <span className="klbl2">{role}{pal.pv.length === 0 ? ` · ${t("brc.clean")}` : ""}</span>
         </>,
-        <>IV {pal.iv.join("/")} · {pal.c}</>,
+        <>IV {pal.iv.join("/")} · {t.msg(palLocation(pal))}</>,
         brings,
       );
 
@@ -2243,7 +2247,7 @@ export function BreedingView() {
         {ownedSpecies.has(target) && bestOf.get(target) && (
           <OkBox>
             {t("sp.alreadyOwn", { name: sp(target).name })}{" "}
-            {palShort(bestOf.get(target)!, sp(target).name)} ({bestOf.get(target)!.c})
+            {palShort(bestOf.get(target)!, sp(target).name)} ({t.msg(palLocation(bestOf.get(target)!))})
           </OkBox>
         )}
 
