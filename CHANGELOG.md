@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 3.4.0 – 2026-08-18
+
 
 - **The breeding planner has tabs — one per line you have going.** A breeding line is a project,
   not a session: a worker for the base, a mount, a fighter, all of them half-finished at the same
