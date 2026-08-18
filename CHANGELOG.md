@@ -13,7 +13,8 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
-<!-- bump: minor -->
+## 3.5.0 – 2026-08-19
+
 
 - **The plan now picks steps you can actually take.** When two species chains cost the same number
   of eggs and take the same number of steps, the planner used to pick between them arbitrarily —
