@@ -17,9 +17,10 @@ import { useEffect, useMemo, useState } from "react";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import { useRichT } from "@/i18n/rich";
-import { BREEDING_PREFS_KEY, parseBreedingPrefs } from "@/lib/breedingPrefs";
+import { allPrefs, BREEDING_PREFS_KEY, parseBreedingBook } from "@/lib/breedingPrefs";
 import {
-  markSeen, parseSeen, SEEN_KEY, serializeSeen, watchGoal, type SeenState,
+  markSeen, parseSeen, SEEN_KEY, serializeSeen, watchGoal,
+  type GoalHit, type SeenState,
 } from "@/lib/goalWatch";
 import { FRUIT_NAMES } from "@/lib/ivFruits";
 import { IV_LABELS } from "@/lib/ivPlan";
@@ -39,24 +40,40 @@ export function GoalWatch() {
     setSeen(parseSeen(window.localStorage.getItem(SEEN_KEY)));
   }, []);
 
-  /** Målbilden ur planerarens sparade val, validerad mot den aktuella datan. */
-  const prefs = useMemo(() => {
+  /** Målbilderna ur planerarens sparade val, validerade mot den aktuella datan.
+      ALLA leder, inte bara den framme (flikarna, aug 2026): bandet finns för att
+      man är inne i spelet och inte på planeraren, och då är "vilken flik låg
+      överst?" ingenting man har koll på. */
+  const goals = useMemo(() => {
     if (typeof window === "undefined") return null;
-    return parseBreedingPrefs(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
+    return allPrefs(parseBreedingBook(window.localStorage.getItem(BREEDING_PREFS_KEY), data));
   }, [data]);
 
   /* Vilka pals är nya sedan förra inläsningen? Räknas ur det tillstånd som lästes
      vid montering – inte ur det vi skriver tillbaka nedan, annars vore listan
      alltid tom. */
   const watch = useMemo(() => {
-    if (!seen || !prefs) return { hits: [], more: 0 };
+    if (!seen || !goals) return { hits: [], more: 0 };
     if (!seen.seeded) return { hits: [], more: 0 };
     const known = new Set(seen.ids);
     const fresh = new Set(pals.filter((p) => !known.has(p.id)).map((p) => p.id));
-    return watchGoal(
-      pals, fresh, prefs.target, prefs.wanted, prefs.ivGoal, new Set(seen.dismissed),
-    );
-  }, [seen, prefs, pals]);
+    /* En pal kan träffa flera leders målbild (samma art, samma passiver) – då
+       är den ETT besked, inte två. Första träffen vinner, och `more` summeras
+       så räknaren inte tappar de överskjutande. */
+    const hits: GoalHit[] = [];
+    const shown = new Set<string>();
+    let more = 0;
+    for (const g of goals) {
+      const w = watchGoal(pals, fresh, g.target, g.wanted, g.ivGoal, new Set(seen.dismissed));
+      more += w.more;
+      for (const hit of w.hits) {
+        if (shown.has(hit.pal.id)) continue;
+        shown.add(hit.pal.id);
+        hits.push(hit);
+      }
+    }
+    return { hits, more };
+  }, [seen, goals, pals]);
 
   /* Skriv tillbaka: allt vi ser nu är sett. Sker efter att `watch` räknats ut
      ovan (samma render), så beskedet hinner visas innan palen blir "gammal" –

@@ -35,6 +35,8 @@ it. You don't need Node, Python or anything else — it's all in the package.
 This is why the app exists. Pick a target species, what the pal is for, and up to four passive
 skills you want. You get back a **complete plan**: which pals in your box carry which passive and
 where they are stored, what order to breed them in, and the **odds per egg** for every step.
+Lines you have going in parallel — a worker for the base, a mount, a fighter — get **a tab each**,
+saved with everything else.
 
 ![Breeding planner](docs/img/breeding.png)
 

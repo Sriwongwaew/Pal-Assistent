@@ -53,9 +53,9 @@ import { useRouter } from "next/navigation";
 import { usePalData } from "@/context/PalDataContext";
 import { useT } from "@/i18n/LocaleContext";
 import type { MessageKey } from "@/i18n";
-import { planBookings, type Booking } from "@/lib/bookings";
+import { planAllBookings, type Booking } from "@/lib/bookings";
 import { childrenOf, isReachable } from "@/lib/breeding";
-import { BREEDING_PREFS_KEY, parseBreedingPrefs } from "@/lib/breedingPrefs";
+import { allPrefs, BREEDING_PREFS_KEY, parseBreedingBook } from "@/lib/breedingPrefs";
 import { buildUseIndex, condenseGain, planCondense } from "@/lib/condense";
 import { idleSquad } from "@/lib/expedition";
 import { ownedImplants } from "@/lib/implants";
@@ -170,14 +170,15 @@ export function FindView() {
 
   /* Kondenseringsrådet per art (aug 2026). SAMMA modell som Rollernas kö kör –
      `planCondense` räknar en plan per ägd art och kön visar bara toppen av den.
-     Bokningarna läses ur planerarens sparade val precis som i RecoView, och i en
-     effekt eftersom localStorage inte finns på servern: utan dem kan Hitta
-     föreslå att man matar bort en pal den egna avelsplanen står och väntar på. */
+     Bokningarna läses ur planerarens sparade val precis som i RecoView – alla
+     flikar, inte bara den framme – och i en effekt eftersom localStorage inte
+     finns på servern: utan dem kan Hitta föreslå att man matar bort en pal den
+     egna avelsplanen står och väntar på. */
   const useIndex = useMemo(() => buildUseIndex(data, pals), [data, pals]);
   const [booked, setBooked] = useState<ReadonlyMap<string, Booking>>(new Map());
   useEffect(() => {
-    const prefs = parseBreedingPrefs(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
-    setBooked(planBookings(data, pals, ownedSpecies, prefs));
+    const book = parseBreedingBook(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
+    setBooked(planAllBookings(data, pals, ownedSpecies, allPrefs(book)));
   }, [data, pals, ownedSpecies]);
   const condensePlans = useMemo(
     () => new Map(planCondense(data, pals, bestOf, { booked, useIndex }).map((p) => [p.s, p] as const)),

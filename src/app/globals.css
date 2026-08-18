@@ -1768,6 +1768,73 @@ h3.phase::before, h3.phase::after {
 .prow.opt:hover:not([aria-disabled="true"]) { filter: brightness(1.18); }
 .prow.opt[aria-disabled="true"] { opacity: .32; cursor: default; }
 .prow.opt.on { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* ---------- avelsflikarna: en led per flik ----------
+   Ingen platta bakom raden – samma regel som Rollernas flikar och Boxens
+   verktygsrad: flikarna ÄR ytorna, och en behållare runt dem blir en ram runt
+   ramar. Färgen kommer ur ledens mål via --elc (React sätter den ur
+   `elementColor`), så man hittar rätt flik på arten och inte på ordningen.
+   Piller (999px) och inte var(--r), som är 0 i `press`: flikar är taggar. */
+.btabs {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.btab {
+  display: inline-flex; align-items: center; gap: 2px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel);
+  /* Elementet är en antydan tills fliken är vald – annars ser fem leder ut som
+     fem lika viktiga saker, och exakt en av dem är den man planerar på. */
+  box-shadow: inset 0 0 0 999px color-mix(in oklab, var(--elc, transparent) 7%, transparent);
+}
+.btab.on {
+  border-color: color-mix(in oklab, var(--elc, var(--ink)) 55%, var(--line));
+  box-shadow: inset 0 0 0 999px color-mix(in oklab, var(--elc, var(--ink)) 16%, transparent);
+}
+.btabsel {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 6px 5px 8px; border: 0; background: none; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: 12.5px; border-radius: 999px;
+  max-width: 190px;
+}
+.btab:not(.on) .btabsel { color: var(--muted); }
+.btab.on .btabsel { font-weight: 800; }
+.btabsel .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btabsel .num {
+  font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+  font-size: 10px; font-weight: 900; opacity: .75;
+  padding: 1px 5px; border-radius: 999px; background: var(--panel2);
+}
+/* Tom led: en prick där porträttet ska stå, så raden inte hoppar i höjd när
+   målet väljs. */
+.btabdot {
+  width: 20px; height: 20px; border-radius: 7px; flex: none;
+  border: 1px dashed var(--line2);
+}
+.btabx {
+  border: 0; background: none; cursor: pointer; color: var(--muted);
+  font-size: 11px; line-height: 1; padding: 6px 9px 6px 3px;
+  border-radius: 999px;
+}
+.btabx:hover { color: var(--ink); }
+.btabadd {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px dashed var(--line2); background: none;
+  color: var(--muted); font: inherit; font-size: 12.5px;
+}
+.btabadd:hover { color: var(--ink); border-color: var(--ink); }
+
+/* Beskedet om att målbytet nollade passiverna. En automatisk radering ska
+   synas och gå att ta tillbaka – därför en rad och inte en tyst ändring. */
+.pvundo {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 12px; padding: 8px 12px;
+  border: 1px solid color-mix(in oklab, var(--gold) 40%, var(--line));
+  border-radius: var(--r2);
+  background: color-mix(in oklab, var(--gold) 8%, var(--panel));
+  font-size: 12.5px;
+}
+
 /* Radet över väljarna: säger att valen ligger kvar och ger vägen ur dem igen. */
 .planhd {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

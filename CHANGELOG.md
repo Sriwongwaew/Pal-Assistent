@@ -13,6 +13,28 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **The breeding planner has tabs — one per line you have going.** A breeding line is a project,
+  not a session: a worker for the base, a mount, a fighter, all of them half-finished at the same
+  time. Until now the planner held exactly one, so a second line meant rebuilding the target and
+  the passives by hand and losing the first. You can now keep up to six side by side, each with
+  its own target, purpose, passives, IV goal and species chain. Tabs carry the target's portrait
+  and its element colour, so you find the right one without reading. They are saved like
+  everything else in the planner, and "Clear all" empties the lot.
+
+  Two things the rest of the app does with them: the condense queue and Find now leave the pals
+  every line needs alone, not just the one you happen to be looking at — feeding is not
+  reversible, and a line in the background is still a line you are working on. And the "you got
+  it" banner in live mode watches every target, so it speaks up while you are in the game and
+  nowhere near the planner.
+
+- **Changing the target clears the wanted passives.** They were picked for the previous species —
+  "Ferocious + Musclehead" answers what *that* pal was for — and leaving them behind quietly
+  planned a route nobody asked for. Picking a target for the first time still keeps whatever you
+  chose, and when the passives are cleared a line above the plan says so and puts them back with
+  one click.
+
 ## 3.3.1 – 2026-08-17
 
 - **The breeding plan says where each pal is standing.** The carrier cards named the pal, its

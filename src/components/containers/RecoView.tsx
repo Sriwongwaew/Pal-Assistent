@@ -36,8 +36,8 @@ import { useT } from "@/i18n/LocaleContext";
 import { useRichT } from "@/i18n/rich";
 import type { MessageKey } from "@/i18n";
 import { useSelectedPal } from "@/context/SelectedPalContext";
-import { BREEDING_PREFS_KEY, parseBreedingPrefs } from "@/lib/breedingPrefs";
-import { planBookings, type Booking } from "@/lib/bookings";
+import { allPrefs, BREEDING_PREFS_KEY, parseBreedingBook } from "@/lib/breedingPrefs";
+import { planAllBookings, type Booking } from "@/lib/bookings";
 import { buildUseIndex, planCondense, summarizeCondense } from "@/lib/condense";
 import { fittingGold, isPerfectIv, perfectIvCount } from "@/lib/scoring";
 import { EXPEDITION_SITES, idleSquad } from "@/lib/expedition";
@@ -188,13 +188,16 @@ export function RecoView() {
 
   const useIndex = useMemo(() => buildUseIndex(data, pals), [data, pals]);
 
-  /* Vilka individer den aktiva avelsplanen räknar med. Läses ur samma sparade
-     val som planeraren (`pa-breeding`), i en effekt eftersom localStorage inte
-     finns på servern. Utan mål blir kartan tom och kön beter sig som förut. */
+  /* Vilka individer avelsplanerna räknar med. Läses ur samma sparade val som
+     planeraren (`pa-breeding`), i en effekt eftersom localStorage inte finns på
+     servern. Utan mål blir kartan tom och kön beter sig som förut.
+     **Alla flikar, inte bara den framme** (aug 2026): en led man inte har
+     uppe är fortfarande en led man håller på med, och matlistan får aldrig
+     peka ut dess bärare. */
   const [booked, setBooked] = useState<ReadonlyMap<string, Booking>>(new Map());
   useEffect(() => {
-    const prefs = parseBreedingPrefs(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
-    setBooked(planBookings(data, pals, ownedSpecies, prefs));
+    const book = parseBreedingBook(window.localStorage.getItem(BREEDING_PREFS_KEY), data);
+    setBooked(planAllBookings(data, pals, ownedSpecies, allPrefs(book)));
   }, [data, pals, ownedSpecies]);
 
   const { now, soon, later, summary } = useMemo(() => {

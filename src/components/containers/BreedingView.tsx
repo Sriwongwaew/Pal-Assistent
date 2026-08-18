@@ -24,8 +24,9 @@ import {
 } from "@/lib/perfectPlan";
 import { PURPOSES, recommendPassives, recommendWorkSpecies, type PurposeId } from "@/lib/purpose";
 import {
-  BREEDING_PREFS_KEY, emptyBreedingPrefs, hasBreedingPrefs, MAX_WANTED,
-  parseBreedingPrefs, serializeBreedingPrefs, type BreedingPrefs,
+  activePrefs, addBreedingTab, BREEDING_PREFS_KEY, closeBreedingTab, emptyBreedingBook,
+  hasBreedingBook, MAX_TABS, MAX_WANTED, parseBreedingBook, serializeBreedingBook,
+  setActivePrefs, type BreedingBook, type BreedingPrefs,
 } from "@/lib/breedingPrefs";
 import { planBreedSetup, spanText, CAP_FREE, CAP_RATE, eggSeconds } from "@/lib/breedRate";
 import { cakeAdvice, planCake } from "@/lib/cake";
@@ -45,6 +46,7 @@ import { PurposePicker } from "@/components/ui/PurposePicker";
 import { PassiveChips, PassiveNames, PassiveRow } from "@/components/ui/PassiveRow";
 import { DeckNo, ElementIcons, Section, SpeciesIcon, Tag } from "@/components/ui/PalBits";
 import { elementColor } from "@/components/ui/PalHero";
+import { elcStyle } from "@/components/ui/RoleBits";
 import { PalIdent, palLocation } from "@/components/ui/PalIdent";
 import { Shortcuts } from "@/components/ui/Shortcuts";
 
@@ -54,18 +56,18 @@ const palShort = (p: ScoredPal, name: string) =>
 /* localStorage-anropen bor här och inte i `lib/` – där är allt rent och
    testbart. Tolkningen (som kan gå fel) ligger kvar i lib. try/catch för att
    privat läge kastar på både läsning och skrivning, precis som i ThemeControls. */
-function readPrefs(data: AppData): BreedingPrefs {
+function readBook(data: AppData): BreedingBook {
   try {
-    return parseBreedingPrefs(localStorage.getItem(BREEDING_PREFS_KEY), data);
+    return parseBreedingBook(localStorage.getItem(BREEDING_PREFS_KEY), data);
   } catch {
-    return emptyBreedingPrefs();
+    return emptyBreedingBook();
   }
 }
 
-function writePrefs(prefs: BreedingPrefs): void {
+function writeBook(book: BreedingBook): void {
   try {
-    if (hasBreedingPrefs(prefs)) {
-      localStorage.setItem(BREEDING_PREFS_KEY, serializeBreedingPrefs(prefs));
+    if (hasBreedingBook(book)) {
+      localStorage.setItem(BREEDING_PREFS_KEY, serializeBreedingBook(book));
     } else {
       // Inget valt = inget att komma ihåg; låt inte en tom post ligga kvar.
       localStorage.removeItem(BREEDING_PREFS_KEY);
@@ -134,25 +136,92 @@ export function BreedingView() {
      localStorage går att läsa rakt av i initieraren.
      Djuplänken vinner över det sparade: kommer man hit via "Bäst för…" är det
      den palen och de passiverna man menar, inte förra sessionens. */
-  const [saved] = useState(() => readPrefs(data));
+  /* Boken är ALLA leder man har igång (flikarna, aug 2026) och vilken som är
+     framme; en led är exakt samma `BreedingPrefs` som förut. Att hålla dem i
+     ETT tillstånd i stället för åtta separata är vad som gör flikbytet till en
+     enda rad: byter man flik byter allt på sidan samtidigt, och ingen `useState`
+     kan bli kvar med förra ledens värde. */
+  const [book, setBook] = useState<BreedingBook>(() => {
+    const b = readBook(data);
+    if (initialTarget === null && !initialWanted.length) return b;
+    /* Djuplänken landar i den flik som ligger framme – den är en fråga man
+       ställer nu ("avla fram de här passiverna"), inte en ny led i ett register.
+       Att öppna en flik åt den hade dessutom gjort varje besök från Rollerna
+       till en flik man sedan får städa. */
+    const p = activePrefs(b);
+    return setActivePrefs(b, {
+      ...p,
+      target: initialTarget ?? p.target,
+      wanted: initialWanted.length ? initialWanted : p.wanted,
+    });
+  });
 
-  const [target, setTarget] = useState<number | null>(initialTarget ?? saved.target);
-  const [base, setBase] = useState<number | null>(saved.base);
-  const [wanted, setWanted] = useState<string[]>(
-    initialWanted.length ? initialWanted : saved.wanted,
-  );
-  const [ivGoal, setIvGoal] = useState<IvGoal>(saved.ivGoal);
-  /** Vad palen ska användas till – styr vilka passiver som föreslås. */
-  const [purpose, setPurpose] = useState<PurposeId | null>(saved.purpose);
-  /** Syssla inom "Bas & arbete" – ger dessutom artförslag. */
-  const [work, setWork] = useState<WorkType | null>(saved.work);
-
-  /** …och skrivs tillbaka så fort något ändras. */
-  const [useImplants, setUseImplants] = useState<boolean>(saved.useImplants);
+  /** Den framme liggande leden – allt nedanför läser den och inget annat. */
+  const cur = activePrefs(book);
+  const { target, base, wanted, ivGoal, purpose, work, useImplants } = cur;
   /* Vald artkedja som artkoder. Tomt = ta planerarens rekommendation. Sparas
      med resten, så den överlever ett besök på Boxen – men den validerar sig
      själv mot planens alternativ vid varje omräkning, se `chainPinned`. */
-  const [pinnedChain, setPinnedChain] = useState<string[]>(saved.chain);
+  const pinnedChain = cur.chain;
+
+  /**
+   * Ändrar ETT fält i den aktiva leden. Tar värde eller uppdaterare, precis som
+   * `useState`, så anropsställena nedan ser ut som förut. Inget fält i
+   * `BreedingPrefs` är en funktion, så `typeof v === "function"` är entydigt.
+   */
+  const patch = <K extends keyof BreedingPrefs>(k: K) =>
+    (v: BreedingPrefs[K] | ((prev: BreedingPrefs[K]) => BreedingPrefs[K])) =>
+      setBook((b) => {
+        const p = activePrefs(b);
+        const next = typeof v === "function"
+          ? (v as (prev: BreedingPrefs[K]) => BreedingPrefs[K])(p[k])
+          : v;
+        return next === p[k] ? b : setActivePrefs(b, { ...p, [k]: next });
+      });
+
+  const setBase = patch("base");
+  const setWanted = patch("wanted");
+  const setIvGoal = patch("ivGoal");
+  /** Vad palen ska användas till – styr vilka passiver som föreslås. */
+  const setPurpose = patch("purpose");
+  /** Syssla inom "Bas & arbete" – ger dessutom artförslag. */
+  const setWork = patch("work");
+  const setUseImplants = patch("useImplants");
+  const setPinnedChain = patch("chain");
+
+  /**
+   * Byter man MÅL byter man plan – då nollas de önskade passiverna (Kens
+   * begäran aug 2026).
+   *
+   * Passiverna valdes för den förra arten: "Ferocious + Musclehead" är ett svar
+   * på vad *den* skulle användas till, och att låta dem ligga kvar gav en plan
+   * för en art man aldrig bett om. Två gränser:
+   *
+   * 1. **Första målet nollar ingenting.** Väljer man syfte och passiver först
+   *    och art sedan – vilket är precis vad passivmodalens egen ordning
+   *    inbjuder till, syfte → syssla → artförslag → passiver – vore en nollning
+   *    en radering av det man just gjort.
+   * 2. **Den går att ångra.** En automatisk radering man inte bad om ska aldrig
+   *    vara slutgiltig; raden i `.planhd` lägger tillbaka dem med ett klick.
+   */
+  const [undoWanted, setUndoWanted] = useState<string[] | null>(null);
+  const setTarget = (idx: number | null) => {
+    const p = activePrefs(book);
+    if (p.target === idx) return;
+    const swap = p.target !== null;
+    setUndoWanted(swap && p.wanted.length ? p.wanted : null);
+    setBook((b) => {
+      const q = activePrefs(b);
+      return setActivePrefs(b, swap
+        ? { ...q, target: idx, wanted: [], chain: [] }
+        : { ...q, target: idx });
+    });
+  };
+  /** Passivändring från gränssnittet – tar samtidigt bort ångra-raden. */
+  const changeWanted = (v: string[] | ((prev: string[]) => string[])) => {
+    setUndoWanted(null);
+    setWanted(v);
+  };
   /* Manuellt läge sparas INTE i `pa-breeding`. Det är en fråga man ställer
      ("vad kostar just de här två?"), inte ett mål man arbetar mot över flera
      sessioner – och en sparad förälder skulle dessutom peka på ett pal-id som kan
@@ -167,7 +236,7 @@ export function BreedingView() {
      artväljaren när mål saknas – då är den det första man behöver. */
   const [picker, setPicker] = useState<
     null | "target" | "passives" | "implants" | "manual" | "setup"
-  >(() => ((initialTarget ?? saved.target) === null ? "target" : null));
+  >(() => (target === null ? "target" : null));
   /* Escape stänger, precis som Base Info-modalen. */
   useEffect(() => {
     if (!picker) return;
@@ -175,11 +244,6 @@ export function BreedingView() {
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
   }, [picker]);
-
-  const current = useMemo<BreedingPrefs>(
-    () => ({ target, base, wanted, ivGoal, purpose, work, useImplants, chain: pinnedChain }),
-    [target, base, wanted, ivGoal, purpose, work, useImplants, pinnedChain],
-  );
 
   /**
    * Vad planen ska **avla** – inte vad du vill ha.
@@ -199,15 +263,38 @@ export function BreedingView() {
     () => wanted.filter((id) => !planWanted.includes(id)),
     [wanted, planWanted],
   );
-  useEffect(() => { writePrefs(current); }, [current]);
+  useEffect(() => { writeBook(book); }, [book]);
 
+  /** Nollar tillstånd som hör till EN led men inte sparas med den. */
+  const dropLoose = () => {
+    setManualA(null);
+    setManualB(null);
+    setUndoWanted(null);
+  };
+
+  /* Flikarna: byt, lägg till, stäng. Manuellt läge och ångra-raden hör till den
+     led man stod på och följer aldrig med över – de är frågor om just de här
+     två palsen, inte om målet. */
+  const switchTab = (i: number) => {
+    if (i === book.active) return;
+    setBook((b) => ({ ...b, active: i }));
+    dropLoose();
+  };
+  const newTab = () => {
+    setBook(addBreedingTab);
+    dropLoose();
+    // En tom led har ingenting att visa – artväljaren är dess första steg.
+    setPicker("target");
+  };
+  const dropTab = (i: number) => {
+    setBook((b) => closeBreedingTab(b, i));
+    dropLoose();
+  };
+
+  /** "Rensa allt" tar hela boken, inte bara fliken – knappen heter det den gör. */
   const clearAll = () => {
-    setTarget(null);
-    setBase(null);
-    setWanted([]);
-    setIvGoal("fast");
-    setPurpose(null);
-    setWork(null);
+    setBook(emptyBreedingBook());
+    dropLoose();
     // Utan det här ligger `?target=…` kvar i adressfältet och sätter tillbaka
     // målet nästa gång vyn monteras – rensningen skulle se ut att ångra sig.
     if (params.toString()) router.replace("/breeding", { scroll: false });
@@ -279,7 +366,7 @@ export function BreedingView() {
   );
 
   const togglePassive = (id: string) =>
-    setWanted((w) => (
+    changeWanted((w) => (
       w.includes(id) ? w.filter((x) => x !== id) : w.length >= MAX_WANTED ? w : [...w, id]
     ));
 
@@ -731,6 +818,55 @@ export function BreedingView() {
 
   return (
     <>
+      {/* Flikarna (Kens begäran aug 2026): en led per flik, för de är projekt
+          som pågår parallellt – en arbetspal till basen, ett riddjur, en
+          stridspal – och det enda alternativet var att bygga om valen för hand
+          varje gång. Ingen platta bakom raden, samma regel som Rollernas flikar
+          och Boxens verktygsrad. Elementfärgen kommer ur ledens MÅL: den säger
+          vilken flik som är vilken snabbare än namnet hinner läsas. */}
+      <div className="btabs" role="tablist" aria-label={t("btab.aria")}>
+        {book.tabs.map((tb, i) => {
+          const tsp = tb.prefs.target !== null ? data.species[tb.prefs.target] ?? null : null;
+          const label = tsp ? tsp.name : t("btab.empty");
+          const on = i === book.active;
+          return (
+            <span
+              key={tb.id}
+              className={`btab${on ? " on" : ""}`}
+              style={tsp ? elcStyle(elementColor(tsp)) : undefined}
+            >
+              <button
+                type="button" role="tab" aria-selected={on} className="btabsel"
+                onClick={() => switchTab(i)}
+              >
+                {tsp
+                  ? <SpeciesIcon sp={tsp} size={20} radius={7} tip={false} />
+                  : <i className="btabdot" aria-hidden />}
+                <span className="nm">{label}</span>
+                {tb.prefs.wanted.length > 0 && (
+                  <b className="num">{tb.prefs.wanted.length}</b>
+                )}
+              </button>
+              {/* Sista fliken går inte att stänga – den töms i stället, och då
+                  är krysset samma sak som "Rensa allt" och bara förvirrande. */}
+              {book.tabs.length > 1 && (
+                <button
+                  type="button" className="btabx" onClick={() => dropTab(i)}
+                  aria-label={t("btab.close", { name: label })}
+                >
+                  ✕
+                </button>
+              )}
+            </span>
+          );
+        })}
+        {book.tabs.length < MAX_TABS && (
+          <button type="button" className="btabadd" onClick={newTab}>
+            + <span>{t("btab.add")}</span>
+          </button>
+        )}
+      </div>
+
       <div className="planhd">
         <span className="meta">
           {t("breed.savedHint")}
@@ -739,11 +875,29 @@ export function BreedingView() {
           type="button"
           className="ghost sm"
           onClick={clearAll}
-          disabled={!hasBreedingPrefs(current)}
+          disabled={!hasBreedingBook(book)}
         >
           {t("breed.clearAll")}
         </button>
       </div>
+
+      {/* Nollningen vid målbyte är automatisk, alltså något användaren inte bad
+          om – då ska den både stå skriven och gå att ta tillbaka. Raden
+          försvinner så fort man rör passiverna själv. */}
+      {undoWanted && (
+        <div className="pvundo">
+          <span>
+            {t.plural("btab.reset", undoWanted.length, { n: undoWanted.length })}
+          </span>
+          <button type="button" className="ghost sm" onClick={() => {
+            const back = undoWanted;
+            setUndoWanted(null);
+            setWanted(back);
+          }}>
+            {t("btab.undo")}
+          </button>
+        </div>
+      )}
 
       {/* Artefaktens topp (designrundan aug 2026): målbild | förväntat | verktyg.
           Målbilden bodde tidigare långt ner i vänsterkolumnen – här är den det
@@ -943,7 +1097,7 @@ export function BreedingView() {
             missing={rec.missing}
             chosen={wanted}
             onToggle={togglePassive}
-            onUseAll={() => setWanted(rec.picks.slice(0, MAX_WANTED).map((r) => r.id))}
+            onUseAll={() => changeWanted(rec.picks.slice(0, MAX_WANTED).map((r) => r.id))}
             targetName={target !== null ? sp(target).name : undefined}
             full={wanted.length >= MAX_WANTED}
           />
@@ -962,7 +1116,7 @@ export function BreedingView() {
                       /* aria-label, inte title: bannern har redan hover-rutan med
                          vad passiven gör, och två tooltips krockar. */
                       aria-label={t("breed.remove")}
-                      onClick={() => setWanted((w) => w.filter((x) => x !== id))}
+                      onClick={() => changeWanted((w) => w.filter((x) => x !== id))}
                     >
                       ✕
                     </button>
@@ -990,7 +1144,7 @@ export function BreedingView() {
             counts={passiveCounts}
             implants={data.implants ?? null}
             value={wanted}
-            onChange={setWanted}
+            onChange={changeWanted}
           />
         </Section>
         )}

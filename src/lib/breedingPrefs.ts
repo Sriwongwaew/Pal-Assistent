@@ -80,18 +80,31 @@ function speciesIdx(v: unknown, data: AppData): number | null {
  * viktigare än att sidan går att öppna.
  */
 export function parseBreedingPrefs(raw: string | null, data: AppData): BreedingPrefs {
-  const out = emptyBreedingPrefs();
-  if (!raw) return out;
+  const o = asObject(raw);
+  if (!o) return emptyBreedingPrefs();
+  /* Den nya formen är en BOK med flikar. Att svara med den aktiva ledens val i
+     stället för tomma är hela skälet att de fem andra läsarna (Boxen,
+     Översikten, GoalWatch, Rollerna, Hitta) kunde lämnas orörda. */
+  if (Array.isArray(o.tabs)) return activePrefs(parseBook(o, data));
+  return parseFlatPrefs(o, data);
+}
 
+/** JSON → objekt, eller null för allt som inte är ett objekt. */
+function asObject(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return out;
+    return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return out;
-  const o = parsed as Record<string, unknown>;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  return parsed as Record<string, unknown>;
+}
 
+/** En enda leds val, ur den platta formen. */
+function parseFlatPrefs(o: Record<string, unknown>, data: AppData): BreedingPrefs {
+  const out = emptyBreedingPrefs();
   out.target = speciesIdx(o.target, data);
   out.base = speciesIdx(o.base, data);
 
@@ -139,4 +152,157 @@ export function serializeBreedingPrefs(prefs: BreedingPrefs): string {
 export function hasBreedingPrefs(prefs: BreedingPrefs): boolean {
   return prefs.target !== null || prefs.base !== null || prefs.wanted.length > 0
     || prefs.purpose !== null || prefs.ivGoal !== "fast" || !prefs.useImplants;
+}
+
+/* ---------------------------------------------------------------------------
+ * Flikar – flera leder igång samtidigt (Kens begäran aug 2026)
+ *
+ * En avelsled är inte en session utan ett projekt: man håller på med en
+ * arbetspal i basen, en riddjursled och en stridsled parallellt, och den enda
+ * tidigare vägen mellan dem var att bygga om valen för hand varje gång. Boken
+ * är därför en LISTA av samma `BreedingPrefs` som förut, plus vilken som är
+ * framme.
+ *
+ * Tre saker som är valda, inte råkade så:
+ *
+ * 1. **`parseBreedingPrefs` betyder fortfarande "den aktiva ledens val".** Fem
+ *    andra ställen läser samma nyckel (Boxens guldkant, Översiktens rad,
+ *    `GoalWatch`, Rollernas och Hittas bokningar), och de frågar alla efter
+ *    *en* målbild. Att låta den funktionen byta betydelse hade ändrat alla fem
+ *    tyst; nu tar de som vill se ALLA leder `parseBreedingBook` i stället.
+ * 2. **Gamla sparade val är en bok med en flik.** Posten i localStorage skrevs
+ *    som ett platt objekt före det här, och den formen läses vidare utan att
+ *    någon märker det – annars hade uppdateringen slängt den led man höll på
+ *    med.
+ * 3. **Id:t är härlett, aldrig slumpat.** Det är bara en React-nyckel, men en
+ *    slumpad nyckel gör två identiska sparade böcker olika och därmed omöjliga
+ *    att jämföra i ett test.
+ * -------------------------------------------------------------------------*/
+
+/** Så många parallella leder får finnas. Fler får ändå inte plats i flikraden. */
+export const MAX_TABS = 6;
+
+export interface BreedingTab {
+  /** Stabil React-nyckel. Har ingen betydelse för planen. */
+  id: string;
+  prefs: BreedingPrefs;
+}
+
+export interface BreedingBook {
+  /** Alltid minst en flik – "inga leder" är samma sak som en tom led. */
+  tabs: BreedingTab[];
+  /** Index i `tabs`, alltid giltigt. */
+  active: number;
+}
+
+/** Första lediga `led-N`. Ren funktion så samma bok alltid ger samma id:n. */
+function freeId(used: ReadonlySet<string>): string {
+  for (let n = 1; ; n++) {
+    const id = `led-${n}`;
+    if (!used.has(id)) return id;
+  }
+}
+
+/** En bok med en tom led. */
+export function emptyBreedingBook(): BreedingBook {
+  return { tabs: [{ id: "led-1", prefs: emptyBreedingPrefs() }], active: 0 };
+}
+
+/** Den framme liggande ledens val. */
+export function activePrefs(book: BreedingBook): BreedingPrefs {
+  return book.tabs[book.active]!.prefs;
+}
+
+/** Alla leders val – för den som bokar pals och måste se dem allihop. */
+export function allPrefs(book: BreedingBook): BreedingPrefs[] {
+  return book.tabs.map((t) => t.prefs);
+}
+
+/** Byter ut den aktiva ledens val. */
+export function setActivePrefs(book: BreedingBook, prefs: BreedingPrefs): BreedingBook {
+  return {
+    ...book,
+    tabs: book.tabs.map((t, i) => (i === book.active ? { ...t, prefs } : t)),
+  };
+}
+
+/** Ny tom led sist, och framme. Full bok returneras oförändrad. */
+export function addBreedingTab(book: BreedingBook): BreedingBook {
+  if (book.tabs.length >= MAX_TABS) return book;
+  const id = freeId(new Set(book.tabs.map((t) => t.id)));
+  return {
+    tabs: [...book.tabs, { id, prefs: emptyBreedingPrefs() }],
+    active: book.tabs.length,
+  };
+}
+
+/**
+ * Stänger en led.
+ *
+ * Sista fliken går inte att stänga bort – den töms i stället. En bok utan
+ * flikar hade betytt "ingen planerare", och det är inte ett läge sidan har.
+ */
+export function closeBreedingTab(book: BreedingBook, i: number): BreedingBook {
+  if (i < 0 || i >= book.tabs.length) return book;
+  if (book.tabs.length === 1) {
+    return { tabs: [{ id: book.tabs[0]!.id, prefs: emptyBreedingPrefs() }], active: 0 };
+  }
+  const tabs = book.tabs.filter((_, j) => j !== i);
+  /* Stänger man en flik till vänster om den aktiva ska samma led ligga kvar
+     framme – annars hoppar sidan till en granne man inte bad om. */
+  const active = book.active > i ? book.active - 1
+    : Math.min(book.active, tabs.length - 1);
+  return { tabs, active };
+}
+
+/** Tolkar hela boken. Allt trasigt blir en tom led, aldrig ett fel. */
+export function parseBreedingBook(raw: string | null, data: AppData): BreedingBook {
+  const o = asObject(raw);
+  return o ? parseBook(o, data) : emptyBreedingBook();
+}
+
+function parseBook(o: Record<string, unknown>, data: AppData): BreedingBook {
+  /* Den platta formen är förflikarnas post. Den ska läsas som förut och bli
+     bokens enda led – uppdateringen får inte kosta någon sin pågående plan. */
+  if (!Array.isArray(o.tabs)) {
+    return { tabs: [{ id: "led-1", prefs: parseFlatPrefs(o, data) }], active: 0 };
+  }
+
+  const tabs: BreedingTab[] = [];
+  const used = new Set<string>();
+  for (const entry of o.tabs) {
+    if (tabs.length >= MAX_TABS) break;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    /* Valen går genom exakt samma validering som förut – art-index och
+       passiv-id:n kan ha flyttat sig sedan förra bundlen. `parseFlatPrefs` och
+       inte `parseBreedingPrefs`: en led är alltid platt, och att gå via den
+       yttre hade gjort en handredigerad `{prefs:{tabs:[…]}}` till en rekursion. */
+    const p = e.prefs;
+    const prefs = p && typeof p === "object" && !Array.isArray(p)
+      ? parseFlatPrefs(p as Record<string, unknown>, data)
+      : emptyBreedingPrefs();
+    const id = typeof e.id === "string" && e.id && !used.has(e.id) ? e.id : freeId(used);
+    used.add(id);
+    tabs.push({ id, prefs });
+  }
+  if (!tabs.length) return emptyBreedingBook();
+
+  const active = typeof o.active === "number" && Number.isInteger(o.active)
+    && o.active >= 0 && o.active < tabs.length
+    ? o.active
+    : 0;
+  return { tabs, active };
+}
+
+export function serializeBreedingBook(book: BreedingBook): string {
+  return JSON.stringify(book);
+}
+
+/**
+ * Finns det något att rensa? Flera leder räknas i sig – "Rensa allt" tar bort
+ * dem också, och en knapp som ser död ut när fem flikar står öppna är fel.
+ */
+export function hasBreedingBook(book: BreedingBook): boolean {
+  return book.tabs.length > 1 || book.tabs.some((t) => hasBreedingPrefs(t.prefs));
 }

@@ -109,3 +109,32 @@ export function planBookings(
 
   return out;
 }
+
+/**
+ * Samma sak, men över **alla** leder man har öppna (flikarna, aug 2026).
+ *
+ * Bokningen finns för att kondenseringen inte ska föreslå att man matar bort en
+ * pal planen väntar på, och den logiken hade blivit tunnare i samma sekund som
+ * flera leder gick att ha igång: pals som en led i bakgrunden behöver hade
+ * legat i matlistan precis som före `bookings.ts` fanns. Rollen som väger
+ * tyngst vinner, samma regel som inom en enskild plan.
+ *
+ * Leder utan mål kostar ingenting – `planBookings` går ur direkt – så priset är
+ * de leder man faktiskt börjat på.
+ */
+export function planAllBookings(
+  data: AppData,
+  pals: ScoredPal[],
+  ownedSpecies: ReadonlySet<number>,
+  all: readonly Pick<BreedingPrefs, "target" | "wanted" | "ivGoal">[],
+): Map<string, Booking> {
+  const out = new Map<string, Booking>();
+  for (const prefs of all) {
+    for (const [id, b] of planBookings(data, pals, ownedSpecies, prefs)) {
+      const cur = out.get(id);
+      if (cur && WEIGHT[cur.role] >= WEIGHT[b.role]) continue;
+      out.set(id, b);
+    }
+  }
+  return out;
+}

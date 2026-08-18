@@ -66,6 +66,28 @@ Features by route:
   Also direct combos, shortest-path "fritt läge" tree, `?target=<speciesIdx>` deep-links
   (used by Rollerna). Alla val **sparas** (`pa-breeding` i localStorage) så planen finns kvar
   när man varit inne på Boxen; **Rensa allt** överst nollar dem.
+  **Sidan har FLIKAR – en led per flik** (Kens begäran aug 2026): en avelsled är ett projekt som
+  pågår parallellt med andra, och enda alternativet var att bygga om valen för hand varje gång.
+  Posten i localStorage är därför en **bok** (`BreedingBook` = leder + vilken som är framme), och
+  fyra saker hänger ihop med det:
+  1. **`parseBreedingPrefs` betyder fortfarande "den aktiva ledens val"**, och den platta gamla
+     posten läses vidare som en bok med en led. Fem andra vyer läser samma nyckel och frågar alla
+     efter *en* målbild; att låta funktionen byta betydelse hade ändrat alla fem tyst.
+  2. **Bokningarna tar ALLA leder** (`planAllBookings`, läses av Rollerna och Hitta). En led man
+     inte har uppe är fortfarande en led man håller på med, och matning går inte att ångra – utan
+     det hade kondenseringen pekat ut bakgrundsledernas bärare precis som före `bookings.ts` fanns.
+     `GoalWatch` följer också alla mål: bandet finns för att man är i spelet och inte på
+     planeraren, och då vet man inte vilken flik som låg överst.
+  3. **Boxens guldkant och Översiktens rad är kvar på den AKTIVA leden.** Kanten bär ett steg-
+     nummer, och steg tillhör en plan – en union hade satt två olika "steg 1" på samma bricka.
+  4. **Vyn håller ETT tillstånd** (`book`), inte åtta `useState`. Det är vad som gör flikbytet till
+     en rad: byter man flik byter allt samtidigt, och ingen state kan bli kvar med förra ledens
+     värde. Manuellt läge och ångra-raden hör till fliken man stod på och följer aldrig med över.
+  **Byter man MÅL nollas de önskade passiverna** (Kens begäran aug 2026) – de valdes för den förra
+  arten. Två gränser: det **första** målet nollar ingenting (passivmodalens egen ordning är syfte →
+  syssla → artförslag → passiver, så en nollning där hade raderat det man just gjort), och
+  nollningen **går att ångra** på raden ovanför planen. En automatisk radering man inte bett om får
+  aldrig vara slutgiltig.
   **Med IV-målet "perfekt" är planen EN LED** (Kens design aug 2026, förslaget "En led" ur en
   artefakt han godkände): importstegen (`ivImport`) och etappstegen (`planPerfectLine`) ligger i
   **samma numrering 1 → N** i en enda `BreedRoute`, och vad ett steg uträttar står som **fas-chip**
@@ -387,7 +409,8 @@ build, always, and if a whole page reports empty, suspect the server before the 
   och `buildUseIndex` som svarar på "vad är den här palen bra för?", och `condenseGain` som
   svarar på "vad är stjärnorna värda?" i spelets egna stats; se "Domain gotchas"),
   `breedingPrefs.ts` (`parseBreedingPrefs`/`serializeBreedingPrefs` — planerarens val som
-  överlever sidbyten; se "Domain gotchas"), `savePrefs.ts` (var saven ligger + live-läget,
+  överlever sidbyten, plus `parseBreedingBook` och flikoperationerna; se "Domain gotchas"),
+  `bookings.ts` (`planBookings` per led, `planAllBookings` över alla flikar), `savePrefs.ts` (var saven ligger + live-läget,
   samma valideringsdisciplin). `loadout.ts` (`idealLoadout` — rollens fyra
   passiver mot vad palen redan bär, används av Rollerna),
   `boxSort.ts` (boxens jämförare; de sammansatta sorteringarna och regeln för
@@ -1364,6 +1387,11 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   inläsning och blir tomt i stället för fel. Samma sak gäller passiv-id:n. Djuplänken
   (`?target=`/`?wanted=`) vinner alltid över det sparade, och **Rensa allt** måste därför också
   rensa query-strängen, annars sätter djuplänken tillbaka målet vid nästa montering.
+  Med flikarna gäller samma disciplin **per led**: varje flik valideras för sig, och djuplänken
+  landar i den flik som ligger framme – den är en fråga man ställer nu, inte en ny post i ett
+  register, och en flik per besök från Rollerna hade blivit något man får städa. Boken tolkas
+  aldrig rekursivt: en handredigerad led som själv innehåller `tabs` blir tomma val
+  (`parseFlatPrefs` är det som körs per led, inte den yttre `parseBreedingPrefs`).
 - **Fas 1 är ett TRÄD, inte en kedja** (`passivePlan.ts`). Planen lade tidigare på en passiv i
   taget på en och samma linje. Att i stället para ihop bärarna **två och två** och slå ihop
   mellanresultaten är billigare, och skälet är att kostnaden är konvex i poolens storlek:

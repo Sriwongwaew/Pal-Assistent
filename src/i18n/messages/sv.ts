@@ -1028,6 +1028,15 @@ export const sv: Catalogue = {
   "shortcut.junkPartner":
     "Din {name} bär {n} passiver du inte vill ha – de hamnar i poolen varje gång.",
 
+  // ── Avel: flikar, en per led man har igång ────────────────────────────────
+  "btab.aria": "Avelsleder",
+  "btab.empty": "Ny led",
+  "btab.add": "led",
+  "btab.close": "Stäng {name}",
+  "btab.reset.one": "Målbytet nollade 1 önskad passiv – den hörde till förra arten.",
+  "btab.reset.other": "Målbytet nollade {n} önskade passiver – de hörde till förra arten.",
+  "btab.undo": "Ångra",
+
   // ── Breeding: planerarens egen prosa ──────────────────────────────────────
   "breed.savedHint": "Valen sparas – du kan gå till Boxen och tillbaka utan att tappa planen.",
   "breed.clearAll": "Rensa allt",

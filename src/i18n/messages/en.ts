@@ -1052,6 +1052,15 @@ export const en = {
   "shortcut.junkPartner":
     "Your {name} carries {n} passives you do not want — they land in the pool every time.",
 
+  // ── Breeding: tabs, one per line you have going ───────────────────────────
+  "btab.aria": "Breeding lines",
+  "btab.empty": "New line",
+  "btab.add": "line",
+  "btab.close": "Close {name}",
+  "btab.reset.one": "Changing the target cleared 1 wanted passive — it belonged to the previous species.",
+  "btab.reset.other": "Changing the target cleared {n} wanted passives — they belonged to the previous species.",
+  "btab.undo": "Undo",
+
   // ── Breeding: the planner's own prose ─────────────────────────────────────
   "breed.savedHint": "Your choices are saved — you can visit the Box and come back without losing the plan.",
   "breed.clearAll": "Clear all",
