@@ -52,6 +52,7 @@
  */
 
 import { solveChain } from "./breeding";
+import { atBase } from "./constants";
 import type { IvIndex } from "./ivPlan";
 import { statOddsFromHas } from "./perfectPlan";
 import type { AppData, ChainStep, ScoredPal } from "./types";
@@ -163,9 +164,15 @@ export function planIvImports(
   const bestPartner = (species: number, carried: IvIndex[], need: "M" | "F" | null) => {
     const list = pals.filter((p) => p.s === species && (!need || p.g === need));
     const score = (p: ScoredPal) => carried.reduce<number>((n, i) => n + (carries(p, i) ? 1 : 0), 0);
+    /* `atBase` ligger efter det som påverkar oddsen (bärande statar, skräp) och
+       före resten av IV:n: en pal som står utplacerad i en bas ska plockas ur sin
+       syssla och flyttas, och är två exemplar likvärdiga för planen ska den som
+       redan ligger i lådan vinna (Kens begäran aug 2026). Aldrig före oddsen –
+       en promenad är billigare än ett extra ägg. */
     return list
       .slice()
-      .sort((a, b) => score(b) - score(a) || junkOf(a) - junkOf(b) || b.ivSum - a.ivSum)[0]
+      .sort((a, b) => score(b) - score(a) || junkOf(a) - junkOf(b)
+        || (atBase(a.c) ? 1 : 0) - (atBase(b.c) ? 1 : 0) || b.ivSum - a.ivSum)[0]
       ?? null;
   };
 

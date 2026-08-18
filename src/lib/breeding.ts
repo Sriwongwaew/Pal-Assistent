@@ -1,6 +1,91 @@
 import { msg, translate, type Msg } from "../i18n";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { atBase } from "./constants";
 import type { AppData, BreedTree, ChainStep, ChildResult, ScoredPal } from "./types";
+
+/* ---------- Praktiska hinder: vad ett steg kostar DIG, inte i ägg ----------
+ *
+ * Två saker gör ett steg besvärligt utan att röra oddsen (Kens begäran aug 2026):
+ *
+ * 1. **Partnerarten finns bara i ETT kön i boxen.** Steget kräver ♂+♀, och ungen
+ *    ur föregående steg är 50/50 – så saknas ett kön måste man kläcka om tills
+ *    könet stämmer. I snitt dubbelt så många ägg för just det steget.
+ * 2. **Varje exemplar står UTPLACERAD i en bas.** Då ska den plockas ur sin
+ *    syssla, flyttas till avelsfarmen och sedan tillbaka. Kostar noll ägg och
+ *    en promenad.
+ *
+ * De ligger som **tie-break och aldrig som äggkostnad**, och det är ett medvetet
+ * val: äggsiffrorna i planeraren är uppmätta odds, och att blanda in en påhittad
+ * procent för "besvärligt" hade gjort hela totalen till en gissning – exakt det
+ * som är förbjudet på flera andra ställen i appen (tårtans effekt, Insomnia i
+ * avelstakten). Alltså: lika många steg och lika många ägg → ta det praktiska.
+ *
+ * Att könet därmed inte KOSTAR något i artkedjan är en känd lucka, inte ett
+ * förbiseende: fas 1 räknar det (`genderEggs` i passivePlan), fas 2 gör det inte,
+ * och att börja göra det ändrar varje äggtotal appen visar. Den dagen det görs
+ * ska det mätas, inte uppskattas.
+ */
+
+/** Vikterna mot varandra: könet kostar ägg i praktiken, basen bara en promenad. */
+export const PENALTY_ONE_GENDER = 2;
+export const PENALTY_AT_BASE = 1;
+
+/** Vad som står i vägen för en partnerart. Tomt objekt = ingenting. */
+export interface PartnerHurdle {
+  /**
+   * Det enda kön du äger av arten, när du bara har ett. `null` = du har båda
+   * (eller inget av arten alls).
+   */
+  onlyGender: "M" | "F" | null;
+  /** Varje exemplar står utplacerad i en bas – ingen ligger i lådan. */
+  allAtBase: boolean;
+}
+
+/** Hindret som ett tal. Lägre är bättre, 0 = inget i vägen. */
+export function hurdlePenalty(h: PartnerHurdle): number {
+  return (h.onlyGender ? PENALTY_ONE_GENDER : 0) + (h.allAtBase ? PENALTY_AT_BASE : 0);
+}
+
+const NO_HURDLE: PartnerHurdle = { onlyGender: null, allAtBase: false };
+
+/**
+ * Hindren per art, ur boxen. **Samma uppslag driver både sökningen och texten** –
+ * annars kan gränssnittet förklara ett annat hinder än det planen räknade på.
+ *
+ * Räknas EN gång för hela boxen och returneras som uppslag: sökningarna frågar
+ * per kant, alltså tusentals gånger.
+ */
+export function partnerHurdles(
+  pals: readonly ScoredPal[],
+): (species: number) => PartnerHurdle {
+  const seen = new Map<number, { m: boolean; f: boolean; stored: boolean }>();
+  for (const p of pals) {
+    const cur = seen.get(p.s) ?? { m: false, f: false, stored: false };
+    if (p.g === "M") cur.m = true;
+    if (p.g === "F") cur.f = true;
+    if (!atBase(p.c)) cur.stored = true;
+    seen.set(p.s, cur);
+  }
+  const cache = new Map<number, PartnerHurdle>();
+  for (const [s, v] of seen) {
+    cache.set(s, {
+      /* Bara ETT kön känt är ett hinder. Har man varken ♂ eller ♀ – alltså bara
+         exemplar med okänt kön – går paret inte att lova något om, och då är
+         `null` det ärliga svaret. */
+      onlyGender: v.m && v.f ? null : v.m ? "M" : v.f ? "F" : null,
+      allAtBase: !v.stored,
+    });
+  }
+  /* En art man inte äger får inget hinder och inget straff: sökningarna frågar
+     bara om ägda arter, och en okänd art ska inte kunna se BÄTTRE ut än en ägd. */
+  return (species: number) => cache.get(species) ?? NO_HURDLE;
+}
+
+/** Hindren som tal, för sökningarnas tie-break. */
+export function partnerPenalties(pals: readonly ScoredPal[]): (species: number) => number {
+  const hurdles = partnerHurdles(pals);
+  return (species: number) => hurdlePenalty(hurdles(species));
+}
 
 /** Index i den platta triangulära par-tabellen för oordnat par (i, j). */
 export function pairIndex(n: number, i: number, j: number): number {
@@ -148,6 +233,9 @@ export function solveChainCheapest(
   target: number,
   stepCost: (partnerSpecies: number, isFirstStep: boolean) => number,
   maxDepth = 10,
+  /* Praktiskt hinder per partnerart (`partnerPenalties`). Används BARA för att
+     bryta lika lägen – aldrig som kostnad, se helpern längst upp i filen. */
+  stepPenalty: (partnerSpecies: number) => number = () => 0,
 ): ChainStep[] | null {
   const EPS = 1e-9;
   /* Första steget kan kosta mer än de följande: där är linjen fortfarande en ägd
@@ -170,6 +258,9 @@ export function solveChainCheapest(
 
   const dist = new Map<number, number>([[base, 0]]);
   const depth = new Map<number, number>([[base, 0]]);
+  /* Summan av vägens praktiska hinder. Egen tabell och inte inbakad i `dist`:
+     hindren får aldrig kunna slå ut ett billigare kedja i ägg. */
+  const pen = new Map<number, number>([[base, 0]]);
   const prev = new Map<number, number>();
   const partner = new Map<number, [number, string | undefined]>();
   const done = new Set<number>();
@@ -201,9 +292,18 @@ export function solveChainCheapest(
         const tie = Math.abs(nd - old) <= EPS;
         const oldDepth = depth.get(ch.c) ?? Infinity;
         const newDepth = d0 + 1;
+        const oldPen = pen.get(ch.c) ?? Infinity;
+        const newPen = (pen.get(cur) ?? 0) + stepPenalty(o);
+        const samePath = tie && newDepth === oldDepth;
         const better =
           nd < old - EPS ||
           (tie && newDepth < oldDepth) ||
+          /* Lika kostnad OCH lika många steg: ta den väg som är enklast att
+             faktiskt gå – partners man äger i båda könen och som inte står
+             utplacerade i en bas (Kens begäran aug 2026). Det här låg tidigare
+             direkt på artordningen, alltså "godtyckligt men stabilt"; nu är
+             godtyckligheten kvar först när det praktiska också är lika. */
+          (samePath && newPen < oldPen) ||
           /* Sista utslaget: samma kostnad OCH samma antal steg. Utan det vann
              den som råkade prövas först, alltså boxens ordning igen.
              Jämförelsen tar FÖREGÅNGAREN före partnern, så den kedja som är
@@ -212,13 +312,14 @@ export function solveChainCheapest(
              en annan gren och svaret blir svårt att förutsäga (och testet
              fångade just det). Godtyckligt men STABILT är hela poängen: samma
              box ska ge samma kedja varje gång. */
-          (tie && newDepth === oldDepth && (
+          (samePath && newPen === oldPen && (
             cur < (prev.get(ch.c) ?? Infinity)
             || (cur === prev.get(ch.c) && o < (partner.get(ch.c)?.[0] ?? Infinity))
           ));
         if (!better) continue;
         dist.set(ch.c, nd);
         depth.set(ch.c, d0 + 1);
+        pen.set(ch.c, newPen);
         prev.set(ch.c, cur);
         partner.set(ch.c, [o, ch.note]);
       }
@@ -276,9 +377,13 @@ export function chainAlternatives(
   stepCost: (partnerSpecies: number, isFirstStep: boolean) => number,
   maxDepth = 10,
   limit = 6,
+  /** Praktiskt hinder per partnerart – tie-break, aldrig kostnad. */
+  stepPenalty: (partnerSpecies: number) => number = () => 0,
 ): ChainOption[] {
   const VISIT_CAP = 20_000;
-  const cheapest = solveChainCheapest(data, ownedSpecies, base, target, stepCost, maxDepth);
+  const cheapest = solveChainCheapest(
+    data, ownedSpecies, base, target, stepCost, maxDepth, stepPenalty,
+  );
   if (!cheapest || cheapest.length === 0) return [];
   const legs = cheapest.length;
 
@@ -342,12 +447,18 @@ export function chainAlternatives(
     const m = edgesFrom(s);
     for (const c of [...m.keys()].sort((a, b) => a - b)) {
       if (!ok[d + 1]!.has(c)) continue;
-      // Billigaste partnern för just den här kanten; lika pris bryts på lägst art.
+      /* Billigaste partnern för just den här kanten. Lika pris bryts på det
+         praktiska hindret (kön i boxen, inte utplacerad) och först därefter på
+         lägst artindex – samma ordning som Dijkstran ovan. */
       let pick = -1;
       let cost = Infinity;
+      let pickPen = Infinity;
       for (const o of m.get(c)!) {
         const p = stepCost(o, d === 0);
-        if (p < cost) { cost = p; pick = o; }
+        const q = stepPenalty(o);
+        if (p < cost - 1e-9 || (Math.abs(p - cost) <= 1e-9 && q < pickPen)) {
+          cost = p; pick = o; pickPen = q;
+        }
       }
       if (pick < 0 || !Number.isFinite(cost)) continue;
       const note = childrenOf(data, s, pick).find((x) => x.c === c)?.note;
@@ -358,8 +469,13 @@ export function chainAlternatives(
   };
   walk(base, 0, [], 0);
 
+  /* Lika ägg → den väg som är enklast att gå ligger först, och det är den som
+     blir förvalet i gränssnittet. Namnsträngen är kvar sist så listan är
+     identisk mellan två inläsningar av samma box. */
+  const routePen = (o: ChainOption) => o.steps.reduce((n, st) => n + stepPenalty(st.with), 0);
   found.sort((a, b) =>
     a.eggs - b.eggs
+    || routePen(a) - routePen(b)
     || a.steps.map((s) => s.to).join(",").localeCompare(b.steps.map((s) => s.to).join(",")));
   return found.slice(0, limit);
 }
@@ -397,7 +513,18 @@ export interface ParentPrefs {
 
 export const DEFAULT_PARENT_PREFS: ParentPrefs = { ivGoal: "fast" };
 
-/** Skräp-passiver först (färre är bättre), sedan IV enligt målet, sedan totalpoäng. */
+/**
+ * Skräp-passiver först (färre är bättre), sedan IV enligt målet, sedan **var palen
+ * står**, sedan totalpoäng.
+ *
+ * `base` ligger före `score` och inte efter, och det är inte en slump: `score`
+ * belönar höga tiers och är därför inget mått på hur bra en FÖRÄLDER är – den
+ * står här bara som rest när skräp och IV är lika (se filhuvudets varning om att
+ * aldrig rangordna föräldrar på score). Att en pal står utplacerad i en bas är
+ * däremot en kostnad man faktiskt betalar: plocka ur sysslan, flytta, flytta
+ * tillbaka. Är två exemplar likvärdiga som föräldrar ska den som redan ligger i
+ * lådan vinna (Kens begäran aug 2026).
+ */
 function parentKey(p: ScoredPal, prefs: ParentPrefs) {
   const junk = prefs.wanted
     ? p.pv.reduce((n, id) => n + (prefs.wanted!.has(id) ? 0 : 1), 0)
@@ -408,7 +535,7 @@ function parentKey(p: ScoredPal, prefs: ParentPrefs) {
     prefs.ivGoal === "fast"
       ? (p.iv[0] + p.iv[1] + p.iv[2]) / 3
       : Math.min(p.iv[0], p.iv[1], p.iv[2]);
-  return { junk, iv, score: p.score };
+  return { junk, iv, base: atBase(p.c) ? 1 : 0, score: p.score };
 }
 
 /** Negativt när `a` är den bättre föräldern. Sorterbar direkt. */
@@ -421,14 +548,17 @@ export function compareParents(a: ScoredPal, b: ScoredPal, prefs: ParentPrefs): 
      Den ordningen ändras vid varje inläsning, så planen bytte pal utan att
      något som spelade roll hade ändrats. Se `solveChainCheapest` för samma
      fälla i artkedjan. */
-  return x.junk - y.junk || y.iv - x.iv || y.score - x.score || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return x.junk - y.junk || y.iv - x.iv || x.base - y.base || y.score - x.score
+    || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
 /** Samma rangordning för ett helt par – används för att jämföra ♂/♀-uppställningar. */
 export function pairQuality(a: ScoredPal, b: ScoredPal, prefs: ParentPrefs) {
   const x = parentKey(a, prefs);
   const y = parentKey(b, prefs);
-  return { junk: x.junk + y.junk, iv: x.iv + y.iv, score: x.score + y.score };
+  return {
+    junk: x.junk + y.junk, iv: x.iv + y.iv, base: x.base + y.base, score: x.score + y.score,
+  };
 }
 
 const comparePairs = (
@@ -438,7 +568,7 @@ const comparePairs = (
 ): number => {
   const x = pairQuality(a[0], a[1], prefs);
   const y = pairQuality(b[0], b[1], prefs);
-  return x.junk - y.junk || y.iv - x.iv || y.score - x.score;
+  return x.junk - y.junk || y.iv - x.iv || x.base - y.base || y.score - x.score;
 };
 
 /** Bästa ägda ♂+♀-kombination för ett föräldrapar av arterna (a, b). */

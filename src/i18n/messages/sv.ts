@@ -578,6 +578,7 @@ export const sv: Catalogue = {
   "brc.pool": "pool {n}",
   "brc.poolClean": "pool {n} — inga skräp",
   "brc.poolJunk": "pool {n} · {j} skräp från partnern",
+  "brc.oneGenderOwned": "du äger bara {g} {name} – kläck ungen som {need}",
   "brc.genderFree": "kön: valfritt här",
   "brc.genderCost": "+≈{n} ägg för rätt kön",
   "brc.clean": "ren",

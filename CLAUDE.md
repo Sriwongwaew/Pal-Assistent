@@ -1490,6 +1490,12 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   `ivGoal` breaks those ties — `"fast"` maximises the IV average, `"perfect"` maximises the
   *weakest* stat (80/80/80 beats 100/100/40 when you're chasing 100/100/100).
   `solveFree`/`solveChain` remain species-only: they minimise pairings, not passive loss.
+  Efter IV och **före** `score` ligger sedan aug 2026 **var palen står**: en utplacerad pal ska
+  plockas ur sin syssla, flyttas till avelsfarmen och tillbaka igen, och är två exemplar
+  likvärdiga som föräldrar ska den som redan ligger i lådan vinna (Kens begäran). Ordningen är
+  vald och inte råkad — `score` är ingen kvalitet hos en förälder (se varningen ovan), medan en
+  promenad är en kostnad man faktiskt betalar. Men **aldrig före IV eller skräp**: en promenad är
+  billigare än ett sämre ägg. Globala palboxen räknas som lådan (`isStored`), inte som en bas.
 - **Passiv-planens artkedja (fas 2) räknas i ägg, inte i steg** (`solveChainCheapest`).
   `solveChain` är en BFS och tar färst steg utan att bry sig om *vem* man parar med — men
   partnern är en ägd pal, och varje skräp-passiv den bär hamnar i arvspoolen. I Kens box gav
@@ -1501,6 +1507,29 @@ Tre saker om licensfilerna som är valda, inte råkade så:
   (samma odds i annan ordning skiljer i sista float-biten). När genvägen är >20 % dyrare
   läggs den i `speciesPhaseShortcut` så gränssnittet kan motivera omvägen — annars ser det
   extra steget ut som ett fel.
+- **Lika många steg och lika många ägg → ta det steg som GÅR att ta** (`partnerHurdles` /
+  `partnerPenalties` i `breeding.ts`, Kens begäran aug 2026). Två saker gör ett steg besvärligt
+  utan att röra oddsen: partnerarten finns bara i **ett kön** i boxen (steget kräver ♂+♀ och ungen
+  ur föregående steg är 50/50, alltså kläck om tills könet stämmer) och **varje exemplar står
+  utplacerad i en bas**. Före det här låg tie-breaket direkt på artindex – uttryckligen
+  "godtyckligt men stabilt" – och en väg som krävde ett kön man inte hade kunde vinna över en
+  gångbar till samma pris. Mätt mot Kens box: 143 av 255 ägda arter finns bara i ett kön, och av
+  441 planer med flera lika långa vägar bytte förvalet i **113** – 111 för könet, 2 för basen,
+  och i samtliga med **oförändrad äggsiffra**. Fyra saker att inte ändra tillbaka:
+  1. **Hindren är TIE-BREAK, aldrig kostnad.** Äggsiffrorna är uppmätta odds; en påhittad procent
+     för "besvärligt" hade gjort hela totalen till en gissning – samma förbud som gäller tårtans
+     effekt och Insomnia i avelstakten. `pen` är därför en egen tabell i Dijkstran och läggs
+     aldrig till `dist`, och sista utslaget är fortfarande artindex, alltså stabilt mellan
+     inläsningar (`tests/chainStable.test.ts`).
+  2. **Att könet inte KOSTAR något i fas 2 är en känd lucka**, inte ett förbiseende: fas 1 räknar
+     det (`genderEggs` i `passivePlan.ts`), fas 2 gör det inte, och att börja göra det ändrar
+     varje äggtotal appen visar. Den dagen det görs ska det mätas, inte uppskattas.
+  3. **Samma uppslag driver sökningen och texten.** `partnerHurdles` är källan; `partnerPenalties`
+     är bara den summerad. Annars kan gränssnittet förklara ett annat hinder än planen räknade på.
+  4. **Bara könet får ett eget pill** (`brc.oneGenderOwned` på fas 2-steget). Att partnern står i
+     en bas syns redan på dess kort via `PalIdent` (behållare, rad, ruta), och samma sak på två
+     ställen är precis det som underkändes på andra ytor. Pillret är GULT och inte rött: steget
+     går att ta, det kostar bara besvär – rött hör till de riktiga stoppen (`.hint.bad`).
 - **Linjens egen pal bär sitt skräp.** Startpalen i passiv-planen är en riktig pal ur boxen,
   så dess skräp-passiver ska räknas in i första stegets pool (`linePv`). Efter ett steg är
   linjen en unge man kläcker tills den har de önskade, och antas då ren — samma antagande som

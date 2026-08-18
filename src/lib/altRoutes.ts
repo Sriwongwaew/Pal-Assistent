@@ -38,7 +38,7 @@
  */
 
 import {
-  childrenOf, compareParents, inheritOdds, solveChain, solveChainCheapest,
+  childrenOf, compareParents, inheritOdds, partnerPenalties, solveChain, solveChainCheapest,
 } from "./breeding";
 import type { ParentPrefs } from "./breeding";
 import { findDirectPairs } from "./directPair";
@@ -109,6 +109,9 @@ export function findAltRoutes(
 
   const want = new Set(usable);
   const junkOf = (p: ScoredPal) => p.pv.reduce((n, id) => n + (want.has(id) ? 0 : 1), 0);
+  /* Lika dyra kedjor bryts på hur besvärliga de är att gå – kön i boxen och
+     utplacerade partners. Tie-break, aldrig kostnad (se `partnerPenalties`). */
+  const penalty = partnerPenalties(pals);
 
   const bySpecies = new Map<number, ScoredPal[]>();
   for (const p of pals) {
@@ -182,7 +185,9 @@ export function findAltRoutes(
     let steps: ChainStep[] = [];
     if (species !== target) {
       const found =
-        solveChainCheapest(data, ownedSpecies, species, target, stepEggs, MAX_DEPTH) ??
+        solveChainCheapest(
+          data, ownedSpecies, species, target, stepEggs, MAX_DEPTH, penalty,
+        ) ??
         solveChain(data, ownedSpecies, species, target, MAX_DEPTH);
       if (!found) continue;
       steps = found;

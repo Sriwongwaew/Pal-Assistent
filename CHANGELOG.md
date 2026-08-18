@@ -13,6 +13,26 @@ Comments are stripped before the text is published.
 
 ## Unreleased
 
+<!-- bump: minor -->
+
+- **The plan now picks steps you can actually take.** When two species chains cost the same number
+  of eggs and take the same number of steps, the planner used to pick between them arbitrarily —
+  and that could hand you a step whose partner species you only own one gender of. A step needs
+  ♂+♀, and the child from the step before is a coin flip, so a missing gender means hatching over
+  and over until it lands. It now prefers partners you own in both genders, and after that
+  partners that are not deployed at a base, since those have to be pulled off their job and moved
+  to the breeding farm and back. Measured against your box: 143 of your 255 species exist in only
+  one gender, and of 441 plans with several equal-length routes the recommendation changed in 113
+  — every one of them for the same number of eggs.
+
+  The same rule picks between individuals: two pals that are equally good parents — same junk
+  passives, same IVs — no longer tie on nothing, the one already sitting in a box wins over the
+  one working at a base. Never ahead of the IVs or the junk passives, though: a walk is cheaper
+  than a worse egg.
+
+  Where the awkward step is unavoidable — a unique combo, say — the step now says so: *"you only
+  own ♂ Bushi Noct — hatch the child as ♀"*. It reads as an instruction rather than a wall.
+
 ## 3.4.0 – 2026-08-18
 
 

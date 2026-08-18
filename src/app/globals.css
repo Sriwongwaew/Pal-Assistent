@@ -1455,6 +1455,14 @@ select option { background: var(--panel); color: var(--ink); }
   border: 1px solid var(--line2); border-radius: 999px; padding: 2px 10px;
   font-size: 11px; font-weight: 700; color: var(--ink2); background: var(--panel2);
 }
+/* Praktiskt hinder i steget – ett kön man saknar, en partner som står i en bas.
+   Guld och inte rött: steget GÅR att ta, det kostar bara mer besvär. Rött hör
+   till de riktiga stoppen (`.hint.bad`, "paret kan inte para sig"). */
+.bpill.warn {
+  border-color: color-mix(in oklab, var(--gold) 45%, var(--line2));
+  background: color-mix(in oklab, var(--gold) 12%, var(--panel2));
+  color: var(--ink);
+}
 .brparents { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .bpp {
   display: flex; gap: 9px; align-items: center;

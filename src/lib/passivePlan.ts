@@ -55,8 +55,8 @@ import { findAltRoutes } from "./altRoutes";
 import type { AltRoute } from "./altRoutes";
 import { findDirectPairs } from "./directPair";
 import {
-  chainAlternatives, childrenOf, compareParents, DEFAULT_PARENT_PREFS, inheritOdds, solveChain,
-  solveChainCheapest,
+  chainAlternatives, childrenOf, compareParents, DEFAULT_PARENT_PREFS, inheritOdds,
+  partnerPenalties, solveChain, solveChainCheapest,
 } from "./breeding";
 import type { ParentPrefs } from "./breeding";
 import type { AppData, ChainStep, ScoredPal } from "./types";
@@ -305,6 +305,8 @@ export function buildPassivePlan(
   // Varje pal som deltar bedöms mot de önskade passiverna: allt annat den bär är
   // skräp som hamnar i arvspoolen och sänker oddsen.
   const parentPrefs: ParentPrefs = { ...prefs, wanted: wantedSet };
+  /* Praktiskt hinder per art, räknat en gång: artkedjan frågar per kant. */
+  const penalty = partnerPenalties(pals);
   const junkOf = (p: ScoredPal) => p.pv.reduce((n, id) => n + (wantedSet.has(id) ? 0 : 1), 0);
   const coverOf = (p: ScoredPal) => p.pv.reduce((n, id) => n + (wantedSet.has(id) ? 1 : 0), 0);
   /**
@@ -652,6 +654,10 @@ export function buildPassivePlan(
     };
     const chainEggs = (st: ChainStep[]) =>
       st.reduce((n2, x, i) => n2 + stepEggs(x.with, i === 0), 0);
+    /* Lika många steg och lika många ägg → ta den kedja som är enklast att gå:
+       partners man äger i BÅDA könen och som inte står utplacerade i en bas
+       (Kens begäran aug 2026). Tie-break, aldrig kostnad – se `partnerPenalties`. */
+    const stepPenalty = penalty;
 
     /** Billigaste artkedjan från en art, memoiserad – varje uppslag är en Dijkstra. */
     const chainCache = new Map<number, ChainStep[] | null>();
@@ -662,7 +668,7 @@ export function buildPassivePlan(
       // Billigast i ägg, inte färst steg: ett steg med en partner som bär fyra
       // skräp-passiver kan kosta mer än en hel längre kedja med rena partners.
       const steps =
-        solveChainCheapest(data, ownedSpecies, from, target, stepEggs, MAX_DEPTH) ??
+        solveChainCheapest(data, ownedSpecies, from, target, stepEggs, MAX_DEPTH, stepPenalty) ??
         solveChain(data, ownedSpecies, from, target, MAX_DEPTH);
       chainCache.set(from, steps);
       return steps;
@@ -833,7 +839,7 @@ export function buildPassivePlan(
          Räknas HÄR och inte tidigare: alternativen ska utgå från den art fas 1
          faktiskt landade i, och den är inte känd förrän roten är vald. */
       const options = chainAlternatives(
-        data, ownedSpecies, root.species, target, stepEggs, MAX_DEPTH,
+        data, ownedSpecies, root.species, target, stepEggs, MAX_DEPTH, undefined, penalty,
       );
       const codesOf = (steps: readonly ChainStep[]) => steps.map((st) => data.species[st.to]!.code);
       plan.chainOptions = options.length > 1

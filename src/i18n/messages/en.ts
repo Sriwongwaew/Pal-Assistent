@@ -600,6 +600,7 @@ export const en = {
   "brc.pool": "pool {n}",
   "brc.poolClean": "pool {n} — no junk",
   "brc.poolJunk": "pool {n} · {j} junk from the partner",
+  "brc.oneGenderOwned": "you only own {g} {name} — hatch the child as {need}",
   "brc.genderFree": "gender: any here",
   "brc.genderCost": "+≈{n} eggs for the right gender",
   "brc.clean": "clean",

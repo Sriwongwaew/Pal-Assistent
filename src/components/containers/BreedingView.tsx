@@ -8,7 +8,7 @@ import { useT } from "@/i18n/LocaleContext";
 import { useRichT } from "@/i18n/rich";
 import {
   bestParentPair, buildTree, childrenOf, compareParents, eggsText, exactOdds, isReachable,
-  oddsText, pairQuality, RANDOM_EXTRA_ODDS, solveChain,
+  oddsText, pairQuality, partnerHurdles, RANDOM_EXTRA_ODDS, solveChain,
 } from "@/lib/breeding";
 import type { IvGoal, ParentPrefs } from "@/lib/breeding";
 import { buildPassivePlan } from "@/lib/passivePlan";
@@ -309,6 +309,11 @@ export function BreedingView() {
   );
 
   const uniqueChildren = useMemo(() => new Set(data.uniques.map((u) => u[2])), [data]);
+  /* Vad som står i vägen för en partnerart – samma uppslag som planens sökning
+     bryter lika lägen på (`partnerPenalties`). Kedjan väljer bort hindren när
+     den kan, men ibland finns ingen väg utan dem, och då ska stegets kort SÄGA
+     det: en plan som tyst kräver ett kön man inte har ser ut att vara fel. */
+  const hurdleOf = useMemo(() => partnerHurdles(pals), [pals]);
   /** Antal pals i boxen per passiv – visas på varje banner i väljaren. */
   const passiveCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -2368,6 +2373,24 @@ export function BreedingView() {
                         {st.to === st.with && (
                           <span className="bpill">{t("brc.sameSpecies")}</span>
                         )}
+                        {/* Bara könet får ett eget pill. Att partnern står i en
+                            bas syns redan på dess kort (`PalIdent` skriver
+                            behållare, rad och ruta), och samma sak på två
+                            ställen är precis det som gjorde andra ytor röriga.
+                            Könet har inget annat ställe: att boxen bara har ett
+                            av dem går inte att se på individen. */}
+                        {(() => {
+                          const only = hurdleOf(st.with).onlyGender;
+                          return only && (
+                            <span className="bpill warn">
+                              {t("brc.oneGenderOwned", {
+                                g: only === "M" ? "♂" : "♀",
+                                name: sp(st.with).name,
+                                need: only === "M" ? "♀" : "♂",
+                              })}
+                            </span>
+                          );
+                        })()}
                         {st.note && <span className="bpill">{st.note}</span>}
                       </div>
                     </div>
